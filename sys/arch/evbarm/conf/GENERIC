@@ -31,6 +31,8 @@ makeoptions	DTS="
 	meson8b-mxq.dts
 	meson8b-odroidc1.dts
 
+	mt7623n-bananapi-bpi-r2.dts
+
 	socfpga_cyclone5_de0_nano_soc.dts
 
 	sun4i-a10-a1000.dts
@@ -179,6 +181,8 @@ options 	SOC_BCM2836
 options 	SOC_EXYNOS5422
 
 options 	SOC_MESON8B
+
+options 	SOC_MT7623
 
 options 	SOC_SUN4I_A10
 options 	SOC_SUN5I_A13
