@@ -1,0 +1,11 @@
+#	$NetBSD$
+#
+# Configuration info for Mediatek SoCs
+#
+#
+
+file	arch/arm/mediatek/mediatek_platform.c	soc_mediatek
+
+# SOC parameters
+defflag	opt_soc.h			SOC_MEDIATEK
+defflag	opt_soc.h			SOC_MT7623: SOC_MEDIATEK
