@@ -1,6 +1,7 @@
 /* $NetBSD$ */
 
 /*-
+ * Copyright (c) 2018 Jason R. Thorpe
  * Copyright (c) 2017 Jared McNeill <jmcneill@invisible.ca>
  * All rights reserved.
  *
@@ -54,6 +55,7 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <dev/ic/comreg.h>
 
 #include <arm/mediatek/mediatek_platform.h>
+#include <arm/mediatek/mediatek_toprgureg.h>
 
 #include <libfdt.h>
 
@@ -146,11 +148,18 @@ mediatek_platform_bootstrap(void)
 	}
 }
 
+#define	MT7623_TOPRGU_VADDR	\
+	((MT7623_TOPRGU_PADDR - MEDIATEK_CORE_PBASE) + MEDIATEK_CORE_VBASE)
+
 static void
 mediatek_platform_reset(void)
 {
+	volatile uint32_t *wdt_swrst = cpu_earlydevice_va_p() ?
+	    MT7623_TOPRGU_VADDR : MT7623_TOPRGU_PADDR;
 
-	/* XXXJRT */
+	for (;;) {
+		*wdt_swrst = WDT_SWRST_UNLOCK_KEY;
+	}
 }
 
 static void
