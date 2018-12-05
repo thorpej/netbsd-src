@@ -154,11 +154,11 @@ mediatek_platform_bootstrap(void)
 static void
 mediatek_platform_reset(void)
 {
-	volatile uint32_t *wdt_swrst = cpu_earlydevice_va_p() ?
-	    MT7623_TOPRGU_VADDR : MT7623_TOPRGU_PADDR;
+	uintptr_t wdt_swrst = (cpu_earlydevice_va_p() ?
+	    MT7623_TOPRGU_VADDR : MT7623_TOPRGU_PADDR) + WDT_SWRST;
 
 	for (;;) {
-		*wdt_swrst = WDT_SWRST_UNLOCK_KEY;
+		*(volatile uint32_t *)wdt_swrst = WDT_SWRST_UNLOCK_KEY;
 	}
 }
 
