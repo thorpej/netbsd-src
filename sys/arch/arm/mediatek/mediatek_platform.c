@@ -162,20 +162,13 @@ mediatek_platform_reset(void)
 	}
 }
 
-static void
-mediatek_platform_delay(u_int n)
-{
-
-	/* XXXJRT */
-}
-
 static const struct arm_platform mt7623_platform = {
 	.ap_devmap = mediatek_platform_devmap,
 	.ap_bootstrap = mediatek_platform_bootstrap,
 	.ap_init_attach_args = mediatek_platform_init_attach_args,
 	.ap_device_register = mediatek_platform_device_register,
 	.ap_reset = mediatek_platform_reset,
-	.ap_delay = mediatek_platform_delay,
+	.ap_delay = gtmr_delay,
 	.ap_uart_freq = mediatek_platform_uart_freq,
 };
 
