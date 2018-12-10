@@ -80,7 +80,7 @@
 #define	FIFI_TXTRIGGER_14	0x30
 
 /* Additional MCR bits not present in ns16550 */
-#eefine	MCR_XOFF_STATUS		__BIT(7)
+#define	MCR_XOFF_STATUS		__BIT(7)
 
 /* Autobaud Enable Register */
 #define	AUTOBAUD_EN		__BIT(0)
