@@ -1,0 +1,312 @@
+/* $NetBSD$ */
+
+/*-
+ * Copyright (c) 2018 Jason R. Thorpe
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef _MEDIATEK_MEDIATEK_GPIOREG_H_
+#define	_MEDIATEK_MEDIATEK_GPIOREG_H_
+
+#define	MT7623_GPIO_PADDR		0x10005000
+
+#define	MT7628_GPIO_NPINS		279
+
+/* Relative to GPIO Base address */
+#define	GPIO_GPIO_DIR1			0x000
+#define	GPIO_GPIO_DIR2			0x010
+#define	GPIO_GPIO_DIR3			0x020
+#define	GPIO_GPIO_DIR4			0x030
+#define	GPIO_GPIO_DIR5			0x040
+#define	GPIO_GPIO_DIR6			0x050
+#define	GPIO_GPIO_DIR7			0x060
+#define	GPIO_GPIO_DIR8			0x070
+#define	GPIO_GPIO_DIR9			0x080
+#define	GPIO_GPIO_DIR10			0x090
+#define	GPIO_GPIO_DIR11			0x0a0
+#define	GPIO_MSDC1_CTRL6		0x0b0
+#define	GPIO_GPIO_DIR12			0x0c0
+#define	GPIO_GPIO_DIR13			0x0d0
+#define	GPIO_GPIO_DIR14			0x0e0
+#define	GPIO_GPIO_DIR15			0x0f0
+#define	GPIO_GPIO_DIR16			0x100
+#define	GPIO_GPIO_DIR17			0x110
+#define	GPIO_GPIO_DIR18			0x120
+#define	GPIO_SDIO_CTRL4			0x130
+#define	GPIO_SDIO_CTRL5			0x140
+#define	GPIO_GPIO_PULLEN1		0x150
+#define	GPIO_GPIO_PULLEN2		0x160
+#define	GPIO_GPIO_PULLEN3		0x170
+#define	GPIO_GPIO_PULLEN4		0x180
+#define	GPIO_GPIO_PULLEN5		0x190
+#define	GPIO_GPIO_PULLEN6		0x1a0
+#define	GPIO_GPIO_PULLEN7		0x1b0
+#define	GPIO_GPIO_PULLEN8		0x1c0
+#define	GPIO_GPIO_PULLEN9		0x1d0
+#define	GPIO_GPIO_PULLEN10		0x1e0
+#define	GPIO_GPIO_PULLEN11		0x1f0
+#define	GPIO_GPIO_PULLEN12		0x200
+#define	GPIO_GPIO_PULLEN13		0x210
+#define	GPIO_GPIO_PULLEN14		0x220
+#define	GPIO_GPIO_PULLEN15		0x230
+#define	GPIO_GPIO_PULLEN16		0x240
+#define	GPIO_GPIO_PULLEN17		0x250
+#define	GPIO_GPIO_PULLEN18		0x260
+#define	GPIO_GPIO_PULLSEL1		0x280
+#define	GPIO_GPIO_PULLSEL2		0x290
+#define	GPIO_GPIO_PULLSEL3		0x2a0
+#define	GPIO_GPIO_PULLSEL4		0x2b0
+#define	GPIO_GPIO_PULLSEL5		0x2c0
+#define	GPIO_GPIO_PULLSEL6		0x2d0
+#define	GPIO_GPIO_PULLSEL7		0x2e0
+#define	GPIO_GPIO_PULLSEL8		0x2f0
+#define	GPIO_GPIO_PULLSEL9		0x300
+#define	GPIO_GPIO_PULLSEL10		0x310
+#define	GPIO_GPIO_PULLSEL11		0x320
+#define	GPIO_GPIO_PULLSEL12		0x330
+#define	GPIO_GPIO_PULLSEL13		0x340
+#define	GPIO_GPIO_PULLSEL14		0x350
+#define	GPIO_GPIO_PULLSEL15		0x360
+#define	GPIO_GPIO_PULLSEL16		0x370
+#define	GPIO_GPIO_PULLSEL17		0x380
+#define	GPIO_GPIO_PULLSEL18		0x390
+#define	GPIO_SDIO_CTRL7			0x3a0
+#define	GPIO_BIAS_CTRL3			0x410
+#define	GPIO_BIAS_CTRL4			0x420
+#define	GPIO_SDIO_CTRL8			0x430
+#define	GPIO_OD33_CTRL11		0x440
+#define	GPIO_OD33_CTRL12		0x450
+#define	GPIO_OD33_CTRL13		0x460
+#define	GPIO_OD33_CTRL14		0x470
+#define	GPIO_OD33_CTRL8			0x4c0
+#define	GPIO_OD33_CTRL9			0x4d0
+#define	GPIO_OD33_CTRL10		0x4e0
+#define	GPIO_GPIO_DOUT1			0x500
+#define	GPIO_GPIO_DOUT2			0x510
+#define	GPIO_GPIO_DOUT3			0x520
+#define	GPIO_GPIO_DOUT4			0x530
+#define	GPIO_GPIO_DOUT5			0x540
+#define	GPIO_GPIO_DOUT6			0x550
+#define	GPIO_GPIO_DOUT7			0x560
+#define	GPIO_GPIO_DOUT8			0x570
+#define	GPIO_GPIO_DOUT9			0x580
+#define	GPIO_GPIO_DOUT10		0x590
+#define	GPIO_GPIO_DOUT11		0x5a0
+#define	GPIO_GPIO_DOUT12		0x5b0
+#define	GPIO_GPIO_DOUT13		0x5c0
+#define	GPIO_GPIO_DOUT14		0x5d0
+#define	GPIO_GPIO_DOUT15		0x5e0
+#define	GPIO_GPIO_DOUT16		0x5f0
+#define	GPIO_GPIO_DOUT17		0x600
+#define	GPIO_GPIO_DOUT18		0x610
+#define	GPIO_SDIO_CTRL6			0x620
+#define	GPIO_GPIO_DIN1			0x630
+#define	GPIO_GPIO_DIN2			0x640
+#define	GPIO_GPIO_DIN3			0x650
+#define	GPIO_GPIO_DIN4			0x660
+#define	GPIO_GPIO_DIN5			0x670
+#define	GPIO_GPIO_DIN6			0x680
+#define	GPIO_GPIO_DIN7			0x690
+#define	GPIO_GPIO_DIN8			0x6a0
+#define	GPIO_GPIO_DIN9			0x6b0
+#define	GPIO_GPIO_DIN10			0x6c0
+#define	GPIO_GPIO_DIN11			0x6d0
+#define	GPIO_GPIO_DIN12			0x6e0
+#define	GPIO_GPIO_DIN13			0x6f0
+#define	GPIO_GPIO_DIN14			0x700
+#define	GPIO_GPIO_DIN15			0x710
+#define	GPIO_GPIO_DIN16			0x720
+#define	GPIO_GPIO_DIN17			0x730
+#define	GPIO_GPIO_DIN18			0x740
+#define	GPIO_GPIO_MODE1			0x760
+#define	GPIO_GPIO_MODE2			0x770
+#define	GPIO_GPIO_MODE3			0x780
+#define	GPIO_GPIO_MODE4			0x790
+#define	GPIO_GPIO_MODE5			0x7a0
+#define	GPIO_GPIO_MODE6			0x7b0
+#define	GPIO_GPIO_MODE7			0x7c0
+#define	GPIO_GPIO_MODE8			0x7d0
+#define	GPIO_GPIO_MODE9			0x7e0
+#define	GPIO_GPIO_MODE10		0x7f0
+#define	GPIO_GPIO_MODE11		0x800
+#define	GPIO_GPIO_MODE12		0x810
+#define	GPIO_GPIO_MODE13		0x820
+#define	GPIO_GPIO_MODE14		0x830
+#define	GPIO_GPIO_MODE15		0x840
+#define	GPIO_GPIO_MODE16		0x850
+#define	GPIO_GPIO_MODE17		0x860
+#define	GPIO_GPIO_MODE18		0x870
+#define	GPIO_GPIO_MODE19		0x880
+#define	GPIO_GPIO_MODE20		0x890
+#define	GPIO_GPIO_MODE21		0x8a0
+#define	GPIO_GPIO_MODE22		0x8b0
+#define	GPIO_GPIO_MODE23		0x8c0
+#define	GPIO_GPIO_MODE24		0x8d0
+#define	GPIO_GPIO_MODE25		0x8e0
+#define	GPIO_GPIO_MODE26		0x8f0
+#define	GPIO_GPIO_MODE27		0x900
+#define	GPIO_GPIO_MODE28		0x910
+#define	GPIO_GPIO_MODE29		0x920
+#define	GPIO_GPIO_MODE30		0x930
+#define	GPIO_GPIO_MODE31		0x940
+#define	GPIO_GPIO_MODE32		0x950
+#define	GPIO_GPIO_MODE33		0x960
+#define	GPIO_GPIO_MODE34		0x970
+#define	GPIO_GPIO_MODE35		0x980
+#define	GPIO_GPIO_MODE36		0x990
+#define	GPIO_GPIO_MODE37		0x9a0
+#define	GPIO_GPIO_MODE38		0x9b0
+#define	GPIO_GPIO_MODE39		0x9c0
+#define	GPIO_GPIO_MODE40		0x9d0
+#define	GPIO_GPIO_MODE41		0x9e0
+#define	GPIO_GPIO_MODE42		0x9f0
+#define	GPIO_GPIO_MODE43		0xa00
+#define	GPIO_GPIO_MODE44		0xa10
+#define	GPIO_GPIO_MODE45		0xa20
+#define	GPIO_GPIO_MODE46		0xa30
+#define	GPIO_GPIO_MODE47		0xa40
+#define	GPIO_GPIO_MODE48		0xa50
+#define	GPIO_GPIO_MODE49		0xa60
+#define	GPIO_GPIO_MODE50		0xa70
+#define	GPIO_GPIO_MODE51		0xa80
+#define	GPIO_GPIO_MODE52		0xa90
+#define	GPIO_GPIO_MODE53		0xaa0
+#define	GPIO_GPIO_MODE54		0xab0
+#define	GPIO_GPIO_MODE55		0xac0
+#define	GPIO_GPIO_MODE56		0xad0
+#define	GPIO_GPIO_BANK			0xb10
+#define	GPIO_IES_EN0			0xb20
+#define	GPIO_IES_EN1			0xb30
+#define	GPIO_IES_EN2			0xb40
+#define	GPIO_SMT_EN0			0xb50
+#define	GPIO_SMT_EN1			0xb60
+#define	GPIO_SMT_EN2			0xb70
+#define	GPIO_TDSEL0			0xb80
+#define	GPIO_TDSEL1			0xb90
+#define	GPIO_TDSEL2			0xba0
+#define	GPIO_TDSEL3			0xbb0
+#define	GPIO_TDSEL4			0xbc0
+#define	GPIO_TDSEL5			0xbd0
+#define	GPIO_OD33_CTRL4			0xbe0
+#define	GPIO_OD33_CTRL5			0xbf0
+#define	GPIO_OD33_CTRL6			0xc00
+#define	GPIO_OD33_CTRL7			0xc10
+#define	GPIO_RDSEL0			0xc20
+#define	GPIO_RDSEL1			0xc30
+#define	GPIO_RDSEL2			0xc40
+#define	GPIO_RDSEL3			0xc50
+#define	GPIO_RDSEL4			0xc60
+#define	GPIO_RDSEL5			0xc70
+#define	GPIO_DRVN0_EN			0xc80
+#define	GPIO_DRVP0_EN			0xca0
+#define	GPIO_MSDC0_CTRL0		0xcc0
+#define	GPIO_MSDC0_CTRL1		0xcd0
+#define	GPIO_MSDC0_CTRL2		0xce0
+#define	GPIO_MSDC0_CTRL3		0xcf0
+#define	GPIO_MSDC0_CTRL4		0xd00
+#define	GPIO_MSDC0_CTRL5		0xd10
+#define	GPIO_MSDC0_CTRL6		0xd20
+#define	GPIO_MSDC1_CTRL0		0xd30
+#define	GPIO_MSDC1_CTRL1		0xd40
+#define	GPIO_MSDC1_CTRL2		0xd50
+#define	GPIO_MSDC1_CTRL3		0xd60
+#define	GPIO_MSDC1_CTRL4		0xd70
+#define	GPIO_MSDC1_CTRL5		0xd80
+#define	GPIO_GPIO_TM			0xdf0
+#define	GPIO_GPIO_USB			0xe00
+#define	GPIO_OD33_CTRL0			0xe10
+#define	GPIO_OD33_CTRL1			0xe20
+#define	GPIO_OD33_CTRL2			0xe30
+#define	GPIO_OD33_CTRL3			0xe40
+#define	GPIO_KPAD_CTRL0			0xe50
+#define	GPIO_KPAD_CTRL1			0xe60
+#define	GPIO_EINT_CTRL0			0xe70
+#define	GPIO_EINT_CTRL1			0xe80
+#define	GPIO_BIAS_CTRL0			0xeb0
+#define	GPIO_BIAS_CTRL1			0xec0
+#define	GPIO_BIAS_CTRL2			0xed0
+#define	GPIO_DRV_SEL10			0xf00
+#define	GPIO_DRV_SEL11			0xf10
+#define	GPIO_DRV_SEL12			0xf30
+#define	GPIO_SDIO_CTRL3			0xf40
+#define	GPIO_DRV_SEL0			0xf50
+#define	GPIO_DRV_SEL1			0xf60
+#define	GPIO_DRV_SEL2			0xf70
+#define	GPIO_DRV_SEL3			0xf80
+#define	GPIO_DRV_SEL4			0xf90
+#define	GPIO_DRV_SEL5			0xfa0
+#define	GPIO_DRV_SEL6			0xfb0
+#define	GPIO_SDIO_CTRL2			0xfc0
+#define	GPIO_DRV_SEL8			0xfd0
+#define	GPIO_DRV_SEL7			0xfe0
+#define	GPIO_DDV_SEL9			0xff0
+
+/* GPIO Direction Control Registers */
+/* 0=input, 1=output */
+#define	GPIO_DIR_PINS_PER_REG		16
+#define	GPIO_DIR_PIN_TO_BIT(x)		((x) % GPIO_DIR_PINS_PER_REG)
+#define	GPIO_DIR_REG_HOLE		(16 * 11) /* derp derp */
+#define	_GPIO_PIN_TO_REG(x)		\
+	((((x) / GPIO_DIR_PINS_PER_REG) << 4) + GPIO_GPIO_DIR1)
+#define	GPIO_PIN_TO_REG(x)		\
+	(_GPIO_PIN_TO_REG(x) + (((x) >= GPIO_DIR_REG_HOLE) ? 0x10 : 0))
+
+/* GPIO Pull-up/Pull-down Enable Registers */
+/* 0=pull-off, 1=pull up/down enabled */
+#define	GPIO_PULLEN_PINS_PER_REG	16
+#define	GPIO_PULLEN_PIN_TO_BIT(x)	((x) % GPIO_PULLEN_PINS_PER_REG)
+#define	GPIO_PULLEN_PIN_TO_REG(x)	\
+	((((x) / GPIO_PULLEN_PINS_PER_REG) << 4) + GPIO_GPIO_PULLEN1)
+
+/* GPIO Pull-up/Pull-down Selection Registers */
+/* 0=pull-down, 1=pull-up */
+#define	GPIO_PULLSEL_PINS_PER_REG	16
+#define	GPIO_PULLSEL_PIN_TO_BIT(x)	((x) % GPIO_PULLSEL_PINS_PER_REG)
+#define	GPIO_PULLSEL_PIN_TO_REG(x)	\
+	((((x) / GPIO_PULLSEL_PINS_PER_REG) << 4) + GPIO_GPIO_PULLSEL1)
+
+/* GPIO Data Output Registers */
+#define	GPIO_DOUT_PINS_PER_REG		16
+#define	GPIO_DOUT_PIN_TO_BIT(x)		((x) % GPIO_DOUT_PINS_PER_REG)
+#define	GPIO_DOUT_PIN_TO_REG(x)		\
+	((((x) / GPIO_DOUT_PINS_PER_REG) << 4) + GPIO_GPIO_DOUT1)
+
+/* GPIO Data Input Registers */
+#define	GPIO_DIN_PINS_PER_REG		16
+#define	GPIO_DIN_PIN_TO_BIT(x)		((x) % GPIO_DIN_PINS_PER_REG)
+#define	GPIO_DIN_PIN_TO_REG(x)		\
+	((((x) / GPIO_DIN_PINS_PER_REG) << 4) + GPIO_GPIO_DIN1)
+
+/* GPIO Mode Control Registers */
+#define	GPIO_MODE_PINS_PER_REG		5
+#define	GPIO_MODE_MODE_MASK		0x7
+#define	GPIO_MODE_PIN_SHIFT(x)		(((x) % GPIO_MODE_PINS_PER_REG) * 3)
+#define	GPIO_MODE_PIN_TO_REG(x)		\
+	((((x) / GPIO_MODE_PINS_PER_REG) << 4) + GPIO_GPIO_MODE1)
+
+/* GPIO Misc Control Register */
+#define	GPIO_BANK_GPS_SYNC_SEL		__BIT(1) /* 1=external */
+#define	GPIO_BANK_MIPI_GPI_EN		__BIT(2)
+
+#endif /* _MEDIATEK_MEDIATEK_GPIOREG_H_ */
