@@ -51,11 +51,11 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <arm/cortex/gtmr_var.h>
 #include <arm/cortex/gic_reg.h>
 
-#include <dev/ic/ns16550reg.h>
 #include <dev/ic/comreg.h>
 
 #include <arm/mediatek/mediatek_platform.h>
 #include <arm/mediatek/mediatek_toprgureg.h>
+#include <arm/mediatek/mediatek_uartreg.h>
 
 #include <libfdt.h>
 
@@ -97,14 +97,18 @@ mediatek_platform_early_putchar(char c)
 {
 #ifdef CONSADDR
 #define CONSADDR_VA	((CONSADDR - MEDIATEK_CORE_PBASE) + MEDIATEK_CORE_VBASE)
-	volatile uint32_t *uartaddr = cpu_earlydevice_va_p() ?
-	    (volatile uint32_t *)CONSADDR_VA :
-	    (volatile uint32_t *)CONSADDR;
+	uintptr_t uart_base = cpu_earlydevice_va_p() ?
+	    CONSADDR_VA : CONSADDR;
 
-	while ((le32toh(uartaddr[com_lsr]) & LSR_TXRDY) == 0)
+	volatile uint8_t *uart_lsr =
+	    (volatile uint8_t *)(uart_base + MTK_UART_LSR);
+	volatile uint8_t *uart_thr =
+	    (volatile uint8_t *)(uart_base + MTK_UART_THR);
+
+	while ((*uart_lsr & LSR_TXRDY) == 0)
 		;
 
-	uartaddr[com_data] = htole32(c);
+	*uart_thr = c;
 #endif
 }
 
