@@ -1,4 +1,4 @@
-# $NetBSD: t_builtins.sh,v 1.2 2018/12/05 02:48:04 kre Exp $
+# $NetBSD: t_builtins.sh,v 1.4 2018/12/12 11:52:05 kre Exp $
 #
 # Copyright (c) 2018 The NetBSD Foundation, Inc.
 # All rights reserved.
@@ -62,6 +62,7 @@ have_builtin()
 	LC_ALL=C ${TEST_SH} -c \
 	    'case "$( (type '"$1"') 2>&1)" in
 		(*built*)	exit 0 ;;
+		(*reserved*)	exit 0 ;;   # zsh!! (reserved words are builtin)
 	     esac
 	     exit 1'					||
 	{
@@ -346,6 +347,32 @@ export_body() {
 		'unset VAR || exit 7; export VAR;
 		 VAR=ABC; printenv VAR; VAR=XYZ; printenv VAR'
 
+	# don't check VAR=value, some shells provide meaningless quoting...
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:foobar \
+		${TEST_SH} -c \
+			'VAR=foobar ; export VAR ; export -p'
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:foobar \
+		${TEST_SH} -c \
+			'export VAR=foobar ; export -p'
+	atf_check -s exit:0 -e empty -o match:VAR\$ ${TEST_SH} -c \
+			'unset VAR ; export VAR ; export -p'
+	atf_check -s exit:0 -e empty -o not-match:VAR ${TEST_SH} -c \
+			'export VAR ; unset VAR ; export -p'
+	atf_check -s exit:0 -e empty -o not-match:VAR -o not-match:foobar \
+		${TEST_SH} -c \
+			'VAR=foobar; export VAR ; unset VAR ; export -p'
+
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:FOUND=foobar \
+		${TEST_SH} -c \
+			'export VAR=foobar; V=$(export -p);
+			 unset VAR; eval "$V"; export -p;
+			 printf %s\\n FOUND=${VAR-unset}'
+	atf_check -s exit:0 -e empty -o match:VAR -o match:FOUND=unset \
+		${TEST_SH} -c \
+			'export VAR; V=$(export -p);
+			 unset VAR; eval "$V"; export -p;
+			 printf %s\\n FOUND=${VAR-unset}'
+
 	atf_check -s exit:1 -e empty -o inline:ABC\\nXYZ\\n ${TEST_SH} -c \
 		'VAR=ABC; export VAR; printenv VAR; VAR=XYZ; printenv VAR;
 		unset VAR; printenv VAR; VAR=PQR; printenv VAR'
@@ -389,6 +416,45 @@ export_nbsd_body() {
 
 	atf_check -s not-exit:0 -e not-empty -o empty ${TEST_SH} -c \
 		'export VAR=exported; export -x VAR; export VAR=FOO'
+
+	have_builtin export '' 'export VAR;' '-q VAR' ' -q'  || return 0
+
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'unset VAR; VAR=set; export -q VAR'
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'export VAR=set; export -q VAR'
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'VAR=set; RW=set; export -q VAR RW'
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'VAR=set; export RO=set; export -q VAR RO'
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'export VAR=set RO=set; export -q VAR RO'
+
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'unset VAR; export -q VAR'
+	# next one is the same as the have_builtin test, so "cannot" fail...
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'unset VAR; export VAR; export -q VAR'
+
+	# if we have -q we should also have -p var...
+	# What's more, we are testing NetBSD sh, so we know output format.
+
+	atf_check -s exit:0 -e empty -o match:VAR=foobar \
+		${TEST_SH} -c \
+			'VAR=foobar ; export VAR ; export -p VAR'
+	atf_check -s exit:0 -e empty -o inline:1 \
+		${TEST_SH} -c \
+			'VAR=foobar ; export VAR ;
+			printf %d $(export -p VAR | wc -l)'
+	atf_check -s exit:0 -e empty \
+		-o inline:'export VAR=foobar\nexport OTHER\n' \
+		${TEST_SH} -c \
+			'VAR=foobar; export VAR OTHER; export -p VAR OTHER'
+	atf_check -s exit:0 -e empty \
+		-o inline:'export A=aaa\nexport B\nexport D='"''"'\n' \
+		${TEST_SH} -c \
+			'A=aaa D= C=foo; unset B; export A B D;
+			 export -p A B C D'
 }
 
 atf_test_case getopts
@@ -441,8 +507,41 @@ readonly_body() {
 		'unset VAR; readonly VAR; printf %s ${VAR-unset}'
 	atf_check -s exit:0 -e empty -o inline:set ${TEST_SH} -c \
 		'unset VAR; readonly VAR=set; printf %s ${VAR-unset}'
+	atf_check -s exit:0 -e empty -o inline:set ${TEST_SH} -c \
+		'VAR=initial; readonly VAR=set; printf %s ${VAR-unset}'
 	atf_check -s not-exit:0 -e not-empty -o empty ${TEST_SH} -c \
 		'readonly VAR=initial; VAR=new; printf %s "${VAR}"'
+
+	# don't check VAR=value, some shells provide meaningless quoting...
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:foobar \
+		${TEST_SH} -c \
+			'VAR=foobar ; readonly VAR ; readonly -p'
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:foobar \
+		${TEST_SH} -c \
+			'readonly VAR=foobar ; readonly -p'
+	atf_check -s exit:0 -e empty -o match:VAR= -o match:foobar \
+		-o not-match:badvalue ${TEST_SH} -c \
+			'VAR=badvalue; readonly VAR=foobar ; readonly -p'
+	atf_check -s exit:0 -e empty -o match:VAR\$ ${TEST_SH} -c \
+			'unset VAR ; readonly VAR ; readonly -p'
+
+	# checking that readonly -p works (to reset stuff) is a pain...
+	# particularly since not all shells say "readonly..." by default
+	atf_check -s exit:0 -e empty -o match:MYVAR= -o match:FOUND=foobar \
+		${TEST_SH} -c \
+			'V=$(readonly MYVAR=foobar; readonly -p | grep " MYVAR")
+			 unset MYVAR; eval "$V"; readonly -p;
+			 printf %s\\n FOUND=${MYVAR-unset}'
+	atf_check -s exit:0 -e empty -o match:MYVAR\$ -o match:FOUND=unset \
+		${TEST_SH} -c \
+			'V=$(readonly MYVAR; readonly -p | grep " MYVAR")
+			 unset MYVAR; eval "$V"; readonly -p;
+			 printf %s\\n "FOUND=${MYVAR-unset}"'
+	atf_check -s exit:0 -e empty -o match:MYVAR= -o match:FOUND=empty \
+		${TEST_SH} -c \
+			'V=$(readonly MYVAR=; readonly -p | grep " MYVAR")
+			 unset VAR; eval "$V"; readonly -p;
+			 printf %s\\n "FOUND=${MYVAR-unset&}${MYVAR:-empty}"'
 
 	# don't test stderr, some shells inist on generating a message for an
 	# unset of a readonly var (rather than simply having unset make $?=1)
@@ -454,6 +553,51 @@ readonly_body() {
 		'unset VAR; readonly VAR=set; unset VAR && printf %s ${VAR:-XX}'
 	atf_check -s exit:0 -e ignore -o inline:set ${TEST_SH} -c \
 		'unset VAR; readonly VAR=set; unset VAR; printf %s ${VAR-unset}'
+}
+
+atf_test_case readonly_nbsd
+readonly_nbsd_head() {
+	atf_set "descr" "Tests NetBSD extensions to 'readonly'"
+}
+readonly_nbsd_body() {
+	have_builtin readonly '' 'readonly VAR;' '-q VAR' ' -q'  || return 0
+
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'VAR=set; readonly -q VAR'
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'readonly VAR=set; readonly -q VAR'
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'VAR=set; RW=set; readonly -q VAR RW'
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'VAR=set; readonly RO=set; readonly -q VAR RO'
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'readonly VAR=set RO=set; readonly -q VAR RO'
+
+	atf_check -s exit:1 -o empty -e empty ${TEST_SH} -c \
+		'unset VAR; readonly -q VAR'
+	# next one is the same as the have_builtin test, so "cannot" fail...
+	atf_check -s exit:0 -o empty -e empty ${TEST_SH} -c \
+		'unset VAR; readonly VAR; readonly -q VAR'
+
+	# if we have -q we should also have -p var...
+	# What's more, we are testing NetBSD sh, so we know output format.
+
+	atf_check -s exit:0 -e empty -o match:VAR=foobar \
+		${TEST_SH} -c \
+			'VAR=foobar ; readonly VAR ; readonly -p VAR'
+	atf_check -s exit:0 -e empty -o inline:1 \
+		${TEST_SH} -c \
+			'VAR=foobar ; readonly VAR ;
+			printf %d $(readonly -p VAR | wc -l)'
+	atf_check -s exit:0 -e empty \
+		-o inline:'readonly VAR=foobar\nreadonly OTHER\n' \
+		${TEST_SH} -c \
+			'VAR=foobar; readonly VAR OTHER; readonly -p VAR OTHER'
+	atf_check -s exit:0 -e empty \
+		-o inline:'readonly A=aaa\nreadonly B\nreadonly D='"''"'\n' \
+		${TEST_SH} -c \
+			'A=aaa D= C=foo; unset B; readonly A B D;
+			 readonly -p A B C D'
 }
 
 atf_test_case cd_pwd
@@ -770,6 +914,7 @@ atf_init_test_cases() {
 	atf_add_test_case jobid
 	atf_add_test_case let
 	atf_add_test_case local
+	atf_add_test_case readonly_nbsd
 	atf_add_test_case setvar
 	# inputrc should probably be tested in libedit tests (somehow)
 

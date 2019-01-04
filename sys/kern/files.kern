@@ -1,4 +1,4 @@
-#	$NetBSD: files.kern,v 1.27 2018/12/03 00:11:02 christos Exp $
+#	$NetBSD: files.kern,v 1.29 2018/12/24 16:58:54 thorpej Exp $
 
 #
 # kernel sources
@@ -87,6 +87,7 @@ file	kern/kern_synch.c		kern
 file	kern/kern_syscall.c		kern
 file	kern/kern_sysctl.c		kern
 file	kern/kern_tc.c			kern
+file	kern/kern_threadpool.c		kern
 file	kern/kern_time.c		kern
 file	kern/kern_timeout.c		kern
 file	kern/kern_turnstile.c		kern
@@ -142,6 +143,7 @@ file	kern/subr_psref.c		kern
 file	kern/subr_specificdata.c	kern
 file	kern/subr_tftproot.c		tftproot
 file	kern/subr_time.c		kern
+file	kern/subr_thmap.c		kern
 file	kern/subr_userconf.c		userconf
 file	kern/subr_vmem.c		kern
 file	kern/subr_workqueue.c		kern

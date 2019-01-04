@@ -1,4 +1,4 @@
-# $NetBSD: mi,v 1.1630 2018/12/08 01:47:21 sevan Exp $
+# $NetBSD: mi,v 1.1636 2018/12/29 11:30:11 maxv Exp $
 #
 # Note: don't delete entries from here - mark them as "obsolete" instead.
 #
@@ -1386,7 +1386,7 @@
 ./usr/share/man/cat4/lii.0			man-sys-catman		.cat
 ./usr/share/man/cat4/lkm.0			man-obsolete		obsolete
 ./usr/share/man/cat4/lm.0			man-sys-catman		.cat
-./usr/share/man/cat4/lmc.0			man-sys-catman		.cat
+./usr/share/man/cat4/lmc.0			man-obsolete		obsolete
 ./usr/share/man/cat4/lmenv.0			man-sys-catman		.cat
 ./usr/share/man/cat4/lmtemp.0			man-sys-catman		.cat
 ./usr/share/man/cat4/lo.0			man-sys-catman		.cat
@@ -1505,6 +1505,7 @@
 ./usr/share/man/cat4/ntwoc.0			man-sys-catman		.cat
 ./usr/share/man/cat4/null.0			man-sys-catman		.cat
 ./usr/share/man/cat4/nvme.0			man-sys-catman		.cat
+./usr/share/man/cat4/nvmm.0			man-sys-catman		.cat
 ./usr/share/man/cat4/nxt2k.0			man-sys-catman		.cat
 ./usr/share/man/cat4/oak.0			man-sys-catman		.cat
 ./usr/share/man/cat4/oboe.0			man-sys-catman		.cat
@@ -2335,7 +2336,7 @@
 ./usr/share/man/cat8/acorn26/boot26.0		man-obsolete		obsolete
 ./usr/share/man/cat8/acorn26/makedev.0		man-obsolete		obsolete
 ./usr/share/man/cat8/acorn32/MAKEDEV.0		man-obsolete		obsolete
-./usr/share/man/cat8/acorn32/boot.0		man-sys-catman		obsolete
+./usr/share/man/cat8/acorn32/boot.0		man-obsolete		obsolete
 ./usr/share/man/cat8/acorn32/boot32.0		man-sys-catman		.cat
 ./usr/share/man/cat8/acorn32/makedev.0		man-obsolete		obsolete
 ./usr/share/man/cat8/acorn32/nbfs.0		man-sys-catman		.cat
@@ -2440,19 +2441,19 @@
 ./usr/share/man/cat8/compat_darwin.0		man-obsolete		obsolete
 ./usr/share/man/cat8/compat_freebsd.0		man-sys-catman		.cat
 ./usr/share/man/cat8/compat_hpux.0		man-obsolete		obsolete
-./usr/share/man/cat8/compat_ibcs2.0		man-sys-catman		.cat
+./usr/share/man/cat8/compat_ibcs2.0		man-obsolete		obsolete
 ./usr/share/man/cat8/compat_linux.0		man-sys-catman		.cat
 ./usr/share/man/cat8/compat_netbsd32.0		man-sys-catman		.cat
 ./usr/share/man/cat8/compat_osf1.0		man-sys-catman		.cat
 ./usr/share/man/cat8/compat_pecoff.0		man-obsolete		obsolete
-./usr/share/man/cat8/compat_sco.0		man-sys-catman		.cat
-./usr/share/man/cat8/compat_solaris.0		man-sys-catman		.cat
+./usr/share/man/cat8/compat_sco.0		man-obsolete		obsolete
+./usr/share/man/cat8/compat_solaris.0		man-obsolete		obsolete
 ./usr/share/man/cat8/compat_sunos.0		man-sys-catman		.cat
-./usr/share/man/cat8/compat_svr4.0		man-sys-catman		.cat
-./usr/share/man/cat8/compat_svr4_32.0		man-sys-catman		.cat
+./usr/share/man/cat8/compat_svr4.0		man-obsolete		obsolete
+./usr/share/man/cat8/compat_svr4_32.0		man-obsolete		obsolete
 ./usr/share/man/cat8/compat_ultrix.0		man-sys-catman		.cat
 ./usr/share/man/cat8/compat_win32.0		man-obsolete		obsolete
-./usr/share/man/cat8/compat_xenix.0		man-sys-catman		.cat
+./usr/share/man/cat8/compat_xenix.0		man-obsolete		obsolete
 ./usr/share/man/cat8/comsat.0			man-man-catman		.cat
 ./usr/share/man/cat8/cpuctl.0			man-sysutil-catman	.cat
 ./usr/share/man/cat8/crash.0			man-sysutil-catman	.cat
@@ -2671,7 +2672,7 @@
 ./usr/share/man/cat8/ldpd.0			man-router-catman	.cat
 ./usr/share/man/cat8/lfs_cleanerd.0		man-sysutil-catman	.cat
 ./usr/share/man/cat8/link.0			man-sysutil-catman	.cat
-./usr/share/man/cat8/lmcconfig.0		man-sysutil-catman	.cat
+./usr/share/man/cat8/lmcconfig.0		man-obsolete		obsolete
 ./usr/share/man/cat8/lmcctl.0			man-obsolete		obsolete
 ./usr/share/man/cat8/lmtp.0			man-postfix-catman	postfix,.cat
 ./usr/share/man/cat8/local.0			man-postfix-catman	postfix,.cat
@@ -4507,7 +4508,7 @@
 ./usr/share/man/html4/lii.html			man-sys-htmlman		html
 ./usr/share/man/html4/lkm.html			man-obsolete		obsolete
 ./usr/share/man/html4/lm.html			man-sys-htmlman		html
-./usr/share/man/html4/lmc.html			man-sys-htmlman		html
+./usr/share/man/html4/lmc.html			man-obsolete		obsolete
 ./usr/share/man/html4/lmenv.html		man-sys-htmlman		html
 ./usr/share/man/html4/lmtemp.html		man-sys-htmlman		html
 ./usr/share/man/html4/lo.html			man-sys-htmlman		html
@@ -4617,6 +4618,7 @@
 ./usr/share/man/html4/ntwoc.html		man-sys-htmlman		html
 ./usr/share/man/html4/null.html			man-sys-htmlman		html
 ./usr/share/man/html4/nvme.html			man-sys-htmlman		html
+./usr/share/man/html4/nvmm.html			man-sys-htmlman		html
 ./usr/share/man/html4/nxt2k.html		man-sys-htmlman		html
 ./usr/share/man/html4/oak.html			man-sys-htmlman		html
 ./usr/share/man/html4/oboe.html			man-sys-htmlman		html
@@ -5454,19 +5456,19 @@
 ./usr/share/man/html8/compat_30.html		man-sys-htmlman		html
 ./usr/share/man/html8/compat_darwin.html	man-obsolete		obsolete
 ./usr/share/man/html8/compat_freebsd.html	man-sys-htmlman		html
-./usr/share/man/html8/compat_ibcs2.html		man-sys-htmlman		html
+./usr/share/man/html8/compat_ibcs2.html		man-obsolete		obsolete
 ./usr/share/man/html8/compat_linux.html		man-sys-htmlman		html
 ./usr/share/man/html8/compat_netbsd32.html	man-sys-htmlman		html
 ./usr/share/man/html8/compat_osf1.html		man-sys-htmlman		html
 ./usr/share/man/html8/compat_pecoff.html	man-obsolete		obsolete
-./usr/share/man/html8/compat_sco.html		man-sys-htmlman		html
-./usr/share/man/html8/compat_solaris.html	man-sys-htmlman		html
+./usr/share/man/html8/compat_sco.html		man-obsolete		obsolete
+./usr/share/man/html8/compat_solaris.html	man-obsolete		obsolete
 ./usr/share/man/html8/compat_sunos.html		man-sys-htmlman		html
-./usr/share/man/html8/compat_svr4.html		man-sys-htmlman		html
-./usr/share/man/html8/compat_svr4_32.html	man-sys-htmlman		html
+./usr/share/man/html8/compat_svr4.html		man-obsolete		obsolete
+./usr/share/man/html8/compat_svr4_32.html	man-obsolete		obsolete
 ./usr/share/man/html8/compat_ultrix.html	man-sys-htmlman		html
 ./usr/share/man/html8/compat_win32.html		man-obsolete		obsolete
-./usr/share/man/html8/compat_xenix.html		man-sys-htmlman		html
+./usr/share/man/html8/compat_xenix.html		man-obsolete		obsolete
 ./usr/share/man/html8/comsat.html		man-man-htmlman		html
 ./usr/share/man/html8/cpuctl.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/crash.html		man-sysutil-htmlman	html
@@ -5558,7 +5560,7 @@
 ./usr/share/man/html8/hostapd.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/hostapd_cli.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/hp300/boot.html		man-sys-htmlman		html
-./usr/share/man/html8/hp300/crash.html		man-obsolete 		obsolete
+./usr/share/man/html8/hp300/crash.html		man-obsolete		obsolete
 ./usr/share/man/html8/hp300/format.html		man-sys-htmlman		html
 ./usr/share/man/html8/hp700/boot.html		man-obsolete		obsolete
 ./usr/share/man/html8/hp700/mkboot.html		man-obsolete		obsolete
@@ -5636,7 +5638,7 @@
 ./usr/share/man/html8/ldpd.html			man-router-htmlman	html
 ./usr/share/man/html8/lfs_cleanerd.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/link.html			man-sysutil-htmlman	html
-./usr/share/man/html8/lmcconfig.html		man-sysutil-htmlman	html
+./usr/share/man/html8/lmcconfig.html		man-obsolete		obsolete
 ./usr/share/man/html8/lmtp.html			man-postfix-htmlman	postfix,html
 ./usr/share/man/html8/local.html		man-postfix-htmlman	postfix,html
 ./usr/share/man/html8/locate.updatedb.html	man-sysutil-htmlman	html
@@ -7466,9 +7468,9 @@
 ./usr/share/man/man4/le.4			man-sys-man		.man
 ./usr/share/man/man4/lg3303.4			man-sys-man		.man
 ./usr/share/man/man4/lii.4			man-sys-man		.man
-./usr/share/man/man4/lkm.4			man-obsolete 		obsolete
+./usr/share/man/man4/lkm.4			man-obsolete		obsolete
 ./usr/share/man/man4/lm.4			man-sys-man		.man
-./usr/share/man/man4/lmc.4			man-sys-man		.man
+./usr/share/man/man4/lmc.4			man-obsolete		obsolete
 ./usr/share/man/man4/lmenv.4			man-sys-man		.man
 ./usr/share/man/man4/lmtemp.4			man-sys-man		.man
 ./usr/share/man/man4/lo.4			man-sys-man		.man
@@ -7587,6 +7589,7 @@
 ./usr/share/man/man4/ntwoc.4			man-sys-man		.man
 ./usr/share/man/man4/null.4			man-sys-man		.man
 ./usr/share/man/man4/nvme.4			man-sys-man		.man
+./usr/share/man/man4/nvmm.4			man-sys-man		.man
 ./usr/share/man/man4/nxt2k.4			man-sys-man		.man
 ./usr/share/man/man4/oak.4			man-sys-man		.man
 ./usr/share/man/man4/oboe.4			man-sys-man		.man
@@ -8521,19 +8524,19 @@
 ./usr/share/man/man8/compat_darwin.8		man-obsolete		obsolete
 ./usr/share/man/man8/compat_freebsd.8		man-sys-man		.man
 ./usr/share/man/man8/compat_hpux.8		man-obsolete		obsolete
-./usr/share/man/man8/compat_ibcs2.8		man-sys-man		.man
+./usr/share/man/man8/compat_ibcs2.8		man-obsolete		obsolete
 ./usr/share/man/man8/compat_linux.8		man-sys-man		.man
 ./usr/share/man/man8/compat_netbsd32.8		man-sys-man		.man
 ./usr/share/man/man8/compat_osf1.8		man-sys-man		.man
 ./usr/share/man/man8/compat_pecoff.8		man-obsolete		obsolete
-./usr/share/man/man8/compat_sco.8		man-sys-man		.man
-./usr/share/man/man8/compat_solaris.8		man-sys-man		.man
+./usr/share/man/man8/compat_sco.8		man-obsolete		obsolete
+./usr/share/man/man8/compat_solaris.8		man-obsolete		obsolete
 ./usr/share/man/man8/compat_sunos.8		man-sys-man		.man
-./usr/share/man/man8/compat_svr4.8		man-sys-man		.man
-./usr/share/man/man8/compat_svr4_32.8		man-sys-man		.man
+./usr/share/man/man8/compat_svr4.8		man-obsolete		obsolete
+./usr/share/man/man8/compat_svr4_32.8		man-obsolete		obsolete
 ./usr/share/man/man8/compat_ultrix.8		man-sys-man		.man
 ./usr/share/man/man8/compat_win32.8		man-obsolete		obsolete
-./usr/share/man/man8/compat_xenix.8		man-sys-man		.man
+./usr/share/man/man8/compat_xenix.8		man-obsolete		obsolete
 ./usr/share/man/man8/comsat.8			man-man-man		.man
 ./usr/share/man/man8/cpuctl.8			man-sysutil-man		.man
 ./usr/share/man/man8/crash.8			man-crash-man		.man
@@ -8648,7 +8651,7 @@
 ./usr/share/man/man8/hostapd_cli.8		man-sysutil-man		.man
 ./usr/share/man/man8/hp300/MAKEDEV.8		man-obsolete		obsolete
 ./usr/share/man/man8/hp300/boot.8		man-sys-man		.man
-./usr/share/man/man8/hp300/crash.8		man-obsolete 	obsolete
+./usr/share/man/man8/hp300/crash.8		man-obsolete		obsolete
 ./usr/share/man/man8/hp300/format.8		man-sys-man		.man
 ./usr/share/man/man8/hp300/makedev.8		man-obsolete		obsolete
 ./usr/share/man/man8/hp700/MAKEDEV.8		man-obsolete		obsolete
@@ -8753,7 +8756,7 @@
 ./usr/share/man/man8/ldpd.8			man-router-man		.man
 ./usr/share/man/man8/lfs_cleanerd.8		man-sysutil-man		.man
 ./usr/share/man/man8/link.8			man-sysutil-man		.man
-./usr/share/man/man8/lmcconfig.8		man-sysutil-man		.man
+./usr/share/man/man8/lmcconfig.8		man-obsolete		obsolete
 ./usr/share/man/man8/lmcctl.8			man-obsolete		obsolete
 ./usr/share/man/man8/lmtp.8			man-postfix-man		postfix,.man
 ./usr/share/man/man8/local.8			man-postfix-man		postfix,.man

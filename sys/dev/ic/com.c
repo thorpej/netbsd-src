@@ -1,4 +1,4 @@
-/* $NetBSD: com.c,v 1.352 2018/12/08 21:14:37 thorpej Exp $ */
+/* $NetBSD: com.c,v 1.354 2018/12/11 06:34:00 thorpej Exp $ */
 
 /*-
  * Copyright (c) 1998, 1999, 2004, 2008 The NetBSD Foundation, Inc.
@@ -66,7 +66,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: com.c,v 1.352 2018/12/08 21:14:37 thorpej Exp $");
+__KERNEL_RCSID(0, "$NetBSD: com.c,v 1.354 2018/12/11 06:34:00 thorpej Exp $");
 
 #include "opt_com.h"
 #include "opt_ddb.h"
@@ -274,6 +274,23 @@ com_init_regs(struct com_regs *regs, bus_space_tag_t st, bus_space_handle_t sh,
 	regs->cr_iobase = addr;
 	regs->cr_nports = COM_NPORTS;
 	memcpy(regs->cr_map, com_std_map, sizeof(regs->cr_map));
+}
+
+/*
+ * com_init_regs_stride --
+ *	Convenience function for front-ends that have a stride between
+ *	registers.
+ */
+void
+com_init_regs_stride(struct com_regs *regs, bus_space_tag_t st,
+		     bus_space_handle_t sh, bus_addr_t addr, u_int regshift)
+{
+
+	com_init_regs(regs, st, sh, addr);
+	for (size_t i = 0; i < __arraycount(regs->cr_map); i++) {
+		regs->cr_map[i] <<= regshift;
+	}
+	regs->cr_nports <<= regshift;
 }
 
 /*ARGSUSED*/
@@ -2508,7 +2525,16 @@ comcnattach(bus_space_tag_t iot, bus_addr_t iobase, int rate, int frequency,
 {
 	struct com_regs	regs;
 
-	com_init_regs(&regs, iot, (bus_space_handle_t)0/*XXX*/, iobase);
+	/*XXX*/
+	bus_space_handle_t dummy_bsh;
+	memset(&dummy_bsh, 0, sizeof(dummy_bsh));
+
+	/*
+	 * dummy_bsh required because com_init_regs() wants it.  A
+	 * real bus_space_handle will be filled in by cominit() later.
+	 * XXXJRT Detangle this mess eventually, plz.
+	 */
+	com_init_regs(&regs, iot, dummy_bsh/*XXX*/, iobase);
 
 	return comcnattach1(&regs, rate, frequency, type, cflag);
 }

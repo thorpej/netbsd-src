@@ -1,4 +1,4 @@
-/*	$NetBSD: parser.c,v 1.157 2018/12/03 06:41:30 kre Exp $	*/
+/*	$NetBSD: parser.c,v 1.159 2018/12/11 13:31:20 kre Exp $	*/
 
 /*-
  * Copyright (c) 1991, 1993
@@ -37,7 +37,7 @@
 #if 0
 static char sccsid[] = "@(#)parser.c	8.7 (Berkeley) 5/16/95";
 #else
-__RCSID("$NetBSD: parser.c,v 1.157 2018/12/03 06:41:30 kre Exp $");
+__RCSID("$NetBSD: parser.c,v 1.159 2018/12/11 13:31:20 kre Exp $");
 #endif
 #endif /* not lint */
 
@@ -1230,6 +1230,7 @@ currentstate(VSS *stack)
 	return &stack->tokenstate[stack->cur];
 }
 
+#ifdef notdef
 static inline struct tokenstate *
 prevstate(VSS *stack)
 {
@@ -1239,6 +1240,7 @@ prevstate(VSS *stack)
 		return &stack->tokenstate[0];
 	return &stack->prev->tokenstate[LEVELS_PER_BLOCK - 1];
 }
+#endif
 
 static inline VSS *
 bump_state_level(VSS *stack)
@@ -1307,9 +1309,11 @@ cleanup_state_stack(VSS *stack)
  */
 #define	ISDBLQUOTE()	(currentstate(stack)->ts_quoted & QS)
 #define	SETDBLQUOTE()	(currentstate(stack)->ts_quoted = QS | DQ)
+#ifdef notdef
 #define	CLRDBLQUOTE()	(currentstate(stack)->ts_quoted =		\
 			    stack->cur != 0 || stack->prev ?		\
 				prevstate(stack)->ts_quoted & QF : 0)
+#endif
 
 /*
  * This set are just to avoid excess typing and line lengths...
@@ -2443,7 +2447,7 @@ getprompt(void *unused)
  * behaviour.
  */
 static const char *
-expandonstack(char *ps, int lineno)
+expandonstack(char *ps, int cmdsub, int lineno)
 {
 	union node n;
 	struct jmploc jmploc;
@@ -2461,9 +2465,13 @@ expandonstack(char *ps, int lineno)
 		setinputstring(ps, 1, lineno);
 
 		readtoken1(pgetc(), DQSYNTAX, 1);
-		if (backquotelist != NULL && !promptcmds)
-			result = "-o promptcmds not set: ";
-		else {
+		if (backquotelist != NULL) {
+			if (!cmdsub) 
+				result = ps;
+			else if (!promptcmds)
+				result = "-o promptcmds not set: ";
+		}
+		if (result == NULL) {
 			n.narg.type = NARG;
 			n.narg.next = NULL;
 			n.narg.text = wordtext;
@@ -2514,7 +2522,7 @@ expandstr(char *ps, int lineno)
 	 */
 	(void) stalloc(stackblocksize());
 
-	result = expandonstack(ps, lineno);
+	result = expandonstack(ps, 1, lineno);
 
 	if (__predict_true(result == stackblock())) {
 		size_t len = strlen(result) + 1;
@@ -2561,4 +2569,18 @@ expandstr(char *ps, int lineno)
 	popstackmark(&smark);
 
 	return result;
+}
+
+/*
+ * and a simpler version, which does no $( ) expansions, for
+ * use during shell startup when we know we are not parsing,
+ * and so the stack is not in use - we can do what we like,
+ * and do not need to clean up (that's handled externally).
+ *
+ * Simply return the result, even if it is on the stack
+ */
+const char *
+expandenv(char *arg)
+{
+	return expandonstack(arg, 0, 0);
 }
