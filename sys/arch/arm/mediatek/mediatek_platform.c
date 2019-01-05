@@ -54,12 +54,12 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <dev/ic/comreg.h>
 
 #include <arm/mediatek/mediatek_platform.h>
-#include <arm/mediatek/mediatek_toprgureg.h>
-#include <arm/mediatek/mediatek_uartreg.h>
+#include <arm/mediatek/mt6589_toprgureg.h>
+#include <arm/mediatek/mt6577_uartreg.h>
 
 #include <libfdt.h>
 
-#define	MEDIATEK_UART_FREQ	26000000
+#define	MEDIATEK_UART_FREQ	26000000	/* XXX */
 
 extern struct arm32_bus_dma_tag arm_generic_dma_tag;
 extern struct bus_space arm_generic_bs_tag;
