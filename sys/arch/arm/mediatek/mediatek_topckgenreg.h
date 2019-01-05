@@ -144,8 +144,28 @@
 #define	CLK_CFG_0_CLK_MM_INV		__BIT(28)
 #define	CLK_CFG_0_PDN_MM		__BIT(31)
 
-
-
+/* Function Clock Selection Register 1 */
+#define	CLK_CFG_1_CLK_PWM_SEL_MASK	0x3
+#define	CLK_CFG_1_CLK_PWM_SEL(x)	((x) & CLK_CFG_1_CLK_PWM_SEL_MASK)
+#define	F_FPWM_CK_CLK26M		0
+#define	F_FPWM_CK_UNIVPLL2_D4		1
+#define	F_FPWM_CK_UNIVPLL3_D2		2
+#define	F_FPWM_CK_UNIVPLL1_D4		3
+#define	CLK_CFG_1_CLK_PWM_INV		__BIT(4)
+#define	CLK_CFG_1_PDN_PWM		__BIT(7)
+#define	CLK_CFG_1_CLK_VDEC_SEL_MASK	0xf
+#define	CLK_CFG_1_CLK_VDEC_SEL(x)	(((x) & CLK_CFG_1_CLK_VDEC_SEL_MASK) << 8)
+#define	HF_FVDEC_CK_CLK26M		0
+#define	HF_FVDEC_CK_AD_VDECPLL_CK	1
+#define	HF_FVDEC_CK_SYSPLL_D5		2
+#define	HF_FVDEC_CK_SYSPLL1_D4		3
+#define	HF_FVDEC_CK_UNIVPLL_D5		4
+#define	HF_FVDEC_CK_UNIVPLL2_D2		5
+#define	HF_FVDEC_AD_VENCPLL_CK		6
+#define	HF_FVDEC_MSDCPLL_D2		7
+#define	HF_FVDEC_MMPLL_D2		8
+#define	CLK_CFG_1_CLK_VDEC_INV		__BIT(12)
+#define	CLK_CFG_1_PDN_VDEC		__BIT(15)
 
 
 #endif /* _MEDIATEK_MEDIATEK_TOPCKGENREG_H_ */
