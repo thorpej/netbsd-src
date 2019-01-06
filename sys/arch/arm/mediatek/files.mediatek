@@ -9,3 +9,7 @@ file	arch/arm/mediatek/mediatek_platform.c	soc_mediatek
 # SOC parameters
 defflag	opt_soc.h			SOC_MEDIATEK
 defflag	opt_soc.h			SOC_MT7623: SOC_MEDIATEK
+
+# MT6577-compatible UART
+attach	com at fdt with mt6577com
+file	arch/arm/mediatek/mt6577_uart.c		mt6577com
