@@ -1,6 +1,6 @@
 #	$NetBSD$
 #
-# Configuration info for Mediatek SoCs
+# Configuration info for MediaTek SoCs
 #
 #
 
@@ -10,6 +10,15 @@ file	arch/arm/mediatek/mediatek_platform.c	soc_mediatek
 defflag	opt_soc.h			SOC_MEDIATEK
 defflag	opt_soc.h			SOC_MT7623: SOC_MEDIATEK
 
+# Clock / reset units (common code)
+define	mtk_cru
+file	arch/arm/mediatek/mtk_cru.c		mtk_cru
+
 # MT6577-compatible UART
 attach	com at fdt with mt6577com
 file	arch/arm/mediatek/mt6577_uart.c		mt6577com
+
+# MT2701-compatible Peripheral Controller
+device	mt2701pericfg: mtk_cru
+attach	mt2701pericfg at fdt with mt2701_pericfg
+file	arch/arm/mediatek/mt2701_pericfg.c	mt2701_pericfg
