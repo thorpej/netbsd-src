@@ -1,7 +1,7 @@
 /* $NetBSD$ */
 
 /*-
- * Copyright (c) 2018 Jason R. Thorpe
+ * Copyright (c) 2018, 2019 Jason R. Thorpe
  * Copyright (c) 2017 Jared McNeill <jmcneill@invisible.ca>
  * All rights reserved.
  *
