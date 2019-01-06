@@ -190,6 +190,7 @@ struct com_softc {
 #define	COM_TYPE_16650		9
 #define	COM_TYPE_16750		10
 #define	COM_TYPE_DW_APB		11	/* DesignWare APB UART */
+#define	COM_TYPE_MEDIATEK	12	/* MediaTek SoC built-in */
 
 	/* power management hooks */
 	int (*enable)(struct com_softc *);

@@ -533,6 +533,12 @@ com_attach_subr(struct com_softc *sc)
 		CSR_WRITE_1(regsp, COM_REG_FIFO,
 		    FIFO_ENABLE | FIFO_RCV_RST | FIFO_XMT_RST | FIFO_TRIGGER_1);
 		goto fifodelay;
+
+	case COM_TYPE_MEDIATEK:
+		sc->sc_fifolen = 16;
+		fifo_msg = "MediaTek UART, working fifo";
+		SET(sc->sc_hwflags, COM_HW_FIFO);
+		goto fifodelay;
 	}
 
 	sc->sc_fifolen = 1;
