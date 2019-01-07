@@ -129,7 +129,304 @@ static const struct mtk_cru_reset mt2701_pericfg_resets[] = {
 	MTK_CRU_RESET(MT2701_RST_PERI_SPI0_SW_RST, PERI_GLOBALCON_RST1, 1),
 };
 
+static const bus_size_t mt2701_pdn0_regs[] = {
+	[MTK_CLK_GATE_REG_SET] = PERI_GLOBALCON_PDN0_SET,
+	[MTK_CLK_GATE_REG_CLR] = PERI_GLOBALCON_PDN0_CLR,
+	[MTK_CLK_GATE_REG_STA] = PERI_GLOBALCON_PDN0_STA,
+};
+
+static const bus_size_t mt2701_pdn1_regs[] = {
+	[MTK_CLK_GATE_REG_SET] = PERI_GLOBALCON_PDN1_SET,
+	[MTK_CLK_GATE_REG_CLR] = PERI_GLOBALCON_PDN1_CLR,
+	[MTK_CLK_GATE_REG_STA] = PERI_GLOBALCON_PDN1_STA,
+};
+
+static const char *uart_ck_sel_parents[] = { "clk26m", "uart_sel" };
+
 static struct mtk_cru_clk mt2701_pericfg_clks[] = {
+	MTK_CLK_GATE(MT2701_CLK_PERI_NFI, "nfi_ck",
+	    "nfi2x_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(0),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_THERM, "therm_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(1),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM1, "pwm1_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(2),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM2, "pwm2_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(3),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM3, "pwm3_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(4),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM4, "pwm4_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(5),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM5, "pwm5_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(6),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM6, "pwm6_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(7),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM7, "pwm7_ck",
+	    "axisel_d4",
+	    mt2701_pdn0_regs,
+	    __BIT(8),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_PWM, "pwm_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(9),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_USB0, "usb0_ck",
+	    "usb20_sel"
+	    mt2701_pdn0_regs,
+	    __BIT(10),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_USB1, "usb1_ck",
+	    "usb20_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(11),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_AP_DMA, "ap_dma_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(12),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_MSDC30_0, "msdc30_0_ck",
+	    "msdc30_0_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(13),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_MSDC30_1, "msdc30_1_ck",
+	    "msdc30_1_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(14),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_MSDC30_2, "msdc30_2_ck",
+	    "msdc30_2_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(15),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_MSDC30_3, "msdc30_3_ck",
+	    "msdc30_3_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(16),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_MSDC50_3, "msdc50_3_ck",
+	    "emmc_hclk_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(17),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_NLI, "nli_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(18),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_UART0, "uart0_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(19),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_UART1, "uart1_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(20),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_UART2, "uart2_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(21),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_UART3, "uart3_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(22),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_BTIF, "bitif_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(23),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_I2C0, "i2c0_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(24),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_I2C1, "i2c1_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(25),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_I2C2, "i2c2_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(26),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_I2C3, "i2c3_ck",
+	    "clk26m",
+	    mt2701_pdn0_regs,
+	    __BIT(27),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_AUXADC, "auxadc_ck",
+	    "clk26m",
+	    mt2701_pdn0_regs,
+	    __BIT(28),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_SPI0, "spi0_ck",
+	    "spi0_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(29),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_ETH, "eth_ck",
+	    "clk26m",
+	    mt2701_pdn0_regs,
+	    __BIT(30),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_USB0_MCU, "usb0_mcu_ck",
+	    "axi_sel",
+	    mt2701_pdn0_regs,
+	    __BIT(31),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_USB1_MCU, "usb1_mcu_ck",
+	    "axi_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(0),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_USB_SLV, "usbslv_ck",
+	    "axi_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(1),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_GCPU, "gcpu_ck",
+	    "axi_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(2),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_NFI_ECC, "nfi_ecc_ck",
+	    "nfi1x_pad",
+	    mt2701_pdn1_regs,
+	    __BIT(3),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_NFI_PAD, "nfi_pad_ck",
+	    "nfi1x_pad",
+	    mt2701_pdn1_regs,
+	    __BIT(4),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_FLASH, "flash_ck",
+	    "nfi2x_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(5),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_HOST89_INT, "host89_int_ck",
+	    "axi_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(6),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_HOST89_SPI, "host89_spi_ck",
+	    "spi0_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(7),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_HOST89_DVD, "host89_dvd_ck",
+	    "aud2dvd_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(8),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_SPI1, "spi1_ck",
+	    "spi1_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(9),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_SPI2, "spi2_ck",
+	    "spi2_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(10),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_GATE(MT2701_CLK_PERI_FCI, "fci_ck",
+	    "ms_card_sel",
+	    mt2701_pdn1_regs,
+	    __BIT(11),				/* enable */
+	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_MUX(MT2701_CLK_PERI_UART0_SEL, "uart0_ck_sel",
+	    uart_ck_sel_parents,
+	    PERI_UART_CLK_SOURCE_SEL,		/* reg */
+	    __BIT(0)),				/* sel */
+
+	MTK_CLK_MUX(MT2701_CLK_PERI_UART1_SEL, "uart1_ck_sel",
+	    uart_ck_sel_parents,
+	    PERI_UART_CLK_SOURCE_SEL,		/* reg */
+	   __BIT(1)),				/* sel */
+
+	MTK_CLK_MUX(MT2701_CLK_PERI_UART2_SEL, "uart2_ck_sel",
+	    uart_ck_sel_parents,
+	    PERI_UART_CLK_SOURCE_SEL,		/* reg */
+	    __BIT(2)),				/* sel */
+
+	MTK_CLK_MUX(MT2701_CLK_PERI_UART3_SEL, "uart3_ck_sel",
+	    uart_ck_sel_parents,
+	    PERI_UART_CLK_SOURCE_SEL,		/* reg */
+	    __BIT(3)),				/* sel */
 };
 
 static int
