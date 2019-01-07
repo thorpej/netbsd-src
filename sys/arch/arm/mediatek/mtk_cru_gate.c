@@ -40,7 +40,6 @@ mtk_cru_clk_gate_enable(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 			int enable)
 {
 	struct mtk_cru_clk_gate *gate = &clk->u.gate;
-	uint32_t val;
 	u_int which;
 
 	KASSERT(clk->type == MTK_CLK_GATE);
@@ -53,6 +52,8 @@ mtk_cru_clk_gate_enable(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 	/* No need to take the lock with SET and CLR registers. */
 
 	CRU_WRITE(sc, gate->regs[which], gate->mask);
+
+	return 0;
 }
 
 const char *

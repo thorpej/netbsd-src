@@ -144,7 +144,7 @@ struct mtk_cru_softc {
 
 	struct clk_domain	sc_clkdom;
 
-	const struct mtk_cru_reset *sc_resets;
+	struct mtk_cru_reset	*sc_resets;
 	u_int			sc_nresets;
 
 	struct mtk_cru_clk	*sc_clks;

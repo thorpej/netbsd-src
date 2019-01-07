@@ -103,7 +103,7 @@ struct mt2701_pericfg_softc {
 CFATTACH_DECL_NEW(mt2701_pericfg, sizeof(struct mt2701_pericfg_softc),
     mt2701_pericfg_match, mt2701_pericfg_attach, NULL, NULL);
 
-static const struct mtk_cru_reset mt2701_pericfg_resets[] = {
+static struct mtk_cru_reset mt2701_pericfg_resets[] = {
 	MTK_CRU_RESET(MT2701_RST_PERI_UART0_SW_RST, PERI_GLOBALCON_RST0, 0),
 	MTK_CRU_RESET(MT2701_RST_PERI_UART1_SW_RST, PERI_GLOBALCON_RST0, 1),
 	MTK_CRU_RESET(MT2701_RST_PERI_UART2_SW_RST, PERI_GLOBALCON_RST0, 2),
@@ -205,7 +205,7 @@ static struct mtk_cru_clk mt2701_pericfg_clks[] = {
 	    MTK_CLK_GATE_ACT_LOW),
 
 	MTK_CLK_GATE(MT2701_CLK_PERI_USB0, "usb0_ck",
-	    "usb20_sel"
+	    "usb20_sel",
 	    mt2701_pdn0_regs,
 	    __BIT(10),				/* enable */
 	    MTK_CLK_GATE_ACT_LOW),
@@ -451,8 +451,8 @@ mt2701_pericfg_attach(device_t parent, device_t self, void *aux)
 	sc->sc_resets = mt2701_pericfg_resets;
 	sc->sc_nresets = __arraycount(mt2701_pericfg_resets);
 
-	sc->sc_clks = mt27901_pericfg_clks;
-	sc->sc_nclks = __arraycount(mt27901_pericfg_clks);
+	sc->sc_clks = mt2701_pericfg_clks;
+	sc->sc_nclks = __arraycount(mt2701_pericfg_clks);
 
 	if (mtk_cru_attach(sc) != 0)
 		return;
