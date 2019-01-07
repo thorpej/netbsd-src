@@ -63,38 +63,53 @@ typedef enum {
 } mtk_cru_clk_type_t;
 
 struct mtk_cru_clk_gate {
-	bus_size_t	reg;
-	uint32_t	mask;
+	const bus_size_t *regs;
 	const char	*parent;
+	uint32_t	mask;
+	u_int		flags;
 };
 
-#define	MTK_CLK_GATE(_id, _name, _pname, _reg, _bit)		\
+#define	MTK_CLK_GATE_REG_SET		0
+#define	MTK_CLK_GATE_REG_CLR		1
+#define	MTK_CLK_GATE_REG_STA		2
+
+#define	MTK_CLK_GATE_ACT_LOW		0x01
+
+#define	MTK_CLK_GATE(_id, _name, _pname, _regs, _mask, _flags)	\
 	[(_id)] = {						\
 		.type = MTK_CLK_GATE,				\
 		.base.name = (_name),				\
 		.base.flags = CLK_SET_RATE_PARENT,		\
 		.u.gate.parent = (_pname),			\
-		.u.gate.reg = (_reg),				\
-		.u.gate.mask = __BIT(_bit),			\
+		.u.gate.regs = (_regs),				\
+		.u.gate.mask = (_mask),				\
+		.u.gate.flags = (_flags),			\
 		.enable = mtk_cru_clk_gate_enable,		\
 		.get_parent = mtk_cru_clk_gate_get_parent,	\
 	}
 
 struct mtk_cru_clk_mux {
 	bus_size_t	reg;
-	uint32_t	mask;
-	const char	*parent;
+	uint32_t	sel;
+	const char	**parents;
+	u_int		nparents;
 };
 
-#define	MTK_CLK_MUX(_id, _name, _pname, _reg, _bit)		\
+int	mtk_cru_clk_mux_set_parent(struct mtk_cru_softc *,
+				   struct mtk_cru_clk *, const char *);
+const char *mtk_cru_clk_mux_get_parent(struct mtk_cru_softc *,
+				       struct mtk_cru_clk *);
+
+#define	MTK_CLK_MUX(_id, _name, _pnames, _reg, _sel)		\
 	[(_id)] = {						\
 		.type = MTK_CLK_MUX,				\
 		.base.name = (_name),				\
 		.base.flags = CLK_SET_RATE_PARENT,		\
-		.u.gate.parent = (_pname),			\
-		.u.gate.reg = (_reg),				\
-		.u.gate.mask = __BIT(_bit),			\
-		.enable = mtk_cru_clk_mux_enable,		\
+		.u.mux.parents = (_pnames),			\
+		.u.mux.nparents = __arraycount(_pnames),	\
+		.u.mux.reg = (_reg),				\
+		.u.mux.sel = (_sel),				\
+		.set_parent = mtk_cru_clk_mux_set_parent,	\
 		.get_parent = mtk_cru_clk_mux_get_parent,	\
 	}
 
