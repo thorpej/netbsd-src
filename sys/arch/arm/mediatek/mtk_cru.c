@@ -36,8 +36,6 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #include <dev/fdt/fdtvar.h>
 
-#include <dev/clk/clk_backend.h>
-
 #include <arm/mediatek/mtk_cru.h>
 
 static void *
@@ -116,7 +114,7 @@ mtk_cru_clock_decode(device_t dev, int cc_phandle, const void *data,
 		return NULL;
 
 	clk = &sc->sc_clks[clock_id];
-	if (clk->type == MTK_CRU_UNKNOWN)
+	if (clk->type == MTK_CLK_UNKNOWN)
 		return NULL;
 
 	return &clk->base;
@@ -347,14 +345,14 @@ mtk_cru_print(struct mtk_cru_softc *sc)
 
 	for (i = 0; i < sc->sc_nclks; i++) {
 		clk = &sc->sc_clks[i];
-		if (clk->type == MTU_CRU_UNKNOWN)
+		if (clk->type == MTK_CLK_UNKNOWN)
 			continue;
 
 		clkp_parent = clk_get_parent(&clk->base);
 
 		switch (clk->type) {
-		case MTK_CRU_GATE:		type = "gate"; break;
-		case MTK_CRU_MUX:		type = "mux"; break;
+		case MTK_CLK_GATE:		type = "gate"; break;
+		case MTK_CLK_MUX:		type = "mux"; break;
 		default:			type = "???"; break;
 		}
 
