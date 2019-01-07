@@ -75,6 +75,11 @@ struct mtk_cru_clk_gate {
 
 #define	MTK_CLK_GATE_ACT_LOW		0x01
 
+int	mtk_cru_clk_gate_enable(struct mtk_cru_softc *, struct mtk_cru_clk *,
+				int);
+const char *mtk_cru_clk_gate_get_parent(struct mtk_cru_softc *,
+					struct mtk_cru_clk *);
+
 #define	MTK_CLK_GATE(_id, _name, _pname, _regs, _mask, _flags)	\
 	[(_id)] = {						\
 		.type = MTK_CLK_GATE,				\
