@@ -58,12 +58,45 @@ struct mtk_cru_reset {
 
 typedef enum {
 	MTK_CLK_UNKNOWN		= 0,
-	MTK_CLK_FIXED,
+	MTK_CLK_DIV,
 	MTK_CLK_FACTOR,
+	MTK_CLK_FIXED,
 	MTK_CLK_GATE,
 	MTK_CLK_MUX,
 	MTK_CLK_MUXGATE,
 } mtk_cru_clk_type_t;
+
+struct mtk_cru_clk_div {
+	const char	*parent;
+	bus_size_t	reg;
+	uint32_t	div;
+	u_int		flags;
+};
+
+#define	MTK_CLK_DIV_POWER_OF_TWO	__BIT(0)
+#define	MTK_CLK_DIV_ZERO_IS_ONE		__BIT(1)
+#define	MTK_CLK_DIV_TIMES_TWO		__BIT(2)
+
+u_int	mtk_cru_clk_div_get_rate(struct mtk_cru_softc *,
+				 struct mtk_cru_clk *);
+int	mtk_cru_clk_div_set_rate(struct mtk_cru_softc *,
+				 struct mtk_cru_clk *, u_int);
+const char *mtk_cru_clk_div_get_parent(struct mtk_cru_softc *,
+				       struct mtk_cru_clk *);
+
+#define	MTK_CLK_DIV(_id, _name, _parent, _reg, _div, _flags)	\
+	[(_id)] = {						\
+		.type = MTK_CLK_DIV,				\
+		.base.name = (_name),				\
+		.base.flags = 0,				\
+		.u.div.parent = (_parent),			\
+		.u.div.reg = (_reg),				\
+		.u.div.div = (_div),				\
+		.u.div.flags = (_flags),			\
+		.get_rate = mtk_cru_clk_div_get_rate,		\
+		.set_rate = mtk_cru_clk_div_set_rate,		\
+		.get_parent = mtk_cru_clk_div_get_parent,	\
+	}
 
 struct mtk_cru_clk_fixed {
 	const char	*parent;
@@ -126,7 +159,7 @@ struct mtk_cru_clk_gate {
 #define	MTK_CLK_GATE_REG_CLR		1
 #define	MTK_CLK_GATE_REG_STA		2
 
-#define	MTK_CLK_GATE_ACT_LOW		0x01
+#define	MTK_CLK_GATE_ACT_LOW		__BIT(0)
 
 int	mtk_cru_clk_gate_enable(struct mtk_cru_softc *, struct mtk_cru_clk *,
 				int);
@@ -205,8 +238,9 @@ struct mtk_cru_clk {
 	struct clk		base;
 	mtk_cru_clk_type_t	type;
 	union {
-		struct mtk_cru_clk_fixed fixed;
+		struct mtk_cru_clk_div div;
 		struct mtk_cru_clk_factor factor;
+		struct mtk_cru_clk_fixed fixed;
 		struct mtk_cru_clk_gate gate;
 		struct mtk_cru_clk_mux mux;
 		struct mtk_cru_clk_muxgate muxgate;

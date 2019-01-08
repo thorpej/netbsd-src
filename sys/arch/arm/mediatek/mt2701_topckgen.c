@@ -1319,6 +1319,66 @@ static struct mtk_cru_clk mt2701_topckgen_clks[] = {
 	    mt2701_clk_auddiv3_regs,
 	    __BIT(28),				/* enable */
 	    MTK_CLK_GATE_ACT_LOW),
+
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_EXTCK1_DIV, "audio_ext1_ck",
+	    "aud_ext1",
+	    TOPCKGEN_CLK_AUDDIV0,
+	    __BITS(0,7),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_EXTCK2_DIV, "audio_ext2_ck",
+	    "aud_ext2",
+	    TOPCKGEN_CLK_AUDDIV0,
+	    __BITS(8,15),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_MUX1_DIV, "aud_mux1_div",
+	    "aud_mux1_sel",
+	    TOPCKGEN_CLK_AUDDIV0,
+	    __BITS(16,23),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_MUX2_DIV, "aud_mux2_div",
+	    "aud_mux2_sel",
+	    TOPCKGEN_CLK_AUDDIV0,
+	    __BITS(24,31),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K1_SRC_DIV, "aud_k1_src_div",
+	    "aud_k1_src_sel",
+	    TOPCKGEN_CLK_AUDDIV1,
+	    __BITS(0,7),			/* div */
+	    0),
+
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K2_SRC_DIV, "aud_k2_src_div",
+	    "aud_k2_src_sel",
+	    TOPCKGEN_CLK_AUDDIV1,
+	    __BITS(8,15),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K3_SRC_DIV, "aud_k3_src_div",
+	    "aud_k3_src_sel",
+	    TOPCKGEN_CLK_AUDDIV1,
+	    __BITS(16,23),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K4_SRC_DIV, "aud_k4_src_div",
+	    "aud_k4_src_sel",
+	    TOPCKGEN_CLK_AUDDIV1,
+	    __BITS(24,31),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K5_SRC_DIV, "aud_k5_src_div",
+	    "aud_k5_src_sel",
+	    TOPCKGEN_CLK_AUDDIV2,
+	    __BITS(0,7),			/* div */
+	    0),
+	
+	MTK_CLK_DIV(MT2701_CLK_TOP_AUD_K6_SRC_DIV, "aud_k6_src_div",
+	    "aud_k6_src_sel",
+	    TOPCKGEN_CLK_AUDDIV2,
+	    __BITS(8,15),			/* div */
+	    0),
 };
 
 static int
