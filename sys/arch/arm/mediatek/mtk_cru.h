@@ -58,9 +58,62 @@ struct mtk_cru_reset {
 
 typedef enum {
 	MTK_CLK_UNKNOWN		= 0,
+	MTK_CLK_FIXED,
+	MTK_CLK_FACTOR,
 	MTK_CLK_GATE,
 	MTK_CLK_MUX,
+	MTK_CLK_MUXGATE,
 } mtk_cru_clk_type_t;
+
+struct mtk_cru_clk_fixed {
+	const char	*parent;
+	u_int		rate;
+};
+
+u_int	mtk_cru_clk_fixed_get_rate(struct mtk_cru_softc *,
+				   struct mtk_cru_clk *);
+const char *mtk_cru_clk_fixed_get_parent(struct mtk_cru_softc *,
+					 struct mtk_cru_clk *);
+
+#define	MTK_CLK_FIXED(_id, _name, _parent, _rate)		\
+	[(_id)] = {						\
+		.type = MTK_CLK_FIXED,				\
+		.base.name = (_name),				\
+		.base.flags = 0,				\
+		.u.fixed.parent = (_parent),			\
+		.u.fixed.rate = (_rate),			\
+		.get_rate = mtk_cru_clk_fixed_get_rate,		\
+		.get_parent = mtk_cru_clk_fixed_get_parent,	\
+	}
+
+struct mtk_cru_clk_factor {
+	const char	*parent;
+	u_int		mul;
+	u_int		div;
+};
+
+u_int	mtk_cru_clk_factor_get_rate(struct mtk_cru_softc *,
+				    struct mtk_cru_clk *);
+const char *mtk_cru_clk_factor_get_parent(struct mtk_cru_softc *,
+					  struct mtk_cru_clk *);
+
+#define	MTK_CLK_FACTOR(_id, _name, _parent, _mul, _div)		\
+	 [(_id)] = {						\
+	 	.type = MTK_CLK_FACTOR,				\
+		.base.name = (_name),				\
+		.base.flags = 0,				\
+		.u.factor.parent = (_parent),			\
+		.u.factor.mul = (_mul),				\
+		.u.factor.div = (_div),				\
+		.get_rate = mtk_cru_clk_factor_get_rate,	\
+		.get_parent = mtk_cru_clk_factor_get_parent,	\
+	}
+
+#define	MTK_CLK_FMUL(_id, _name, _parent, _mul)			\
+	MTK_CLK_FACTOR(_id, _name, _parent, _mul, 1)
+
+#define	MTK_CLK_FDIV(_id, _name, _parent, _div)			\
+	MTK_CLK_FACTOR(_id, _name, _parent, 1, _div)
 
 struct mtk_cru_clk_gate {
 	const bus_size_t *regs;
@@ -118,12 +171,45 @@ const char *mtk_cru_clk_mux_get_parent(struct mtk_cru_softc *,
 		.get_parent = mtk_cru_clk_mux_get_parent,	\
 	}
 
+struct mtk_cru_clk_muxgate {
+	const bus_size_t *regs;
+	const char	**parents;
+	u_int		nparents;
+	uint32_t	sel;
+	uint32_t	mask;
+	u_int		flags;
+};
+
+#define	MTK_CLK_MUXGATE_CLKF(_id, _name, _pnames, _regs, _sel, 	\
+			     _mask, _flags, _clkf)		\
+	[(_id)] = {						\
+		.type = MTK_CLK_MUXGATE,			\
+		.base.name = (_name),				\
+		.base.flags = (_clkf),				\
+		.u.muxgate.parents = (_pnames),			\
+		.u.muxgate.nparents = __arraycount(_pnames),	\
+		.u.muxgate.regs = (_regs),			\
+		.u.muxgate.sel = (_sel),			\
+		.u.muxgate.mask = (_mask),			\
+		.u.muxgate.flags = (_flags),			\
+		.enable = mtk_cru_clk_gate_enable,		\
+		.set_parent = mtk_cru_clk_mux_set_parent,	\
+		.get_parent = mtk_cru_clk_mux_get_parent,	\
+	}
+
+#define	MTK_CLK_MUXGATE(_id, _name, _pnames, _regs, _sel, _mask, _flags) \
+	MTK_CLK_MUXGATE_CLKF(_id, _name, _pnames, _regs, _sel,	\
+			     _mask, _flags, CLK_SET_RATE_PARENT)
+
 struct mtk_cru_clk {
-	struct clk	base;
+	struct clk		base;
 	mtk_cru_clk_type_t	type;
 	union {
+		struct mtk_cru_clk_fixed fixed;
+		struct mtk_cru_clk_factor factor;
 		struct mtk_cru_clk_gate gate;
 		struct mtk_cru_clk_mux mux;
+		struct mtk_cru_clk_muxgate muxgate;
 	} u;
 
 	int	(*enable)(struct mtk_cru_softc *, struct mtk_cru_clk *, int);
