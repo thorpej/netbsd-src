@@ -13,6 +13,7 @@ defflag	opt_soc.h			SOC_MT7623: SOC_MEDIATEK
 # Clock / reset units (common code)
 define	mtk_cru
 file	arch/arm/mediatek/mtk_cru.c		mtk_cru
+file	arch/arm/mediatek/mtk_cru_div.c		mtk_cru
 file	arch/arm/mediatek/mtk_cru_factor.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_fixed.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_gate.c	mtk_cru
