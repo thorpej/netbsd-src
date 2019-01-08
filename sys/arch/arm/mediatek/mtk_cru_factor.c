@@ -1,7 +1,6 @@
 /* $NetBSD$ */
 
 /*-
- * Copyright (c) 2019 Jason R. Thorpe
  * Copyright (c) 2017 Jared McNeill <jmcneill@invisible.ca>
  * All rights reserved.
  *
@@ -35,59 +34,41 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #include <arm/mediatek/mtk_cru.h>
 
-int
-mtk_cru_clk_gate_enable(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
-			int enable)
+static u_int
+mtk_cru_clk_factor_get_parent_rate(struct clk *clkp)
 {
-	const bus_size_t *regs;
-	uint32_t mask;
-	u_int which;
-	u_int flags;
+	struct clk *clkp_parent;
 
-	KASSERT(clk->type == MTK_CLK_GATE ||
-		clk->type == MTK_CLK_MUXGATE);
+	clkp_parent = clk_get_parent(clkp);
+	if (clkp_parent == NULL)
+		return 0;
 
-	if (clk->type == MTK_CLK_GATE) {
-		regs = clk->u.gate.regs;
-		mask = clk->u.gate.mask;
-		flags = clk->u.gate.flags;
-	} else {
-		regs = clk->u.muxgate.regs;
-		mask = clk->u.muxgate.mask;
-		flags = clk->u.muxgate.flags;
-	}
+	return clk_get_rate(clkp_parent);
+}
 
-	if (flags & MTK_CLK_GATE_ACT_LOW)
-		which = enable ? MTK_CLK_GATE_REG_CLR : MTK_CLK_GATE_REG_SET;
-	else
-		which = enable ? MTK_CLK_GATE_REG_SET : MTK_CLK_GATE_REG_CLR;
+u_int
+mtk_cru_clk_factor_get_rate(struct mtk_cru_softc *sc,
+    struct mtk_cru_clk *clk)
+{
+	struct mtk_cru_clk_factor *factor = &clk->u.factor;
+	struct clk *clkp = &clk->base;
 
-	/*
-	 * If we have separate SET and CLR registers, use them.
-	 * We don't have to take the mutex in this case.
-	 */
-	if (regs[MTK_CLK_GATE_REG_SET] != regs[MTK_CLK_GATE_REG_CLR]) {
-		CRU_WRITE(sc, regs[which], mask);
-	} else {
-		mutex_enter(&sc->sc_mutex);
-		uint32_t val = CRU_READ(sc, regs[which]);
-		if (which == MTK_CLK_GATE_REG_CLR)
-			val &= ~mask;
-		else
-			val |= mask;
-		CRU_WRITE(sc, regs[which], val);
-		mutex_exit(&sc->sc_mutex);
-	}
+	KASSERT(clk->type == MTK_CLK_FACTOR);
 
-	return 0;
+	const u_int p_rate = mtk_cru_clk_factor_get_parent_rate(clkp);
+	if (p_rate == 0)
+		return 0;
+
+	return (u_int)(((uint64_t)p_rate * factor->mul) / factor->div);
 }
 
 const char *
-mtk_cru_clk_gate_get_parent(struct mtk_cru_softc *sc,
+mtk_cru_clk_factor_get_parent(struct mtk_cru_softc *sc,
     struct mtk_cru_clk *clk)
 {
+	struct mtk_cru_clk_factor *factor = &clk->u.factor;
 
-	KASSERT(clk->type == MTK_CLK_GATE);
+	KASSERT(clk->type == MTK_CLK_FACTOR);
 
-	return clk->u.gate.parent;
+	return factor->parent;
 }
