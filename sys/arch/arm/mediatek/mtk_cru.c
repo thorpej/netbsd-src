@@ -351,8 +351,11 @@ mtk_cru_print(struct mtk_cru_softc *sc)
 		clkp_parent = clk_get_parent(&clk->base);
 
 		switch (clk->type) {
+		case MTK_CLK_FIXED:		type = "fixed"; break;
+		case MTK_CLK_FACTOR:		type = "factor"; break;
 		case MTK_CLK_GATE:		type = "gate"; break;
 		case MTK_CLK_MUX:		type = "mux"; break;
+		case MTK_CLK_MUXGATE:		type = "muxgate"; break;
 		default:			type = "???"; break;
 		}
 
