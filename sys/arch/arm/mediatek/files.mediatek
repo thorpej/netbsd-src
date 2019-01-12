@@ -19,6 +19,11 @@ file	arch/arm/mediatek/mtk_cru_fixed.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_gate.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_mux.c		mtk_cru
 
+# MT6577-compatible SYSIRQ interrupt polarity controller
+device	mt6577sysirq
+attach	mt6577sysirq at fdt with mt6577_sysirq
+file	arch/arm/mediatek/mt6577_sysirq.c	mt6577_sysirq
+
 # MT6577-compatible UART
 attach	com at fdt with mt6577com
 file	arch/arm/mediatek/mt6577_uart.c		mt6577com
