@@ -54,24 +54,28 @@ static const char *const compatible[] = {
 	NULL
 };
 
+static const bus_size_t mt6577_uart_regmap[COM_REGMAP_NENTRIES] = {
+	[COM_REG_RXDATA]	=	MTK_UART_RBR,
+	[COM_REG_TXDATA]	=	MTK_UART_THR,
+	[COM_REG_DLBL]		=	MTK_UART_DLL,
+	[COM_REG_DLBH]		=	MTK_UART_DLM,
+	[COM_REG_IER]		=	MTK_UART_IER,
+	[COM_REG_IIR]		=	MTK_UART_IIR,
+	[COM_REG_FIFO]		=	MTK_UART_FCR,
+	[COM_REG_TCR]		=	MTK_UART_FCR,
+	[COM_REG_LCR]		=	MTK_UART_LCR,
+	[COM_REG_MCR]		=	MTK_UART_MCR,
+	[COM_REG_LSR]		=	MTK_UART_LSR,
+	[COM_REG_MSR]		=	MTK_UART_MSR,
+};
+
 static void
 mt6577_uart_init_regs(struct com_regs *regsp, bus_space_tag_t bst,
     bus_space_handle_t bsh, bus_addr_t addr, bus_size_t size)
 {
 
 	com_init_regs(regsp, bst, bsh, addr);
-
-	regsp->cr_map[COM_REG_RXDATA] = MTK_UART_RBR;
-	regsp->cr_map[COM_REG_TXDATA] = MTK_UART_THR;
-	regsp->cr_map[COM_REG_DLBL]   = MTK_UART_DLL;
-	regsp->cr_map[COM_REG_DLBH]   = MTK_UART_DLM;
-	regsp->cr_map[COM_REG_IER]    = MTK_UART_IER;
-	regsp->cr_map[COM_REG_IIR]    = MTK_UART_IIR;
-	regsp->cr_map[COM_REG_FIFO]   = MTK_UART_FCR;
-	regsp->cr_map[COM_REG_LCR]    = MTK_UART_LCR;
-	regsp->cr_map[COM_REG_MCR]    = MTK_UART_MCR;
-	regsp->cr_map[COM_REG_LSR]    = MTK_UART_LSR;
-	regsp->cr_map[COM_REG_MSR]    = MTK_UART_MSR;
+	memcpy(&regsp->cr_map, mt6577_uart_regmap, sizeof(regsp->cr_map));
 
 	regsp->cr_nports = size;
 }
