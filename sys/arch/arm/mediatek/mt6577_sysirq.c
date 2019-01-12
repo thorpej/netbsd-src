@@ -104,14 +104,14 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 
 	const int phandle = faa->faa_phandle;
 
-	/* First, count the number of cells we have to manage. *
+	/* First, count the number of blocks we have to manage. *
 	for (sc->sc_nblocks = 0;
 	     fdtbus_get_reg(phandle, sc->sc_nblocks, NULL, NULL) == 0;
-	     sc->sc_nncells++) {
+	     sc->sc_nblocks++) {
 		/* doop de doo. */;
 	}
-	if (ncells == 0) {
-		aprint_error(": unable to find any INTRPOL register cells\n");
+	if (sc->sc_nblocks == 0) {
+		aprint_error(": unable to find any INTRPOL register blocks\n");
 		return;
 	}
 
@@ -155,10 +155,10 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 	sc->sc_bst = faa->faa_bst;
 	mutex_init(&sc->sc_mutex, MUTEX_DEFAULT, IPL_VM);
 
-	sc->sc_blocks = kmem_zalloc(sc->sc_nncells * sizeof(*sc->sc_cells),
+	sc->sc_blocks = kmem_zalloc(sc->sc_nblocks * sizeof(*sc->sc_blocks),
 				   KM_SLEEP);
 
-	/* Now map each individual cell. */
+	/* Now map each individual block. */
 	for (next_irq = 0, i = 0; i < sc->sc_nblocks; i++) {
 		error = fdtbus_get_reg(phandle, i, &addr, &size);
 		if (error) {
@@ -183,4 +183,105 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 
 	fdtbus_register_interrupt_controller(self, phandle,
 	    mt6577_sysirq_fdt_intrfuncs);
+}
+
+static bool
+invert_specifier(u_int *orig_specifier, u_int *new_specifier, bool *setbitp)
+{
+
+	memcpy(new_specifier, orig_specifier, sizeof(*new_specifier) * NCELLS);
+
+	/* 1st cell is the interrupt type; 0 is SPI, 1 is PPI */
+	/* 2nd cell is the interrupt number */
+	/* 3rd cell is flags */
+
+	if (orig_specifier == NULL)
+		return false;
+
+	u_int flags = be32toh(orig_specifier[2]);
+	u_int new_trigger;
+	bool setbit = false;
+
+	switch (flags & 0xfU) {
+	case 1:				/* low-to-high edge triggered */
+		new_trigger = 2;	/* -> high-to-low */
+		break;
+
+	case 2:				/* high-to-low edge triggered */
+		new_trigger = 1;	/* -> low-to-high */
+		setbit = true;
+		break;
+
+	case 4:				/* active-high level sensitive */
+		new_trigger = 8;	/* -> active-low */
+		break;
+
+	case 8:				/* active-low level sensitive */
+		new_trigger = 4;	/* -> active-high */
+		setbit = true;
+		break;
+
+	default:
+		/* Invalid trigger encoding */
+		return false;
+	}
+
+	flags = (flags & ~0xfU) | new_trigger;
+	new_specifier[2] = htobe32(flags);
+	if (setbitp != NULL)
+		*setbitp = setbit;
+
+	return true;
+}
+
+static void *
+mt6577_sysirq_fdt_intr_establish(device_t self, u_int *specifier,
+				 int ipl, int flags,
+				 int (*func)(void *), void *arg)
+{
+	struct mt6577_sysirq_softc * const sc = device_private(self);
+	u_int inverted_specifier[NCELLS];
+	bool setbit;
+
+	if (! invert_specifier(specifier, inverted_specifier, &setbit))
+		return NULL;
+
+	/* XXX act on setbit */
+
+	return fdtbus_intr_establish_raw(sc->sc_intr_parent,
+					 inverted_specifier, ipl, flags,
+					 func, arg);
+}
+
+static void
+mt6577_sysirq_fdt_intr_disestablish(device_t, void *)
+{
+	/*
+	 * We should never be called, because we explicitly provide our
+	 * interrupt-parent to fdtbus_intr_establish_raw(), and thus
+	 * the interrupt cookie registered references our parent's
+	 * interrupt controller funcs.  Thus our parent's disestablish
+	 * function will be called directly, without us having to pass
+	 * it through.
+	 */
+	panic("mt6577_sysirq_fdt_intr_disestablish: why were we called?");
+}
+
+static bool
+mt6577_sysirq_fdt_intr_intrstr(device_t, u_int *, char *, size_t)
+{
+	struct mt6577_sysirq_softc * const sc = device_private(self);
+	u_int inverted_specifier[NCELLS];
+	char parent_str[64];
+
+	if (! invert_specifier(specifier, inverted_specifier, NULL))
+		return false;
+
+	if (! fdtbus_intr_str_raw(sc->sc_intr_parent, inverted_specifier,
+				  parent_str, sizeof(parent_str)))
+		return false;
+
+	sprintf("%s (via %s)", parent_str, device_xname(self));
+
+	return true;
 }
