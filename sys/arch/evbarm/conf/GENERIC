@@ -329,6 +329,7 @@ gic*		at fdt? pass 1		# ARM GIC
 armgic0		at gic?
 bcmicu* 	at fdt? pass 1		# Broadcom BCM283x ICU
 exyointr* 	at fdt? pass 1		# Samsung Exynos ICU
+mt6577sysirq*	at fdt? pass 1		# MT6577 SYSIRQ controller
 tegralic* 	at fdt? pass 1		# NVIDIA Tegra LIC
 sunxiintc* 	at fdt? pass 1		# Allwinner INTC
 sunxinmi* 	at fdt? pass 2		# Allwinner NMI / R_INTC
