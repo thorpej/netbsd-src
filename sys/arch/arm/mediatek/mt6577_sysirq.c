@@ -104,7 +104,7 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 
 	const int phandle = faa->faa_phandle;
 
-	/* First, count the number of blocks we have to manage. *
+	/* First, count the number of blocks we have to manage. */
 	for (sc->sc_nblocks = 0;
 	     fdtbus_get_reg(phandle, sc->sc_nblocks, NULL, NULL) == 0;
 	     sc->sc_nblocks++) {
@@ -156,7 +156,7 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 	mutex_init(&sc->sc_mutex, MUTEX_DEFAULT, IPL_VM);
 
 	sc->sc_blocks = kmem_zalloc(sc->sc_nblocks * sizeof(*sc->sc_blocks),
-				   KM_SLEEP);
+				    KM_SLEEP);
 
 	/* Now map each individual block. */
 	for (next_irq = 0, i = 0; i < sc->sc_nblocks; i++) {
@@ -176,13 +176,13 @@ mt6577_sysirq_attach(device_t parent, device_t self, void *aux)
 			return;
 		}
 
-		cell->b_first_irq = next_irq;
+		sc->sc_blocks[i].b_first_irq = next_irq;
 		next_irq += size * NBBY;
-		cell->b_last_irq = next_irq - 1;
+		sc->sc_blocks[i].b_last_irq = next_irq - 1;
 	}
 
 	fdtbus_register_interrupt_controller(self, phandle,
-	    mt6577_sysirq_fdt_intrfuncs);
+	    &mt6577_sysirq_fdt_intrfuncs);
 }
 
 static bool
@@ -234,6 +234,20 @@ invert_specifier(u_int *orig_specifier, u_int *new_specifier, bool *setbitp)
 	return true;
 }
 
+static const struct mt6577_sysirq_intrpol_block *
+lookup_register_block(struct mt6577_sysirq_softc * const sc, u_int irq)
+{
+	u_int i;
+
+	for (i = 0; i < sc->sc_nblocks; i++) {
+		if (irq >= sc->sc_blocks[i].b_first_irq &&
+		    irq <= sc->sc_blocks[i].b_last_irq) {
+		    	return &sc->sc_blocks[i];
+		}
+	}
+	return NULL;
+}
+
 static void *
 mt6577_sysirq_fdt_intr_establish(device_t self, u_int *specifier,
 				 int ipl, int flags,
@@ -246,7 +260,30 @@ mt6577_sysirq_fdt_intr_establish(device_t self, u_int *specifier,
 	if (! invert_specifier(specifier, inverted_specifier, &setbit))
 		return NULL;
 
-	/* XXX act on setbit */
+	/* 1st cell is the interrupt type; 0 is SPI, 1 is PPI */
+	/* 2nd cell is the interrupt number */
+	/* 3rd cell is flags */
+
+	const u_int irq = be32toh(inverted_specifier[1]);
+	const struct mt6577_sysirq_intrpol_block * const block =
+	    lookup_register_block(sc, irq);
+	if (block == NULL) {
+		/* IRQ out of range. */
+		return NULL;
+	}
+
+	const u_int irq_off = irq - block->b_first_irq;
+	const bus_size_t reg = (irq_off / 32) * sizeof(uint32_t);
+	const bus_size_t bit = irq_off % 32;
+
+	mutex_enter(&sc->sc_mutex);
+	uint32_t regval = bus_space_read_4(sc->sc_bst, block->b_bsh, reg);
+	if (setbit)
+		regval |= __BIT(bit);
+	else
+		regval &= ~__BIT(bit);
+	bus_space_write_4(sc->sc_bst, block->b_bsh, reg, regval);
+	mutex_exit(&sc->sc_mutex);
 
 	return fdtbus_intr_establish_raw(sc->sc_intr_parent,
 					 inverted_specifier, ipl, flags,
@@ -254,7 +291,7 @@ mt6577_sysirq_fdt_intr_establish(device_t self, u_int *specifier,
 }
 
 static void
-mt6577_sysirq_fdt_intr_disestablish(device_t, void *)
+mt6577_sysirq_fdt_intr_disestablish(device_t self __unused, void *arg __unused)
 {
 	/*
 	 * We should never be called, because we explicitly provide our
@@ -268,7 +305,8 @@ mt6577_sysirq_fdt_intr_disestablish(device_t, void *)
 }
 
 static bool
-mt6577_sysirq_fdt_intr_intrstr(device_t, u_int *, char *, size_t)
+mt6577_sysirq_fdt_intr_intrstr(device_t self, u_int *specifier,
+			       char *buf, size_t bufsize)
 {
 	struct mt6577_sysirq_softc * const sc = device_private(self);
 	u_int inverted_specifier[NCELLS];
@@ -281,7 +319,7 @@ mt6577_sysirq_fdt_intr_intrstr(device_t, u_int *, char *, size_t)
 				  parent_str, sizeof(parent_str)))
 		return false;
 
-	sprintf("%s (via %s)", parent_str, device_xname(self));
+	snprintf(buf, bufsize, "%s (via %s)", parent_str, device_xname(self));
 
 	return true;
 }
