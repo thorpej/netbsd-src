@@ -1,4 +1,4 @@
-/*	$NetBSD: libnvmm_x86.c,v 1.8 2019/01/02 12:18:08 maxv Exp $	*/
+/*	$NetBSD: libnvmm_x86.c,v 1.14 2019/01/08 07:34:22 maxv Exp $	*/
 
 /*
  * Copyright (c) 2018 The NetBSD Foundation, Inc.
@@ -45,6 +45,8 @@
 
 #include "nvmm.h"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
 #include <x86/specialreg.h>
 
 extern struct nvmm_callbacks __callbacks;
@@ -83,6 +85,11 @@ nvmm_vcpu_dump(struct nvmm_machine *mach, nvmm_cpuid_t cpuid)
 		    (void *)state.segs[i].limit,
 		    state.segs[i].attrib.p, state.segs[i].attrib.def32);
 	}
+	printf("| -> MSR_EFER=%p\n", (void *)state.msrs[NVMM_X64_MSR_EFER]);
+	printf("| -> CR0=%p\n", (void *)state.crs[NVMM_X64_CR_CR0]);
+	printf("| -> CR3=%p\n", (void *)state.crs[NVMM_X64_CR_CR3]);
+	printf("| -> CR4=%p\n", (void *)state.crs[NVMM_X64_CR_CR4]);
+	printf("| -> CR8=%p\n", (void *)state.crs[NVMM_X64_CR_CR8]);
 	printf("| -> CPL=%p\n", (void *)state.misc[NVMM_X64_MISC_CPL]);
 
 	return 0;
@@ -131,6 +138,7 @@ x86_gva_to_gpa_32bit(struct nvmm_machine *mach, uint64_t cr3,
 		return -1;
 	if (pte & PG_PS) {
 		*gpa = (pte & PTE32_L2_FRAME);
+		*gpa = *gpa + (gva & PTE32_L1_MASK);
 		return 0;
 	}
 
@@ -215,6 +223,7 @@ x86_gva_to_gpa_32bit_pae(struct nvmm_machine *mach, uint64_t cr3,
 		return -1;
 	if (pte & PG_PS) {
 		*gpa = (pte & PTE32_PAE_L2_FRAME);
+		*gpa = *gpa + (gva & PTE32_PAE_L1_MASK);
 		return 0;
 	}
 
@@ -273,7 +282,7 @@ x86_gva_64bit_canonical(gvaddr_t gva)
 
 static int
 x86_gva_to_gpa_64bit(struct nvmm_machine *mach, uint64_t cr3,
-    gvaddr_t gva, gpaddr_t *gpa, bool has_pse, nvmm_prot_t *prot)
+    gvaddr_t gva, gpaddr_t *gpa, nvmm_prot_t *prot)
 {
 	gpaddr_t L4gpa, L3gpa, L2gpa, L1gpa;
 	uintptr_t L4hva, L3hva, L2hva, L1hva;
@@ -316,10 +325,9 @@ x86_gva_to_gpa_64bit(struct nvmm_machine *mach, uint64_t cr3,
 		*prot &= ~NVMM_PROT_WRITE;
 	if (pte & PG_NX)
 		*prot &= ~NVMM_PROT_EXEC;
-	if ((pte & PG_PS) && !has_pse)
-		return -1;
 	if (pte & PG_PS) {
 		*gpa = (pte & PTE64_L3_FRAME);
+		*gpa = *gpa + (gva & (PTE64_L2_MASK|PTE64_L1_MASK));
 		return 0;
 	}
 
@@ -337,10 +345,9 @@ x86_gva_to_gpa_64bit(struct nvmm_machine *mach, uint64_t cr3,
 		*prot &= ~NVMM_PROT_WRITE;
 	if (pte & PG_NX)
 		*prot &= ~NVMM_PROT_EXEC;
-	if ((pte & PG_PS) && !has_pse)
-		return -1;
 	if (pte & PG_PS) {
 		*gpa = (pte & PTE64_L2_FRAME);
+		*gpa = *gpa + (gva & PTE64_L1_MASK);
 		return 0;
 	}
 
@@ -391,7 +398,7 @@ x86_gva_to_gpa(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 
 	if (is_pae && is_lng) {
 		/* 64bit */
-		ret = x86_gva_to_gpa_64bit(mach, cr3, gva, gpa, has_pse, prot);
+		ret = x86_gva_to_gpa_64bit(mach, cr3, gva, gpa, prot);
 	} else if (is_pae && !is_lng) {
 		/* 32bit PAE */
 		ret = x86_gva_to_gpa_32bit_pae(mach, cr3, gva, gpa, has_pse,
@@ -500,13 +507,34 @@ mask_from_adsize(size_t adsize)
 }
 
 static uint64_t
+rep_get_cnt(struct nvmm_x64_state *state, size_t adsize)
+{
+	uint64_t mask, cnt;
+
+	mask = mask_from_adsize(adsize);
+	cnt = state->gprs[NVMM_X64_GPR_RCX] & mask;
+
+	return cnt;
+}
+
+static void
+rep_set_cnt(struct nvmm_x64_state *state, size_t adsize, uint64_t cnt)
+{
+	uint64_t mask;
+
+	mask = mask_from_adsize(adsize);
+	state->gprs[NVMM_X64_GPR_RCX] &= ~mask;
+	state->gprs[NVMM_X64_GPR_RCX] |= cnt;
+}
+
+static uint64_t
 rep_dec_apply(struct nvmm_x64_state *state, size_t adsize)
 {
 	uint64_t mask, cnt;
 
 	mask = mask_from_adsize(adsize);
 
-	cnt = state->gprs[NVMM_X64_GPR_RCX] & mask; 
+	cnt = state->gprs[NVMM_X64_GPR_RCX] & mask;
 	cnt -= 1;
 	cnt &= mask;
 
@@ -547,12 +575,11 @@ read_guest_memory(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 	is_mmio = (ret == -1);
 
 	if (is_mmio) {
-		mem.gva = gva;
+		mem.data = data;
 		mem.gpa = gpa;
 		mem.write = false;
 		mem.size = size;
 		(*__callbacks.mem)(&mem);
-		memcpy(data, mem.data, size);
 	} else {
 		memcpy(data, (uint8_t *)hva, size);
 	}
@@ -598,10 +625,9 @@ write_guest_memory(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 	is_mmio = (ret == -1);
 
 	if (is_mmio) {
-		mem.gva = gva;
+		mem.data = data;
 		mem.gpa = gpa;
 		mem.write = true;
-		memcpy(mem.data, data, size);
 		mem.size = size;
 		(*__callbacks.mem)(&mem);
 	} else {
@@ -622,16 +648,55 @@ write_guest_memory(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 
 static int fetch_segment(struct nvmm_machine *, struct nvmm_x64_state *);
 
+#define NVMM_IO_BATCH_SIZE	32
+
+static int
+assist_io_batch(struct nvmm_machine *mach, struct nvmm_x64_state *state,
+    struct nvmm_io *io, gvaddr_t gva, uint64_t cnt)
+{
+	uint8_t iobuf[NVMM_IO_BATCH_SIZE];
+	size_t i, iosize, iocnt;
+	int ret;
+
+	cnt = MIN(cnt, NVMM_IO_BATCH_SIZE);
+	iosize = MIN(io->size * cnt, NVMM_IO_BATCH_SIZE);
+	iocnt = iosize / io->size;
+
+	io->data = iobuf;
+
+	if (!io->in) {
+		ret = read_guest_memory(mach, state, gva, iobuf, iosize);
+		if (ret == -1)
+			return -1;
+	}
+
+	for (i = 0; i < iocnt; i++) {
+		(*__callbacks.io)(io);
+		io->data += io->size;
+	}
+
+	if (io->in) {
+		ret = write_guest_memory(mach, state, gva, iobuf, iosize);
+		if (ret == -1)
+			return -1;
+	}
+
+	return iocnt;
+}
+
 int
 nvmm_assist_io(struct nvmm_machine *mach, nvmm_cpuid_t cpuid,
     struct nvmm_exit *exit)
 {
 	struct nvmm_x64_state state;
 	struct nvmm_io io;
-	uint64_t cnt;
+	uint64_t cnt = 0; /* GCC */
+	uint8_t iobuf[8];
+	int iocnt = 1;
 	gvaddr_t gva;
 	int reg = 0; /* GCC */
 	int ret, seg;
+	bool psld = false;
 
 	if (__predict_false(exit->reason != NVMM_EXIT_IO)) {
 		errno = EINVAL;
@@ -641,12 +706,24 @@ nvmm_assist_io(struct nvmm_machine *mach, nvmm_cpuid_t cpuid,
 	io.port = exit->u.io.port;
 	io.in = (exit->u.io.type == NVMM_EXIT_IO_IN);
 	io.size = exit->u.io.operand_size;
+	io.data = iobuf;
 
 	ret = nvmm_vcpu_getstate(mach, cpuid, &state,
 	    NVMM_X64_STATE_GPRS | NVMM_X64_STATE_SEGS |
 	    NVMM_X64_STATE_CRS | NVMM_X64_STATE_MSRS);
 	if (ret == -1)
 		return -1;
+
+	if (exit->u.io.rep) {
+		cnt = rep_get_cnt(&state, exit->u.io.address_size);
+		if (__predict_false(cnt == 0)) {
+			return 0;
+		}
+	}
+
+	if (__predict_false(state.gprs[NVMM_X64_GPR_RFLAGS] & PSL_D)) {
+		psld = true;
+	}
 
 	/*
 	 * Determine GVA.
@@ -678,6 +755,13 @@ nvmm_assist_io(struct nvmm_machine *mach, nvmm_cpuid_t cpuid,
 			if (ret == -1)
 				return -1;
 		}
+
+		if (exit->u.io.rep && !psld) {
+			iocnt = assist_io_batch(mach, &state, &io, gva, cnt);
+			if (iocnt == -1)
+				return -1;
+			goto done;
+		}
 	}
 
 	if (!io.in) {
@@ -704,16 +788,18 @@ nvmm_assist_io(struct nvmm_machine *mach, nvmm_cpuid_t cpuid,
 		}
 	}
 
+done:
 	if (exit->u.io.str) {
-		if (state.gprs[NVMM_X64_GPR_RFLAGS] & PSL_D) {
-			state.gprs[reg] -= io.size;
+		if (__predict_false(psld)) {
+			state.gprs[reg] -= iocnt * io.size;
 		} else {
-			state.gprs[reg] += io.size;
+			state.gprs[reg] += iocnt * io.size;
 		}
 	}
 
 	if (exit->u.io.rep) {
-		cnt = rep_dec_apply(&state, exit->u.io.address_size);
+		cnt -= iocnt;
+		rep_set_cnt(&state, exit->u.io.address_size, cnt);
 		if (cnt == 0) {
 			state.gprs[NVMM_X64_GPR_RIP] = exit->u.io.npc;
 		}
@@ -738,26 +824,25 @@ static void x86_emul_stos(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64
 static void x86_emul_lods(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
 static void x86_emul_movs(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
 
-enum x86_legpref {
-	/* Group 1 */
-	LEG_LOCK = 0,
-	LEG_REPN,	/* REPNE/REPNZ */
-	LEG_REP,	/* REP/REPE/REPZ */
-	/* Group 2 */
-	LEG_OVR_CS,
-	LEG_OVR_SS,
-	LEG_OVR_DS,
-	LEG_OVR_ES,
-	LEG_OVR_FS,
-	LEG_OVR_GS,
-	LEG_BRN_TAKEN,
-	LEG_BRN_NTAKEN,
-	/* Group 3 */
-	LEG_OPR_OVR,
-	/* Group 4 */
-	LEG_ADR_OVR,
+/* Legacy prefixes. */
+#define LEG_LOCK	0xF0
+#define LEG_REPN	0xF2
+#define LEG_REP		0xF3
+#define LEG_OVR_CS	0x2E
+#define LEG_OVR_SS	0x36
+#define LEG_OVR_DS	0x3E
+#define LEG_OVR_ES	0x26
+#define LEG_OVR_FS	0x64
+#define LEG_OVR_GS	0x65
+#define LEG_OPR_OVR	0x66
+#define LEG_ADR_OVR	0x67
 
-	NLEG
+struct x86_legpref {
+	bool opr_ovr:1;
+	bool adr_ovr:1;
+	bool rep:1;
+	bool repn:1;
+	int seg;
 };
 
 struct x86_rexpref {
@@ -782,7 +867,7 @@ enum x86_disp_type {
 
 struct x86_disp {
 	enum x86_disp_type type;
-	uint8_t data[4];
+	uint64_t data; /* 4 bytes, but can be sign-extended */
 };
 
 enum REGMODRM__Mod {
@@ -823,7 +908,7 @@ struct x86_regmodrm {
 
 struct x86_immediate {
 	size_t size;	/* 1/2/4/8 */
-	uint8_t data[8];
+	uint64_t data;
 };
 
 struct x86_sib {
@@ -854,10 +939,11 @@ struct x86_store {
 
 struct x86_instr {
 	size_t len;
-	bool legpref[NLEG];
+	struct x86_legpref legpref;
 	struct x86_rexpref rexpref;
 	size_t operand_size;
 	size_t address_size;
+	uint64_t zeroextend_mask;
 
 	struct x86_regmodrm regmodrm;
 
@@ -895,9 +981,9 @@ struct x86_opcode {
 	bool szoverride;
 	int defsize;
 	int allsize;
+	bool group1;
 	bool group11;
 	bool immediate;
-	int immsize;
 	int flags;
 	void (*emul)(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
 };
@@ -911,7 +997,15 @@ struct x86_group_entry {
 #define OPSIZE_DOUB 0x04 /* 4 bytes */
 #define OPSIZE_QUAD 0x08 /* 8 bytes */
 
-#define FLAG_z	0x02
+#define FLAG_imm8	0x01
+#define FLAG_immz	0x02
+#define FLAG_ze		0x04
+
+static const struct x86_group_entry group1[8] = {
+	[1] = { .emul = x86_emul_or },
+	[4] = { .emul = x86_emul_and },
+	[6] = { .emul = x86_emul_xor }
+};
 
 static const struct x86_group_entry group11[8] = {
 	[0] = { .emul = x86_emul_mov }
@@ -919,9 +1013,27 @@ static const struct x86_group_entry group11[8] = {
 
 static const struct x86_opcode primary_opcode_table[] = {
 	/*
+	 * Group1
+	 */
+	{
+		/* Ev, Ib */
+		.byte = 0x83,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = true,
+		.defsize = -1,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.group1 = true,
+		.immediate = true,
+		.flags = FLAG_imm8,
+		.emul = NULL /* group1 */
+	},
+
+	/*
 	 * Group11
 	 */
 	{
+		/* Eb, Ib */
 		.byte = 0xC6,
 		.regmodrm = true,
 		.regtorm = true,
@@ -930,10 +1042,10 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.allsize = -1,
 		.group11 = true,
 		.immediate = true,
-		.immsize = OPSIZE_BYTE,
 		.emul = NULL /* group11 */
 	},
 	{
+		/* Ev, Iz */
 		.byte = 0xC7,
 		.regmodrm = true,
 		.regtorm = true,
@@ -942,8 +1054,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
 		.group11 = true,
 		.immediate = true,
-		.immsize = -1, /* special, Z */
-		.flags = FLAG_z,
+		.flags = FLAG_immz,
 		.emul = NULL /* group11 */
 	},
 
@@ -1227,6 +1338,34 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
 		.emul = x86_emul_lods
+	},
+};
+
+static const struct x86_opcode secondary_opcode_table[] = {
+	/*
+	 * MOVZX
+	 */
+	{
+		/* Gv, Eb */
+		.byte = 0xB6,
+		.regmodrm = true,
+		.regtorm = false,
+		.szoverride = true,
+		.defsize = OPSIZE_BYTE,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.flags = FLAG_ze,
+		.emul = x86_emul_mov
+	},
+	{
+		/* Gv, Ew */
+		.byte = 0xB7,
+		.regmodrm = true,
+		.regtorm = false,
+		.szoverride = true,
+		.defsize = OPSIZE_WORD,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.flags = FLAG_ze,
+		.emul = x86_emul_mov
 	},
 };
 
@@ -1630,33 +1769,53 @@ node_dmo(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	return 0;
 }
 
+static uint64_t
+sign_extend(uint64_t val, int size)
+{
+	if (size == 1) {
+		if (val & __BIT(7))
+			val |= 0xFFFFFFFFFFFFFF00;
+	} else if (size == 2) {
+		if (val & __BIT(15))
+			val |= 0xFFFFFFFFFFFF0000;
+	} else if (size == 4) {
+		if (val & __BIT(31))
+			val |= 0xFFFFFFFF00000000;
+	}
+	return val;
+}
+
 static int
 node_immediate(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
 	const struct x86_opcode *opcode = instr->opcode;
 	struct x86_store *store;
-	uint8_t flags;
 	uint8_t immsize;
+	size_t sesize = 0;
 
 	/* The immediate is the source */
 	store = &instr->src;
 	immsize = instr->operand_size;
 
-	/* Get the correct flags */
-	flags = opcode->flags;
-	if ((flags & FLAG_z) && (immsize == 8)) {
-		/* 'z' operates here */
+	if (opcode->flags & FLAG_imm8) {
+		sesize = immsize;
+		immsize = 1;
+	} else if ((opcode->flags & FLAG_immz) && (immsize == 8)) {
+		sesize = immsize;
 		immsize = 4;
 	}
 
 	store->type = STORE_IMM;
 	store->u.imm.size = immsize;
-
-	if (fsm_read(fsm, store->u.imm.data, store->u.imm.size) == -1) {
+	if (fsm_read(fsm, (uint8_t *)&store->u.imm.data, immsize) == -1) {
 		return -1;
 	}
-
 	fsm_advance(fsm, store->u.imm.size, NULL);
+
+	if (sesize != 0) {
+		store->u.imm.data = sign_extend(store->u.imm.data, sesize);
+		store->u.imm.size = sesize;
+	}
 
 	return 0;
 }
@@ -1665,6 +1824,7 @@ static int
 node_disp(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
 	const struct x86_opcode *opcode = instr->opcode;
+	uint64_t data = 0;
 	size_t n;
 
 	if (instr->strm->disp.type == DISP_1) {
@@ -1673,9 +1833,15 @@ node_disp(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 		n = 4;
 	}
 
-	if (fsm_read(fsm, instr->strm->disp.data, n) == -1) {
+	if (fsm_read(fsm, (uint8_t *)&data, n) == -1) {
 		return -1;
 	}
+
+	if (__predict_true(fsm->is64bit)) {
+		data = sign_extend(data, n);
+	}
+
+	instr->strm->disp.data = data;
 
 	if (opcode->immediate) {
 		fsm_advance(fsm, n, node_immediate);
@@ -1777,12 +1943,7 @@ get_register_reg(struct x86_instr *instr, const struct x86_opcode *opcode)
 	const struct x86_reg *reg;
 	size_t regsize;
 
-	if ((opcode->flags & FLAG_z) && (instr->operand_size == 8)) {
-		/* 'z' operates here */
-		regsize = 4;
-	} else {
-		regsize = instr->operand_size;
-	}
+	regsize = instr->operand_size;
 
 	reg = &gpr_map[instr->rexpref.r][enc][regsize-1];
 	if (reg->num == -1) {
@@ -1800,12 +1961,7 @@ get_register_rm(struct x86_instr *instr, const struct x86_opcode *opcode)
 	size_t regsize;
 
 	if (instr->strm->disp.type == DISP_NONE) {
-		if ((opcode->flags & FLAG_z) && (instr->operand_size == 8)) {
-			/* 'z' operates here */
-			regsize = 4;
-		} else {
-			regsize = instr->operand_size;
-		}
+		regsize = instr->operand_size;
 	} else {
 		/* Indirect access, the size is that of the address. */
 		regsize = instr->address_size;
@@ -1826,9 +1982,16 @@ has_sib(struct x86_instr *instr)
 }
 
 static inline bool
-is_rip_relative(struct x86_instr *instr)
+is_rip_relative(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
-	return (instr->strm->disp.type == DISP_0 &&
+	return (fsm->is64bit && instr->strm->disp.type == DISP_0 &&
+	    instr->regmodrm.rm == RM_RBP_DISP32);
+}
+
+static inline bool
+is_disp32_only(struct x86_decode_fsm *fsm, struct x86_instr *instr)
+{
+	return (!fsm->is64bit && instr->strm->disp.type == DISP_0 &&
 	    instr->regmodrm.rm == RM_RBP_DISP32);
 }
 
@@ -1882,7 +2045,12 @@ node_regmodrm(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	 * Special cases: Groups. The REG field of REGMODRM is the index in
 	 * the group. op1 gets overwritten in the Immediate node, if any.
 	 */
-	if (opcode->group11) {
+	if (opcode->group1) {
+		if (group1[instr->regmodrm.reg].emul == NULL) {
+			return -1;
+		}
+		instr->emul = group1[instr->regmodrm.reg].emul;
+	} else if (opcode->group11) {
 		if (group11[instr->regmodrm.reg].emul == NULL) {
 			return -1;
 		}
@@ -1905,10 +2073,19 @@ node_regmodrm(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	/* The displacement applies to RM. */
 	strm->disp.type = get_disp_type(instr);
 
-	if (is_rip_relative(instr)) {
+	if (is_rip_relative(fsm, instr)) {
 		/* Overwrites RM */
 		strm->type = STORE_REG;
 		strm->u.reg = &gpr_map__rip;
+		strm->disp.type = DISP_4;
+		fsm_advance(fsm, 1, node_disp);
+		return 0;
+	}
+
+	if (is_disp32_only(fsm, instr)) {
+		/* Overwrites RM */
+		strm->type = STORE_REG;
+		strm->u.reg = NULL;
 		strm->disp.type = DISP_4;
 		fsm_advance(fsm, 1, node_disp);
 		return 0;
@@ -1955,13 +2132,13 @@ get_operand_size(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 		opsize = 8;
 	} else {
 		if (!fsm->is16bit) {
-			if (instr->legpref[LEG_OPR_OVR]) {
+			if (instr->legpref.opr_ovr) {
 				opsize = 2;
 			} else {
 				opsize = 4;
 			}
 		} else { /* 16bit */
-			if (instr->legpref[LEG_OPR_OVR]) {
+			if (instr->legpref.opr_ovr) {
 				opsize = 4;
 			} else {
 				opsize = 2;
@@ -1981,21 +2158,21 @@ static size_t
 get_address_size(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
 	if (fsm->is64bit) {
-		if (__predict_false(instr->legpref[LEG_ADR_OVR])) {
+		if (__predict_false(instr->legpref.adr_ovr)) {
 			return 4;
 		}
 		return 8;
 	}
 
 	if (fsm->is32bit) {
-		if (__predict_false(instr->legpref[LEG_ADR_OVR])) {
+		if (__predict_false(instr->legpref.adr_ovr)) {
 			return 2;
 		}
 		return 4;
 	}
 
 	/* 16bit. */
-	if (__predict_false(instr->legpref[LEG_ADR_OVR])) {
+	if (__predict_false(instr->legpref.adr_ovr)) {
 		return 4;
 	}
 	return 2;
@@ -2043,6 +2220,67 @@ node_primary_opcode(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	return 0;
 }
 
+static uint64_t
+size_to_mask(size_t size)
+{
+	switch (size) {
+	case 1:
+		return 0x00000000000000FF;
+	case 2:
+		return 0x000000000000FFFF;
+	case 4:
+		return 0x00000000FFFFFFFF;
+	case 8:
+	default:
+		return 0xFFFFFFFFFFFFFFFF;
+	}
+}
+
+static int
+node_secondary_opcode(struct x86_decode_fsm *fsm, struct x86_instr *instr)
+{
+	const struct x86_opcode *opcode;
+	uint8_t byte;
+	size_t i, n;
+
+	if (fsm_read(fsm, &byte, sizeof(byte)) == -1) {
+		return -1;
+	}
+
+	n = sizeof(secondary_opcode_table) / sizeof(secondary_opcode_table[0]);
+	for (i = 0; i < n; i++) {
+		if (secondary_opcode_table[i].byte == byte)
+			break;
+	}
+	if (i == n) {
+		return -1;
+	}
+	opcode = &secondary_opcode_table[i];
+
+	instr->opcode = opcode;
+	instr->emul = opcode->emul;
+	instr->operand_size = get_operand_size(fsm, instr);
+	instr->address_size = get_address_size(fsm, instr);
+
+	if (opcode->flags & FLAG_ze) {
+		/*
+		 * Compute the mask for zero-extend. Update the operand size,
+		 * we move fewer bytes.
+		 */
+		instr->zeroextend_mask = size_to_mask(instr->operand_size);
+		instr->zeroextend_mask &= ~size_to_mask(opcode->defsize);
+		instr->operand_size = opcode->defsize;
+	}
+
+	if (opcode->regmodrm) {
+		fsm_advance(fsm, 1, node_regmodrm);
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
 static int
 node_main(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
@@ -2062,7 +2300,7 @@ node_main(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	 * after being introduced.
 	 */
 	if (byte == ESCAPE) {
-		return -1;
+		fsm_advance(fsm, 1, node_secondary_opcode);
 	} else if (!instr->rexpref.present) {
 		if (byte == VEX_1) {
 			return -1;
@@ -2105,51 +2343,44 @@ node_rex_prefix(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 	return 0;
 }
 
-static const struct {
-	uint8_t byte;
-	int seg;
-} legpref_table[NLEG] = {
-	/* Group 1 */
-	[LEG_LOCK] = { 0xF0, -1 },
-	[LEG_REPN] = { 0xF2, -1 },
-	[LEG_REP]  = { 0xF3, -1 },
-	/* Group 2 */
-	[LEG_OVR_CS] = { 0x2E, NVMM_X64_SEG_CS },
-	[LEG_OVR_SS] = { 0x36, NVMM_X64_SEG_SS },
-	[LEG_OVR_DS] = { 0x3E, NVMM_X64_SEG_DS },
-	[LEG_OVR_ES] = { 0x26, NVMM_X64_SEG_ES },
-	[LEG_OVR_FS] = { 0x64, NVMM_X64_SEG_FS },
-	[LEG_OVR_GS] = { 0x65, NVMM_X64_SEG_GS },
-	[LEG_BRN_TAKEN]  = { 0x2E, -1 },
-	[LEG_BRN_NTAKEN] = { 0x3E, -1 },
-	/* Group 3 */
-	[LEG_OPR_OVR] = { 0x66, -1 },
-	/* Group 4 */
-	[LEG_ADR_OVR] = { 0x67, -1 },
-};
-
 static int
 node_legacy_prefix(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 {
 	uint8_t byte;
-	size_t i;
 
 	if (fsm_read(fsm, &byte, sizeof(byte)) == -1) {
 		return -1;
 	}
 
-	for (i = 0; i < NLEG; i++) {
-		if (byte == legpref_table[i].byte)
-			break;
-	}
-
-	if (i == NLEG) {
-		fsm->fn = node_rex_prefix;
+	if (byte == LEG_OPR_OVR) {
+		instr->legpref.opr_ovr = 1;
+	} else if (byte == LEG_OVR_DS) {
+		instr->legpref.seg = NVMM_X64_SEG_DS;
+	} else if (byte == LEG_OVR_ES) {
+		instr->legpref.seg = NVMM_X64_SEG_ES;
+	} else if (byte == LEG_REP) {
+		instr->legpref.rep = 1;
+	} else if (byte == LEG_OVR_GS) {
+		instr->legpref.seg = NVMM_X64_SEG_GS;
+	} else if (byte == LEG_OVR_FS) {
+		instr->legpref.seg = NVMM_X64_SEG_FS;
+	} else if (byte == LEG_ADR_OVR) {
+		instr->legpref.adr_ovr = 1;
+	} else if (byte == LEG_OVR_CS) {
+		instr->legpref.seg = NVMM_X64_SEG_CS;
+	} else if (byte == LEG_OVR_SS) {
+		instr->legpref.seg = NVMM_X64_SEG_SS;
+	} else if (byte == LEG_REPN) {
+		instr->legpref.repn = 1;
+	} else if (byte == LEG_LOCK) {
+		/* ignore */
 	} else {
-		instr->legpref[i] = true;
-		fsm_advance(fsm, 1, node_legacy_prefix);
+		/* not a legacy prefix */
+		fsm_advance(fsm, 0, node_rex_prefix);
+		return 0;
 	}
 
+	fsm_advance(fsm, 1, node_legacy_prefix);
 	return 0;
 }
 
@@ -2161,6 +2392,7 @@ x86_decode(uint8_t *inst_bytes, size_t inst_len, struct x86_instr *instr,
 	int ret;
 
 	memset(instr, 0, sizeof(*instr));
+	instr->legpref.seg = -1;
 
 	fsm.is64bit = is_64bit(state);
 	fsm.is32bit = is_32bit(state);
@@ -2394,7 +2626,6 @@ store_to_gva(struct nvmm_x64_state *state, struct x86_instr *instr,
 	gvaddr_t gva = 0;
 	uint64_t reg;
 	int ret, seg;
-	uint32_t *p;
 
 	if (store->type == STORE_SIB) {
 		sib = &store->u.sib;
@@ -2405,30 +2636,25 @@ store_to_gva(struct nvmm_x64_state *state, struct x86_instr *instr,
 			gva += sib->scale * reg;
 		}
 	} else if (store->type == STORE_REG) {
-		gva = gpr_read_address(instr, state, store->u.reg->num);
+		if (store->u.reg == NULL) {
+			/* The base is null. Happens with disp32-only. */
+		} else {
+			gva = gpr_read_address(instr, state, store->u.reg->num);
+		}
 	} else {
 		gva = store->u.dmo;
 	}
 
 	if (store->disp.type != DISP_NONE) {
-		p = (uint32_t *)&store->disp.data[0];
-		gva += *p;
+		gva += store->disp.data;
 	}
 
 	if (!is_long_mode(state)) {
 		if (store->hardseg != 0) {
 			seg = store->hardseg;
 		} else {
-			if (instr->legpref[LEG_OVR_CS]) {
-				seg = NVMM_X64_SEG_CS;
-			} else if (instr->legpref[LEG_OVR_SS]) {
-				seg = NVMM_X64_SEG_SS;
-			} else if (instr->legpref[LEG_OVR_ES]) {
-				seg = NVMM_X64_SEG_ES;
-			} else if (instr->legpref[LEG_OVR_FS]) {
-				seg = NVMM_X64_SEG_FS;
-			} else if (instr->legpref[LEG_OVR_GS]) {
-				seg = NVMM_X64_SEG_GS;
+			if (__predict_false(instr->legpref.seg != -1)) {
+				seg = instr->legpref.seg;
 			} else {
 				seg = NVMM_X64_SEG_DS;
 			}
@@ -2444,34 +2670,10 @@ store_to_gva(struct nvmm_x64_state *state, struct x86_instr *instr,
 }
 
 static int
-store_to_mem(struct nvmm_machine *mach, struct nvmm_x64_state *state,
-    struct x86_instr *instr, struct x86_store *store, struct nvmm_mem *mem)
-{
-	nvmm_prot_t prot;
-	int ret;
-
-	ret = store_to_gva(state, instr, store, &mem->gva, mem->size);
-	if (ret == -1)
-		return -1;
-
-	if ((mem->gva & PAGE_MASK) + mem->size > PAGE_SIZE) {
-		/* Don't allow a cross-page MMIO. */
-		errno = EINVAL;
-		return -1;
-	}
-
-	ret = x86_gva_to_gpa(mach, state, mem->gva, &mem->gpa, &prot);
-	if (ret == -1)
-		return -1;
-
-	return 0;
-}
-
-static int
 fetch_segment(struct nvmm_machine *mach, struct nvmm_x64_state *state)
 {
 	uint8_t inst_bytes[15], byte;
-	size_t i, n, fetchsize;
+	size_t i, fetchsize;
 	gvaddr_t gva;
 	int ret, seg;
 
@@ -2490,17 +2692,33 @@ fetch_segment(struct nvmm_machine *mach, struct nvmm_x64_state *state)
 		return -1;
 
 	seg = NVMM_X64_SEG_DS;
-	for (n = 0; n < fetchsize; n++) {
-		byte = inst_bytes[n];
-		for (i = 0; i < NLEG; i++) {
-			if (byte != legpref_table[i].byte)
-				continue;
-			if (i >= LEG_OVR_CS && i <= LEG_OVR_GS)
-				seg = legpref_table[i].seg;
-			break;
-		}
-		if (i == NLEG) {
-			break;
+	for (i = 0; i < fetchsize; i++) {
+		byte = inst_bytes[i];
+
+		if (byte == LEG_OVR_DS) {
+			seg = NVMM_X64_SEG_DS;
+		} else if (byte == LEG_OVR_ES) {
+			seg = NVMM_X64_SEG_ES;
+		} else if (byte == LEG_OVR_GS) {
+			seg = NVMM_X64_SEG_GS;
+		} else if (byte == LEG_OVR_FS) {
+			seg = NVMM_X64_SEG_FS;
+		} else if (byte == LEG_OVR_CS) {
+			seg = NVMM_X64_SEG_CS;
+		} else if (byte == LEG_OVR_SS) {
+			seg = NVMM_X64_SEG_SS;
+		} else if (byte == LEG_OPR_OVR) {
+			/* nothing */
+		} else if (byte == LEG_ADR_OVR) {
+			/* nothing */
+		} else if (byte == LEG_REP) {
+			/* nothing */
+		} else if (byte == LEG_REPN) {
+			/* nothing */
+		} else if (byte == LEG_LOCK) {
+			/* nothing */
+		} else {
+			return seg;
 		}
 	}
 
@@ -2577,112 +2795,71 @@ assist_mem_double(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 
 static int
 assist_mem_single(struct nvmm_machine *mach, struct nvmm_x64_state *state,
-    struct x86_instr *instr)
+    struct x86_instr *instr, struct nvmm_exit *exit)
 {
 	struct nvmm_mem mem;
+	uint8_t membuf[8];
 	uint64_t val;
-	int ret;
 
-	memset(&mem, 0, sizeof(mem));
+	memset(membuf, 0, sizeof(membuf));
 
+	mem.gpa = exit->u.mem.gpa;
+	mem.size = instr->operand_size;
+	mem.data = membuf;
+
+	/* Determine the direction. */
 	switch (instr->src.type) {
 	case STORE_REG:
 		if (instr->src.disp.type != DISP_NONE) {
 			/* Indirect access. */
 			mem.write = false;
-			mem.size = instr->operand_size;
-			ret = store_to_mem(mach, state, instr, &instr->src,
-			    &mem);
-			if (ret == -1)
-				return -1;
 		} else {
 			/* Direct access. */
 			mem.write = true;
-			mem.size = instr->operand_size;
+		}
+		break;
+	case STORE_IMM:
+		mem.write = true;
+		break;
+	case STORE_SIB:
+		mem.write = false;
+		break;
+	case STORE_DMO:
+		mem.write = false;
+		break;
+	default:
+		DISASSEMBLER_BUG();
+	}
+
+	if (mem.write) {
+		switch (instr->src.type) {
+		case STORE_REG:
+			if (instr->src.disp.type != DISP_NONE) {
+				DISASSEMBLER_BUG();
+			}
 			val = state->gprs[instr->src.u.reg->num];
 			val = __SHIFTOUT(val, instr->src.u.reg->mask);
 			memcpy(mem.data, &val, mem.size);
-		}
-		break;
-
-	case STORE_IMM:
-		mem.write = true;
-		mem.size = instr->src.u.imm.size;
-		memcpy(mem.data, instr->src.u.imm.data, mem.size);
-		break;
-
-	case STORE_SIB:
-		mem.write = false;
-		mem.size = instr->operand_size;
-		ret = store_to_mem(mach, state, instr, &instr->src, &mem);
-		if (ret == -1)
-			return -1;
-		break;
-
-	case STORE_DMO:
-		mem.write = false;
-		mem.size = instr->operand_size;
-		ret = store_to_mem(mach, state, instr, &instr->src, &mem);
-		if (ret == -1)
-			return -1;
-		break;
-
-	default:
-		return -1;
-	}
-
-	switch (instr->dst.type) {
-	case STORE_REG:
-		if (instr->dst.disp.type != DISP_NONE) {
-			if (__predict_false(!mem.write)) {
-				DISASSEMBLER_BUG();
-			}
-			mem.size = instr->operand_size;
-			ret = store_to_mem(mach, state, instr, &instr->dst,
-			    &mem);
-			if (ret == -1)
-				return -1;
-		} else {
-			/* nothing */
-		}
-		break;
-
-	case STORE_IMM:
-		/* The dst can't be an immediate. */
-		DISASSEMBLER_BUG();
-
-	case STORE_SIB:
-		if (__predict_false(!mem.write)) {
+			break;
+		case STORE_IMM:
+			memcpy(mem.data, &instr->src.u.imm.data, mem.size);
+			break;
+		default:
 			DISASSEMBLER_BUG();
 		}
-		mem.size = instr->operand_size;
-		ret = store_to_mem(mach, state, instr, &instr->dst, &mem);
-		if (ret == -1)
-			return -1;
-		break;
-
-	case STORE_DMO:
-		if (__predict_false(!mem.write)) {
-			DISASSEMBLER_BUG();
-		}
-		mem.size = instr->operand_size;
-		ret = store_to_mem(mach, state, instr, &instr->dst, &mem);
-		if (ret == -1)
-			return -1;
-		break;
-
-	default:
-		return -1;
 	}
 
 	(*instr->emul)(&mem, __callbacks.mem, state->gprs);
 
 	if (!mem.write) {
-		/* instr->dst.type == STORE_REG */
+		if (instr->dst.type != STORE_REG) {
+			DISASSEMBLER_BUG();
+		}
 		memcpy(&val, mem.data, sizeof(uint64_t));
 		val = __SHIFTIN(val, instr->dst.u.reg->mask);
 		state->gprs[instr->dst.u.reg->num] &= ~instr->dst.u.reg->mask;
 		state->gprs[instr->dst.u.reg->num] |= val;
+		state->gprs[instr->dst.u.reg->num] &= ~instr->zeroextend_mask;
 	}
 
 	return 0;
@@ -2725,25 +2902,24 @@ nvmm_assist_mem(struct nvmm_machine *mach, nvmm_cpuid_t cpuid,
 		return -1;
 	}
 
-	if (__predict_false(instr.legpref[LEG_REPN])) {
-		errno = ENODEV;
-		return -1;
-	}
-
 	if (instr.opcode->movs) {
 		ret = assist_mem_double(mach, &state, &instr);
 	} else {
-		ret = assist_mem_single(mach, &state, &instr);
+		ret = assist_mem_single(mach, &state, &instr, exit);
 	}
 	if (ret == -1) {
 		errno = ENODEV;
 		return -1;
 	}
 
-	if (instr.legpref[LEG_REP]) {
+	if (instr.legpref.rep || instr.legpref.repn) {
 		cnt = rep_dec_apply(&state, instr.address_size);
 		if (cnt == 0) {
 			state.gprs[NVMM_X64_GPR_RIP] += instr.len;
+		} else if (__predict_false(instr.legpref.repn)) {
+			if (state.gprs[NVMM_X64_GPR_RFLAGS] & PSL_Z) {
+				state.gprs[NVMM_X64_GPR_RIP] += instr.len;
+			}
 		}
 	} else {
 		state.gprs[NVMM_X64_GPR_RIP] += instr.len;
