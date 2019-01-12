@@ -75,7 +75,7 @@ mt6577_uart_init_regs(struct com_regs *regsp, bus_space_tag_t bst,
 {
 
 	com_init_regs(regsp, bst, bsh, addr);
-	memcpy(&regsp->cr_map, mt6577_uart_regmap, sizeof(regsp->cr_map));
+	memcpy(regsp->cr_map, mt6577_uart_regmap, sizeof(regsp->cr_map));
 
 	regsp->cr_nports = size;
 }
