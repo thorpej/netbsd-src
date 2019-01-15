@@ -260,7 +260,7 @@
 #define	GPIO_SDIO_CTRL2			0xfc0
 #define	GPIO_DRV_SEL8			0xfd0
 #define	GPIO_DRV_SEL7			0xfe0
-#define	GPIO_DDV_SEL9			0xff0
+#define	GPIO_DRV_SEL9			0xff0
 
 /* GPIO Direction Control Registers */
 /* 0=input, 1=output */
