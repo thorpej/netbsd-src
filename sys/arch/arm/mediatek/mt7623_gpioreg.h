@@ -257,7 +257,7 @@
 #define	GPIO_DRV_SEL10			0xf00
 #define	GPIO_DRV_SEL11			0xf10
 #define	GPIO_DRV_SEL12			0xf30
-#define	GPIO_SDIO_CTRL3			0xf40
+#define	GPIO_SDIO_CTRL3			0xf40	/* a.k.a. MSDC3_CTRL3 */
 #define	GPIO_DRV_SEL0			0xf50
 #define	GPIO_DRV_SEL1			0xf60
 #define	GPIO_DRV_SEL2			0xf70
@@ -265,7 +265,7 @@
 #define	GPIO_DRV_SEL4			0xf90
 #define	GPIO_DRV_SEL5			0xfa0
 #define	GPIO_DRV_SEL6			0xfb0
-#define	GPIO_SDIO_CTRL2			0xfc0
+#define	GPIO_SDIO_CTRL2			0xfc0	/* a.k.a. MSDC3_CTRL2 */
 #define	GPIO_DRV_SEL8			0xfd0
 #define	GPIO_DRV_SEL7			0xfe0
 #define	GPIO_DRV_SEL9			0xff0
