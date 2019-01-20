@@ -53,8 +53,8 @@
 #define	GPIO_GPIO_DIR16			0x100
 #define	GPIO_GPIO_DIR17			0x110
 #define	GPIO_GPIO_DIR18			0x120
-#define	GPIO_SDIO_CTRL4			0x130
-#define	GPIO_SDIO_CTRL5			0x140
+#define	GPIO_SDIO_CTRL4			0x130	/* a.k.a. MSDC3_CTRL4 */
+#define	GPIO_SDIO_CTRL5			0x140	/* a.k.a. MSDC3_CTRL5 */
 #define	GPIO_GPIO_PULLEN1		0x150
 #define	GPIO_GPIO_PULLEN2		0x160
 #define	GPIO_GPIO_PULLEN3		0x170
@@ -219,7 +219,9 @@
 #define	GPIO_RDSEL4			0xc60
 #define	GPIO_RDSEL5			0xc70
 #define	GPIO_DRVN0_EN			0xc80
+#define	GPIO_MSDC3_CTRL0		0xc90
 #define	GPIO_DRVP0_EN			0xca0
+#define	GPIO_MSDC3_CTRL1		0xcb0
 #define	GPIO_MSDC0_CTRL0		0xcc0
 #define	GPIO_MSDC0_CTRL1		0xcd0
 #define	GPIO_MSDC0_CTRL2		0xce0
@@ -233,6 +235,12 @@
 #define	GPIO_MSDC1_CTRL3		0xd60
 #define	GPIO_MSDC1_CTRL4		0xd70
 #define	GPIO_MSDC1_CTRL5		0xd80
+#define	GPIO_MSDC2_CTRL0		0xd90
+#define	GPIO_MSDC2_CTRL1		0xda0
+#define	GPIO_MSDC2_CTRL2		0xdb0
+#define	GPIO_MSDC2_CTRL3		0xdc0
+#define	GPIO_MSDC2_CTRL4		0xdd0
+#define	GPIO_MSDC2_CTRL5		0xde0
 #define	GPIO_GPIO_TM			0xdf0
 #define	GPIO_GPIO_USB			0xe00
 #define	GPIO_OD33_CTRL0			0xe10
