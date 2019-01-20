@@ -29,31 +29,78 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD$");
 
-#define	MT7623_GPIO_MAXFUNC	8
+struct mt7623_gpio_drive {
+	const uint8_t *sel_to_mA;
+	size_t nsel;
+};
 
-srtuct mt7623_gpio_drive {
-	u_int	min_mA;
-	u_int	max_mA;
-	u_int	step;
+static const uint8_t sel_to_mA_4_8_12_16[] = {
+	[0] = 4,
+	[2] = 8,
+	[4] = 12,
+	[6] = 16,
 };
 
 static const struct mt7623_gpio_drive mt7623_gpio_drive_4_8_12_16 = {
-	.min_mA = 4,
-	.max_mA = 16,
-	.step = 4,
+	.sel_to_mA = sel_to_mA_4_8_12_16,
+	.nsel = __arraycount(sel_to_mA_4_8_12_16),
+};
+
+static const uint8_t sel_to_mA_2_4_6_8[] = {
+	[0] = 2,
+	[2] = 4,
+	[4] = 6,
+	[6] = 8,
 };
 
 static const struct mt7623_gpio_drive mt7623_gpio_drive_2_4_6_8 = {
-	.min_mA	= 2,
-	.max_mA = 8,
-	.step = 2,
+	.sel_to_mA = sel_to_mA_2_4_6_8,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8),
 };
 
-static const struct mt7623_gpio_drive mt7623_gpio_drive_2_4_8_10_12_14_16 = {
-	.min_mA = 2,
-	.max_mA = 16,
-	.step = 2,
+static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16 = {
+	[0] = 2,
+	[1] = 4,
+	[2] = 6,
+	[3] = 8,
+	[4] = 10,
+	[5] = 12,
+	[6] = 14,
+	[7] = 16,
 };
+
+static const struct mt7623_gpio_drive mt7623_gpio_drive_2_4_6_8_10_12_14_16 = {
+	.sel_to_mA = sel_to_mA_2_4_6_8_10_12_14_16,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8_10_12_14_16),
+};
+
+static int
+sel_to_mA(const struct mt7623_gpio_drive *drive, u_int sel, uint8_t *mAp)
+{
+
+	if (sel > drive->nsel)
+		return EINVAL;
+	if (mAp)
+		*mAp = drive->sel_to_mA[sel];
+	return 0;
+}
+
+static int
+mA_to_sel(const struct mt7623_gpio_drive *drive, uint8_t mA, u_int *selp)
+{
+	u_int sel;
+
+	for (sel = 0; sel < drive->nsel; sel++) {
+		if (drive->sel_to_mA[sel] == mA) {
+			if (selp)
+				*selp = sel;
+			return 0;
+		}
+	}
+	return EINVAL;
+}
+
+#define	MT7623_GPIO_MAXFUNC	8
 
 struct mt7623_gpio_pin {
 	const char *name;
@@ -907,7 +954,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_BCK",
 			[7] = "DBG_MON_B[27]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL1, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL1, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL1, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC1_CLK",
@@ -919,7 +966,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_LRCK",
 			[7] = "DBG_MON_B[28]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL0, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL0, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL0, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC1_DAT0",
@@ -931,7 +978,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_DATA_OUT",
 			[7] = "DBG_MON_B[26]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 0, 1, 2, 3),
 	},
 	{	.name = "MSDC1_DAT1",
@@ -944,7 +991,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM1",
 			[7] = "DBG_MON_B[25]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 4, 5, 6, 7),
 	},
 	{	.name = "MSDC1_DAT2",
@@ -957,7 +1004,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM2",
 			[7] = "DBG_MON_B[24]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC1_DAT3",
@@ -971,7 +1018,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM3",
 			[7] = "DBG_MON_B[23]",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC1_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 12, 13, 14, 15),
 	},
 	{	.name = "MSDC0_DAT7",
@@ -980,7 +1027,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC1_DAT7",
 			[4] = "NLD7",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 12, 13, 14, 15),
 	},
 	/* 112 */
@@ -990,7 +1037,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT6",
 			[4] = "NLD6",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC0_DAT5",
@@ -999,7 +1046,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT5",
 			[4] = "NLD5",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 4, 5, 6, 7),
 	},
 	{	.name = "MSDC0_DAT4",
@@ -1008,7 +1055,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT4",
 			[4] = "NLD4",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 0, 1, 2, 3),
 	},
 	{	.name = "MSDC0_RSTB",
@@ -1017,7 +1064,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_RSTB",
 			[4] = "NLD8",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL5, 0, 1, 2, 3),
 	},
 	{	.name = "MSDC0_CMD",
@@ -1026,7 +1073,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_CMD",
 			[4] = "NALE",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL1, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL1, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL1, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC0_CLK",
@@ -1035,7 +1082,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_CLK",
 			[4] = "NWEB",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL0, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL0, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL0, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC0_DAT3",
@@ -1044,7 +1091,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT3",
 			[4] = "NLD3",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 12, 13, 14, 15),
 	},
 	{	.name = "MSDC0_DAT2",
@@ -1053,7 +1100,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT2",
 			[4] = "NLD2",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 8, 9, 10, 11),
 	},
 	{	.name = "MSDC0_DAT1",
@@ -1062,7 +1109,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT1",
 			[4] = "NLD1",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 4, 5, 6, 7),
 	},
 	{	.name = "MSDC0_DAT0",
@@ -1072,7 +1119,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[4] = "NLD0",
 			[5] = "WATCHDOG",
 		},
-		DRIVE(2_4_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
+		DRIVE(2_4_6_8_10_12_14_16, GPIO_MSDC0_CTRL2, __BITS(0,2)),
 		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 0, 1, 2, 3),
 	},
 	{	.name = "CEC",
