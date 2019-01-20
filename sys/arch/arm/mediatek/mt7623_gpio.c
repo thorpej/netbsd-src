@@ -1704,7 +1704,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
-	/* XXXJRT Linux driver has drive for 278. XXX */
+	/* XXXJRT Linux driver has drive for 277. XXX */
 	{	.name = "GPIO277"
 	},
 	{	.name = "JTAG_RESET",
