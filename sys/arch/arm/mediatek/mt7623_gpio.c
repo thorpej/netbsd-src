@@ -105,6 +105,159 @@ mA_to_sel(const struct mt7623_gpio_drive *drive, uint8_t mA, u_int *selp)
 	return EINVAL;
 }
 
+#define	MTK_IES_SMT_BIT_IES	0
+#define	MTK_IES_SMT_BIT_SMT	1
+
+struct mtk_ies_smt_group {
+	bus_size_t	ies_reg;
+	bus_size_t	smt_reg;
+	uint16_t	first_pin;
+	uint16_t	last_pin;
+	uint16_t	bits[2];
+};
+
+#define	_IES_SMT(_fp, _lp, _ireg, _sreg, _ival, _sval)			\
+	{								\
+		.first_pin = (_fp),					\
+		.last_pin = (_lp),					\
+		.ies_reg = (_ireg),					\
+		.smt_reg = (_sreg),					\
+		.bits[MTK_IES_SMT_BIT_IES] = (_ival),			\
+		.bits[MTK_IES_SMT_BIT_SMT] = (_sval),			\
+	}
+
+#define	IES_SMT(_fp, _lp, _ireg, _sreg, _bit)				\
+	_IES_SMT(_fp, _lp, _ireg, _sreg, __BIT(_bit), __BIT(_bit))
+
+#define	IES(_fp, _lp, _ireg, _bit)					\
+	_IES_SMT(_fp, _lp, _ireg, 0, __BIT(_bit), 0)
+
+#define	SMT(_fp, _lp, _sreg, _bit)					\
+	_IES_SMT(_fp, _lp, 0, _sreg, 0, __BIT(_bit))
+
+static const struct mtk_ies_smt_group mt7623_ies_smt_groups[] = {
+	IES_SMT(  0,   6, GPIO_IES_EN0, GPIO_SMT_EN0,  0),
+	IES_SMT(  7,   9, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
+	IES_SMT( 10,  13, GPIO_IES_EN1, GPIO_SMT_EN1,  3),
+	IES_SMT( 14,  15, GPIO_IES_EN1, GPIO_SMT_EN1, 13),
+	IES_SMT( 16,  17, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 18,  21, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 22,  26, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 27,  29, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 30,  32, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 33,  37, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 38,  38, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 39,  42, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 43,  45, GPIO_IES_EN0, GPIO_SMT_EN0, 10),
+	IES_SMT( 47,  48, GPIO_IES_EN0, GPIO_SMT_EN0, 11),
+	IES_SMT( 49,  49, GPIO_IES_EN0, GPIO_SMT_EN0, 12),
+	IES_SMT( 50,  52, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 53,  56, GPIO_IES_EN0, GPIO_SMT_EN0, 14),
+	IES_SMT( 57,  58, GPIO_IES_EN0, GPIO_SMT_EN0, 15),
+	IES_SMT( 59,  59, GPIO_IES_EN1, GPIO_SMT_EN1, 10),
+	IES_SMT( 60,  62, GPIO_IES_EN1, GPIO_SMT_EN1,  0),
+	IES_SMT( 63,  65, GPIO_IES_EN1, GPIO_SMT_EN1,  1),
+	IES_SMT( 66,  71, GPIO_IES_EN1, GPIO_SMT_EN1,  2),
+	IES_SMT( 72,  74, GPIO_IES_EN0, GPIO_SMT_EN0, 12),
+	IES_SMT( 75,  76, GPIO_IES_EN1, GPIO_SMT_EN1,  3),
+	IES_SMT( 77,  78, GPIO_IES_EN1, GPIO_SMT_EN1,  4),
+	IES_SMT( 79,  82, GPIO_IES_EN1, GPIO_SMT_EN1,  5),
+	IES_SMT( 83,  84, GPIO_IES_EN1, GPIO_SMT_EN1,  2),
+
+	IES(     85,  85, GPIO_MSDC2_CTRL1,            4),
+	SMT(     85,  85, GPIO_MSDC2_CTRL1,           11),
+
+	IES(     86,  86, GPIO_MSDC2_CTRL0,            4),
+	SMT(     86,  86, GPIO_MSDC2_CTRL0,           11),
+
+	IES(     87,  90, GPIO_MSDC2_CTRL2,            4),
+	SMT(     87,  87, GPIO_MSDC2_CTRL3,            3),
+	SMT(     88,  88, GPIO_MSDC2_CTRL3,            7),
+	SMT(     89,  89, GPIO_MSDC2_CTRL3,           11),
+	SMT(     90,  90, GPIO_MSDC2_CTRL3,           15),
+
+	IES_SMT(101, 104, GPIO_IES_EN1, GPIO_SMT_EN1,  6),
+
+	IES(    105, 105, GPIO_MSDC1_CTRL1,            4),
+	SMT(    105, 105, GPIO_MSDC1_CTRL1,           11),
+
+	IES(    106, 106, GPIO_MSDC1_CTRL0,            4),
+	SMT(    106, 106, GPIO_MSDC1_CTRL0,           11),
+
+	IES(    107, 110, GPIO_MSDC1_CTRL2,            4),
+	SMT(    107, 107, GPIO_MSDC1_CTRL3,            3),
+	SMT(    108, 108, GPIO_MSDC1_CTRL3,            7),
+	SMT(    109, 109, GPIO_MSDC1_CTRL3,           11),
+	SMT(    110, 110, GPIO_MSDC1_CTRL3,           15),
+
+	IES(    111, 115, GPIO_MSDC0_CTRL2,            4),
+	SMT(    111, 111, GPIO_MSDC0_CTRL4,           15),
+	SMT(    112, 112, GPIO_MSDC0_CTRL4,           11),
+	SMT(    113, 113, GPIO_MSDC0_CTRL4,            7),
+	SMT(    114, 114, GPIO_MSDC0_CTRL4,            3),
+	SMT(    115, 115, GPIO_MSDC0_CTRL5,            3),
+
+	IES(    116, 116, GPIO_MSDC0_CTRL1,            4),
+	SMT(    116, 116, GPIO_MSDC0_CTRL1,           11),
+
+	IES(    117, 117, GPIO_MSDC0_CTRL0,            4),
+	SMT(    117, 117, GPIO_MSDC0_CTRL0,           11),
+
+	IES(    118, 121, GPIO_MSDC0_CTRL2,            4),
+	SMT(    118, 118, GPIO_MSDC0_CTRL3,           15),
+	SMT(    119, 119, GPIO_MSDC0_CTRL3,           11),
+	SMT(    120, 120, GPIO_MSDC0_CTRL3,            7),
+	SMT(    121, 121, GPIO_MSDC0_CTRL3,            3),
+
+	IES_SMT(122, 125, GPIO_IES_EN1, GPIO_SMT_EN1,  7),
+	IES_SMT(126, 126, GPIO_IES_EN0, GPIO_SMT_EN0, 12),
+	IES_SMT(127, 142, GPIO_IES_EN1, GPIO_SMT_EN1,  9),
+	IES_SMT(143, 160, GPIO_IES_EN1, GPIO_SMT_EN1, 10),
+	IES_SMT(161, 168, GPIO_IES_EN1, GPIO_SMT_EN1, 12),
+	IES_SMT(169, 183, GPIO_IES_EN1, GPIO_SMT_EN1, 10),
+	IES_SMT(184, 186, GPIO_IES_EN1, GPIO_SMT_EN1,  9),
+	IES_SMT(187, 187, GPIO_IES_EN1, GPIO_SMT_EN1, 14),
+	IES_SMT(188, 188, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT(189, 193, GPIO_IES_EN1, GPIO_SMT_EN1, 15),
+	IES_SMT(194, 198, GPIO_IES_EN2, GPIO_SMT_EN2,  0),
+	IES_SMT(199, 199, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
+	IES_SMT(200, 202, GPIO_IES_EN2, GPIO_SMT_EN2,  1),
+	IES_SMT(203, 207, GPIO_IES_EN2, GPIO_SMT_EN2,  2),
+	IES_SMT(208, 209, GPIO_IES_EN2, GPIO_SMT_EN2,  3),
+	IES_SMT(210, 210, GPIO_IES_EN2, GPIO_SMT_EN2,  4),
+	IES_SMT(211, 235, GPIO_IES_EN2, GPIO_SMT_EN2,  5),
+	IES_SMT(236, 241, GPIO_IES_EN2, GPIO_SMT_EN2,  6),
+	IES_SMT(242, 243, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT(244, 247, GPIO_IES_EN2, GPIO_SMT_EN2,  8),
+	IES_SMT(248, 248, GPIO_IES_EN2, GPIO_SMT_EN2,  9)
+
+	IES(    249, 257, GPIO_SDIO_CTRL2,             4),
+	SMT(    249, 249, GPIO_SDIO_CTRL5,             3),
+	SMT(    250, 250, GPIO_SDIO_CTRL4,            15),
+	SMT(    251, 251, GPIO_SDIO_CTRL4,            11),
+	SMT(    252, 252, GPIO_SDIO_CTRL4,             7),
+	SMT(    253, 253, GPIO_SDIO_CTRL4,             3),
+	SMT(    254, 254, GPIO_SDIO_CTRL3,            15),
+	SMT(    255, 255, GPIO_SDIO_CTRL3,            11),
+	SMT(    256, 256, GPIO_SDIO_CTRL3,             7),
+	SMT(    257, 257, GPIO_SDIO_CTRL3,             3),
+
+	IES(    258, 258, GPIO_MSDC3_CTRL1,            4),
+	SMT(    258, 258, GPIO_MSDC3_CTRL1,           11),
+
+	IES(    259, 259, GPIO_MSDC3_CTRL0,            4),
+	SMT(    259, 259, GPIO_MSDC3_CTRL0,           11),
+
+	IES(    260, 260, GPIO_SDIO_CTRL7,             4),
+	SMT(    260, 260, GPIO_SDIO_CTRL7,            11),
+
+	IES(    261, 261, GPIO_MSDC1_CTRL2,            4),
+	SMT(    261, 261, GPIO_MSDC1_CTRL6,            3),
+
+	IES_SMT(262, 277, GPIO_IES_EN2, GPIO_SMT_EN2, 12),
+	IES_SMT(278, 278, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+};
+
 #define	MT7623_GPIO_MAXFUNC	8
 
 struct mt7623_gpio_pin {
@@ -113,16 +266,14 @@ struct mt7623_gpio_pin {
 	struct {
 		const struct mt7623_gpio_drive *params;
 		bus_size_t reg;
-		uint32_t sel;
+		uint16_t sel;
 		uint16_t sr;		/* slew rate control bit */
-		uint16_t ies;		/* input enable control bit */
 	} drive;
 	struct {
 		bus_size_t reg;
 		uint16_t pupd;		/* 0=pull-up, 1=pull-down bit */
 		uint16_t r1;		/* 50K resistor control bit */
 		uint16_t r0;		/* 10K resistor control bit */
-		uint16_t smt;		/* Schmitt trigger control bit */
 	} pupdr1r0_smt;
 };
 
@@ -133,13 +284,12 @@ struct mt7623_gpio_pin {
 		.sel = (_sel),						\
 	}
 
-#define	DRIVE_SR_IES(_params, _reg, _sel, _sr, _ies)			\
+#define	DRIVE_SLEW(_params, _reg, _sel, _sr)				\
 	.drive = {							\
 		.params = &mt7623_gpio_drive_ ## _params,		\
 		.reg = (_reg),						\
 		.sel = (_sel),						\
 		.sr = __BIT(_sr),					\
-		.ies = __BIT(_ies),					\
 	}
 
 #define	PUPDR1R0(_reg, _pupd, _r1, _r0)					\
@@ -148,15 +298,6 @@ struct mt7623_gpio_pin {
 		.pupd = __BIT(_pupd),					\
 		.r1 = __BIT(_r1),					\
 		.r0 = __BIT(_r0),					\
-	}
-
-#define	PUPDR1R0_SMT(_reg, _pupd, _r1, _r0, _smt)			\
-	.pupdr1r0_smt = {						\
-		.reg = (_reg),						\
-		.pupd = __BIT(_pupd),					\
-		.r1 = __BIT(_r1),					\
-		.r0 = __BIT(_r0),					\
-		.smt = __BIT(_smt),					\
 	}
 
 static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
@@ -942,9 +1083,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[3] = "SDA1",
 			[6] = "I2SOUT_BCK",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL1, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL1, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL1, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL1, 8, 9, 10),
 	},
 [86] =	{	.name = "MSDC2_CLK",
 		.functions = {
@@ -954,9 +1095,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[3] = "SCL1",
 			[6] = "I2SOUT_LRCK",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL0, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL0, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL0, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL0, 8, 9, 10),
 	},
 [87] =	{	.name = "MSDC2_DAT0",
 		.functions = {
@@ -966,9 +1107,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "UTXD0",
 			[6] = "I2SOUT_DATA_OUT",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL3, 0, 1, 2),
 	},
 [88] =	{	.name = "GPIO88",
 		.functions = {
@@ -979,9 +1120,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "URXD0",
 			[6] = "PWM1",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL3, 4, 5, 6),
 	},
 [89] =	{	.name = "MSDC2_DAT2",
 		.functions = {
@@ -992,9 +1133,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "UTXD1",
 			[6] = "PWM2",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL3, 8, 9, 10),
 	},
 [90] =	{	.name = "MSDC2_DAT3",
 		.functions = {
@@ -1006,9 +1147,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "URXD1",
 			[6] = "PWM3",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC2_CTRL3, 12, 13, 14),
 	},
 [91] =	{	.name = "TDN3",
 		.functions = {
@@ -1114,9 +1255,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_BCK",
 			[7] = "DBG_MON_B[27]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL1, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL1, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL1, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL1, 8, 9, 10),
 	},
 [106] =	{	.name = "MSDC1_CLK",
 		.functions = {
@@ -1127,9 +1268,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_LRCK",
 			[7] = "DBG_MON_B[28]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL0, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL0, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL0, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL0, 8, 9, 10),
 	},
 [107] =	{	.name = "MSDC1_DAT0",
 		.functions = {
@@ -1140,9 +1281,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "I2SOUT_DATA_OUT",
 			[7] = "DBG_MON_B[26]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL3, 0, 1, 2),
 	},
 [108] =	{	.name = "MSDC1_DAT1",
 		.functions = {
@@ -1154,9 +1295,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM1",
 			[7] = "DBG_MON_B[25]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL3, 4, 5, 6),
 	},
 [109] =	{	.name = "MSDC1_DAT2",
 		.functions = {
@@ -1168,9 +1309,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM2",
 			[7] = "DBG_MON_B[24]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL3, 8, 9, 10),
 	},
 [110] =	{	.name = "MSDC1_DAT3",
 		.functions = {
@@ -1183,9 +1324,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[6] = "PWM3",
 			[7] = "DBG_MON_B[23]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC1_CTRL3, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC1_CTRL3, 12, 13, 14),
 	},
 [111] =	{	.name = "MSDC0_DAT7",
 		.functions = {
@@ -1193,9 +1334,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC1_DAT7",
 			[4] = "NLD7",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL4, 12, 13, 14),
 	},
 	/* 112 */
 [112] =	{	.name = "MSDC0_DAT6",
@@ -1204,9 +1345,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT6",
 			[4] = "NLD6",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL4, 8, 9, 10),
 	},
 [113] =	{	.name = "MSDC0_DAT5",
 		.functions = {
@@ -1214,9 +1355,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT5",
 			[4] = "NLD5",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL4, 4, 5, 6),
 	},
 [114] =	{	.name = "MSDC0_DAT4",
 		.functions = {
@@ -1224,9 +1365,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT4",
 			[4] = "NLD4",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL4, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL4, 0, 1, 2),
 	},
 [115] =	{	.name = "MSDC0_RSTB",
 		.functions = {
@@ -1234,9 +1375,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_RSTB",
 			[4] = "NLD8",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL5, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL5, 0, 1, 2),
 	},
 [116] =	{	.name = "MSDC0_CMD",
 		.functions = {
@@ -1244,9 +1385,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_CMD",
 			[4] = "NALE",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL1, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL1, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL1, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL1, 8, 9, 10),
 	},
 [117] =	{	.name = "MSDC0_CLK",
 		.functions = {
@@ -1254,9 +1395,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_CLK",
 			[4] = "NWEB",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL0, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL0, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL0, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL0, 8, 9, 10),
 	},
 [118] =	{	.name = "MSDC0_DAT3",
 		.functions = {
@@ -1264,9 +1405,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT3",
 			[4] = "NLD3",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL3, 12, 13, 14),
 	},
 [119] =	{	.name = "MSDC0_DAT2",
 		.functions = {
@@ -1274,9 +1415,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT2",
 			[4] = "NLD2",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL3, 8, 9, 10),
 	},
 [120] =	{	.name = "MSDC0_DAT1",
 		.functions = {
@@ -1284,9 +1425,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC0_DAT1",
 			[4] = "NLD1",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL3, 4, 5, 6),
 	},
 [121] =	{	.name = "MSDC0_DAT0",
 		.functions = {
@@ -1295,9 +1436,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[4] = "NLD0",
 			[5] = "WATCHDOG",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC0_CTRL3, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC0_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC0_CTRL3, 0, 1, 2),
 	},
 [122] =	{	.name = "CEC",
 		.functions = {
@@ -2200,9 +2341,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[0] = "GPIO249",
 			[1] = "MSDC3_RSTB",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL5, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL5, 0, 1, 2),
 	},
 [250] =	{	.name = "MSDC3_DAT7",
 		.functions = {
@@ -2210,9 +2351,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT7",
 			[6] = "PCIE0_CLKREQ_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL4, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL4, 12, 13, 14),
 	},
 [251] =	{	.name = "MSDC3_DAT6",
 		.functions = {
@@ -2220,9 +2361,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT6",
 			[6] = "PCIE0_WAKE_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL4, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL4, 8, 9, 10),
 	},
 [252] =	{	.name = "MSDC3_DAT5",
 		.functions = {
@@ -2230,9 +2371,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT5",
 			[6] = "PCIE1_CLKREQ_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL4, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL4, 4, 5, 6),
 	},
 [253] =	{	.name = "MSDC3_DAT4",
 		.functions = {
@@ -2240,9 +2381,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT4",
 			[6] = "PCIE1_WAKE_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL4, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL4, 0, 1, 2),
 	},
 [254] =	{	.name = "MSDC3_DAT3",
 		.functions = {
@@ -2250,9 +2391,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT3",
 			[6] = "PCIE2_CLKREQ_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL3, 12, 13, 14, 15),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL3, 12, 13, 14),
 	},
 [255] =	{	.name = "MSDC3_DAT2",
 		.functions = {
@@ -2260,9 +2401,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC3_DAT2",
 			[6] = "PCIE2_WAKE_N",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL3, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL3, 8, 9, 10),
 	},
 	/* 256 */
 [256] =	{	.name = "MSDC3_DAT1",
@@ -2270,45 +2411,45 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[0] = "GPIO256",
 			[1] = "MSDC3_DAT1",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL3, 4, 5, 6, 7),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL3, 4, 5, 6),
 	},
 [257] =	{	.name = "MSDC3_DAT0",
 		.functions = {
 			[0] = "GPIO257",
 			[1] = "MSDC3_DAT0",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL3, 0, 1, 2, 3),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL2, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL3, 0, 1, 2),
 	},
 [258] =	{	.name = "MSDC3_CMD",
 		.functions = {
 			[0] = "GPIO258",
 			[1] = "MSDC3_CMD",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC3_CTRL1, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC3_CTRL1, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC3_CTRL1, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC3_CTRL1, 8, 9, 10),
 	},
 [259] =	{	.name = "MSDC3_CLK",
 		.functions = {
 			[0] = "GPIO259",
 			[1] = "MSDC3_CLK",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC3_CTRL0, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_MSDC3_CTRL0, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC3_CTRL0, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_MSDC3_CTRL0, 8, 9, 10),
 	},
 [260] =	{	.name = "MSDC3_DSL",	/* XXX */
 		.functions = {
 			[0] = "GPIO260",
 			[1] = "MSDC3_DSL",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_SDIO_CTRL7, __BITS(0,2), 3, 4),
-		PUPDR1R0_SMT(GPIO_SDIO_CTRL7, 8, 9, 10, 11),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL7, __BITS(0,2), 3),
+		PUPDR1R0(GPIO_SDIO_CTRL7, 8, 9, 10),
 	},
 [261] =	{	.name = "MSDC1_INS",	/* XXX */
 		.functions = {
@@ -2316,8 +2457,8 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC1_INS",
 			[7] = "DBG_MON_B[29]",
 		},
-		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
-			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
+		DRIVE_SLEW(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3),
 		PUPDR1R0(GPIO_SDIO_CTRL5, 8, 9, 10),
 	},
 [262] =	{	.name = "G2_TXEN",
