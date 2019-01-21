@@ -934,13 +934,6 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[7] = "DBG_MON_B[0]",
 		},
 	},
-	/*
-	 * XXXJRT Go back and look at page 26 of the manual.
-	 * Linux driver puts an "MSDC2" block here that mirrors
-	 * the "MSDC1" block.  GPIO_MSDC2_* regs are not listed
-	 * in the mt7623 manual.  Differece between mt7623 and
-	 * mt2701?
-	 */
 [85] =	{	.name = "MSDC2_CMD",
 		.functions = {
 			[0] = "GPIO85",
@@ -949,7 +942,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[3] = "SDA1",
 			[6] = "I2SOUT_BCK",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL1, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL1, 8, 9, 10, 11),
 	},
 [86] =	{	.name = "MSDC2_CLK",
 		.functions = {
@@ -959,7 +954,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[3] = "SCL1",
 			[6] = "I2SOUT_LRCK",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL0, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL0, 8, 9, 10, 11),
 	},
 [87] =	{	.name = "MSDC2_DAT0",
 		.functions = {
@@ -969,7 +966,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "UTXD0",
 			[6] = "I2SOUT_DATA_OUT",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 0, 1, 2, 3),
 	},
 [88] =	{	.name = "GPIO88",
 		.functions = {
@@ -980,7 +979,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "URXD0",
 			[6] = "PWM1",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 4, 5, 6, 7),
 	},
 [89] =	{	.name = "MSDC2_DAT2",
 		.functions = {
@@ -991,7 +992,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "UTXD1",
 			[6] = "PWM2",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 8, 9, 10, 11),
 	},
 [90] =	{	.name = "MSDC2_DAT3",
 		.functions = {
@@ -1003,7 +1006,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[5] = "URXD1",
 			[6] = "PWM3",
 		},
-		/* XXXJRT drive / pupd */
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC2_CTRL2, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_MSDC2_CTRL3, 12, 13, 14, 15),
 	},
 [91] =	{	.name = "TDN3",
 		.functions = {
