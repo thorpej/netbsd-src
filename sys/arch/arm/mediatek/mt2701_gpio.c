@@ -29,10 +29,7 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD$");
 
-struct mt7623_gpio_drive {
-	const uint8_t *sel_to_mA;
-	size_t nsel;
-};
+#include <arm/mediatek/mtk_gpio.h>
 
 static const uint8_t sel_to_mA_4_8_12_16[] = {
 	[0] = 4,
@@ -41,7 +38,7 @@ static const uint8_t sel_to_mA_4_8_12_16[] = {
 	[6] = 16,
 };
 
-static const struct mt7623_gpio_drive mt7623_gpio_drive_4_8_12_16 = {
+static const struct mtk_gpio_drive mt2701_gpio_drive_4_8_12_16 = {
 	.sel_to_mA = sel_to_mA_4_8_12_16,
 	.nsel = __arraycount(sel_to_mA_4_8_12_16),
 };
@@ -53,7 +50,7 @@ static const uint8_t sel_to_mA_2_4_6_8[] = {
 	[6] = 8,
 };
 
-static const struct mt7623_gpio_drive mt7623_gpio_drive_2_4_6_8 = {
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8 = {
 	.sel_to_mA = sel_to_mA_2_4_6_8,
 	.nsel = __arraycount(sel_to_mA_2_4_6_8),
 };
@@ -69,13 +66,14 @@ static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16 = {
 	[7] = 16,
 };
 
-static const struct mt7623_gpio_drive mt7623_gpio_drive_2_4_6_8_10_12_14_16 = {
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8_10_12_14_16 = {
 	.sel_to_mA = sel_to_mA_2_4_6_8_10_12_14_16,
 	.nsel = __arraycount(sel_to_mA_2_4_6_8_10_12_14_16),
 };
 
+#if 0
 static int
-sel_to_mA(const struct mt7623_gpio_drive *drive, u_int sel, uint8_t *mAp)
+sel_to_mA(const struct mtk_gpio_drive *drive, u_int sel, uint8_t *mAp)
 {
 
 	if (sel > drive->nsel)
@@ -88,7 +86,7 @@ sel_to_mA(const struct mt7623_gpio_drive *drive, u_int sel, uint8_t *mAp)
 }
 
 static int
-mA_to_sel(const struct mt7623_gpio_drive *drive, uint8_t mA, u_int *selp)
+mA_to_sel(const struct mtk_gpio_drive *drive, uint8_t mA, u_int *selp)
 {
 	u_int sel;
 
@@ -104,38 +102,29 @@ mA_to_sel(const struct mt7623_gpio_drive *drive, uint8_t mA, u_int *selp)
 	}
 	return EINVAL;
 }
+#endif
 
-#define	MTK_IES_SMT_BIT_IES	0
-#define	MTK_IES_SMT_BIT_SMT	1
+#if 0
+static const struct mtk_ies_smt_group *
+lookup_ies_smt(const struct mtk_gpio_conf *conf, u_int pin, u_int which)
+{
+	u_int i;
 
-struct mtk_ies_smt_group {
-	bus_size_t	ies_reg;
-	bus_size_t	smt_reg;
-	uint16_t	first_pin;
-	uint16_t	last_pin;
-	uint16_t	bits[2];
-};
+	KASSERT(which == MTK_IES_SMT_BIT_IES || which == MTK_IES_SMT_BIT_SMT);
 
-#define	_IES_SMT(_fp, _lp, _ireg, _sreg, _ival, _sval)			\
-	{								\
-		.first_pin = (_fp),					\
-		.last_pin = (_lp),					\
-		.ies_reg = (_ireg),					\
-		.smt_reg = (_sreg),					\
-		.bits[MTK_IES_SMT_BIT_IES] = (_ival),			\
-		.bits[MTK_IES_SMT_BIT_SMT] = (_sval),			\
+	for (i = 0; i < conf->nies_smt_groups; i++) {
+		if (pin >= conf->ies_smt_groups[i].first_pin &&
+		    pin <= conf->ies_smt_groups[i].last_pin &&
+		    conf->ies_smt_groups[i].bits[which] != 0) {
+			return &conf->ies_smt_groups[i];
+		}
 	}
 
-#define	IES_SMT(_fp, _lp, _ireg, _sreg, _bit)				\
-	_IES_SMT(_fp, _lp, _ireg, _sreg, __BIT(_bit), __BIT(_bit))
+	return NULL;
+}
+#endif
 
-#define	IES(_fp, _lp, _ireg, _bit)					\
-	_IES_SMT(_fp, _lp, _ireg, 0, __BIT(_bit), 0)
-
-#define	SMT(_fp, _lp, _sreg, _bit)					\
-	_IES_SMT(_fp, _lp, 0, _sreg, 0, __BIT(_bit))
-
-static const struct mtk_ies_smt_group mt7623_ies_smt_groups[] = {
+static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
 	IES_SMT(  0,   6, GPIO_IES_EN0, GPIO_SMT_EN0,  0),
 	IES_SMT(  7,   9, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
 	IES_SMT( 10,  13, GPIO_IES_EN1, GPIO_SMT_EN1,  3),
@@ -258,49 +247,7 @@ static const struct mtk_ies_smt_group mt7623_ies_smt_groups[] = {
 	IES_SMT(278, 278, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
 };
 
-#define	MT7623_GPIO_MAXFUNC	8
-
-struct mt7623_gpio_pin {
-	const char *name;
-	const char *functions[MT7623_GPIO_MAXFUNC];
-	struct {
-		const struct mt7623_gpio_drive *params;
-		bus_size_t reg;
-		uint16_t sel;
-		uint16_t sr;		/* slew rate control bit */
-	} drive;
-	struct {
-		bus_size_t reg;
-		uint16_t pupd;		/* 0=pull-up, 1=pull-down bit */
-		uint16_t r1;		/* 50K resistor control bit */
-		uint16_t r0;		/* 10K resistor control bit */
-	} pupdr1r0_smt;
-};
-
-#define	DRIVE(_params, _reg, _sel)					\
-	.drive = {							\
-		.params = &mt7623_gpio_drive_ ## _params,		\
-		.reg = (_reg),						\
-		.sel = (_sel),						\
-	}
-
-#define	DRIVE_SLEW(_params, _reg, _sel, _sr)				\
-	.drive = {							\
-		.params = &mt7623_gpio_drive_ ## _params,		\
-		.reg = (_reg),						\
-		.sel = (_sel),						\
-		.sr = __BIT(_sr),					\
-	}
-
-#define	PUPDR1R0(_reg, _pupd, _r1, _r0)					\
-	.pupdr1r0_smt = {						\
-		.reg = (_reg),						\
-		.pupd = __BIT(_pupd),					\
-		.r1 = __BIT(_r1),					\
-		.r0 = __BIT(_r0),					\
-	}
-
-static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
+static const struct mtk_gpio_pin mt2701_gpio_pins[] = {
 	/* 0 */
 [0] =	{	.name = "PWRAP_SPI0_MI",
 		.functions = {
@@ -2593,4 +2540,11 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "USB3_RES_BOND"
 		},
 	},
+};
+
+const struct mtk_gpio_conf mt2701_gpio_conf = {
+	.pins = mt2701_gpio_pins,
+	.npins = __arraycount(mt2701_gpio_pins),
+	.ies_smt_groups = mt2701_ies_smt_groups,
+	.nies_smt_groups = __arraycount(mt2701_ies_smt_groups),
 };
