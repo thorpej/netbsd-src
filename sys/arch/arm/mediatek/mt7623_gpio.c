@@ -1710,12 +1710,12 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "RAMBUF_O_CLK",
 		},
 	},
-	/* XXXJRT Linux driver has drive groups for 188-198 XXX */
 [188] =	{	.name = "I2S2_MCLK",
 		.functions = {
 			[0] = "GPIO188",
 			[1] = "I2S2_MCLK",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL2, __BITS(4,7));
 	},
 [189] =	{	.name = "I2S3_DATA",
 		.functions = {
@@ -1724,12 +1724,15 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[2] = "I2S3_DATA_BYPS",
 			[3] = "PCM_TX",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
 	},
 [190] =	{	.name = "I2S3_DATA_IN",
 		.functions = {
 			[0] = "GPIO190",
 			[1] = "I2S3_DATA_IN",
 			[3] = "PCM_RX",
+		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
 	},
 [191] =	{	.name = "I2S3_BCK",
 		.functions = {
@@ -1737,6 +1740,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "I2S3_BCK",
 			[3] = "PCM_CLK0",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
 	},
 	/* 192 */
 [192] =	{	.name = "I2S3_LRCK",
@@ -1745,12 +1749,14 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "I2S3_LRCK",
 			[3] = "PCM_SYNC",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
 	},
 [193] =	{	.name = "I2S3_MCLK",
 		.functions = {
 			[0] = "GPIO193",
 			[1] = "I2S3_MCLK",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
 	},
 [194] =	{	.name = "I2S4_DATA",
 		.functions = {
@@ -1759,6 +1765,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[2] = "I2S4_DATA_BYPS",
 			[3] = "PCM_TX",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
 	},
 [195] =	{	.name = "I2S4_DATA_IN",
 		.functions = {
@@ -1766,6 +1773,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "I2S4_DATA_IN",
 			[3] = "PCM_RX",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
 	},
 [196] =	{	.name = "I2S4_BCK",
 		.functions = {
@@ -1773,6 +1781,7 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "I2S4_BCK",
 			[3] = "PCM_CLK0",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
 	},
 [197] =	{	.name = "I2S4_LRCK",
 		.functions = {
@@ -1780,12 +1789,14 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "I2S4_LRCK",
 			[3] = "PCM_SYNC",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
 	},
 [198] =	{	.name = "I2S4_MCLK",
 		.functions = {
 			[0] = "GPIO198",
 			[1] = "I2S4_MCLK",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
 	},
 [199] =	{	.name = "SPI1_CK",
 		.functions = {
@@ -1900,90 +1911,103 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(8,11)),
 	},
-	/* XXXJRT Linux driver has drive groups for 210-235 XXX */
 [210] =	{	.name = "AUD_CLOCK",
 		.functions = {
 			[0] = "GPIO210",
 			[1] = "AUD_CLOCK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL8, __BITS(12,15)),
 	},
 [211] =	{	.name = "GPIO211",
 		.functions = {
 			[0] = "GPIO211",
 			[1] = "DVP_RESET",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [212] =	{	.name = "DVP_CLOCK",
 		.functions = {
 			[0] = "GPIO212",
 			[1] = "DVP_CLOCK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [213] =	{	.name = "DVP_CS",
 		.functions = {
 			[0] = "GPIO213",
 			[1] = "DVP_CS",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [214] =	{	.name = "DVP_CK",
 		.functions = {
 			[0] = "GPIO214",
 			[1] = "DVP_CK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [215] =	{	.name = "DVP_DI",
 		.functions = {
 			[0] = "GPIO215",
 			[1] = "DVP_DI",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [216] =	{	.name = "DVP_DO",
 		.functions = {
 			[0] = "GPIO216",
 			[1] = "DVP_DO",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [217] =	{	.name = "GPIO217",
 		.functions = {
 			[0] = "GPIO217",
 			[1] = "AP_CS",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [218] =	{	.name = "AP_CK",
 		.functions = {
 			[0] = "GPIO218",
 			[1] = "AP_CK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [219] =	{	.name = "AP_DI",
 		.functions = {
 			[0] = "GPIO219",
 			[1] = "AP_DI",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [220] =	{	.name = "AP_DO",
 		.functions = {
 			[0] = "GPIO220",
 			[1] = "AP_DO",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [221] =	{	.name = "DVD_BCLK",
 		.functions = {
 			[0] = "GPIO221",
 			[1] = "DVD_BCLK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [222] =	{	.name = "T8032_CLK",
 		.functions = {
 			[0] = "GPIO222",
 			[1] = "T8032_CLK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [223] =	{	.name = "AP_BCLK",
 		.functions = {
 			[0] = "GPIO223",
 			[1] = "AP_BCLK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 	/* 224 */
 [224] =	{	.name = "HOST_CS",
@@ -1991,72 +2015,84 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[0] = "GPIO224",
 			[1] = "HOST_CS",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [225] =	{	.name = "HOST_CK",
 		.functions = {
 			[0] = "GPIO225",
 			[1] = "HOST_CK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [226] =	{	.name = "HOST_DO0",
 		.functions = {
 			[0] = "GPIO226",
 			[1] = "HOST_DO0",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [227] =	{	.name = "HOST_DO1",
 		.functions = {
 			[0] = "GPIO227",
 			[1] = "HOST_DO1",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [228] =	{	.name = "SLV_CS",
 		.functions = {
 			[0] = "GPIO228",
 			[1] = "SLV_CS",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [229] =	{	.name = "SLV_CK",
 		.functions = {
 			[0] = "GPIO229",
 			[1] = "SLV_CK",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [230] =	{	.name = "SLV_DI0",
 		.functions = {
 			[0] = "GPIO230",
 			[1] = "SLV_DI0",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [231] =	{	.name = "SLV_DI1",
 		.functions = {
 			[0] = "GPIO231",
 			[1] = "SLV_DI1",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [232] =	{	.name = "AP2DSP_INT",
 		.functions = {
 			[0] = "GPIO232",
 			[1] = "AP2DSP_INT",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [233] =	{	.name = "AP2DSP_INT_CLR",
 		.functions = {
 			[0] = "GPIO233",
 			[1] = "AP2DSP_INT_CLR",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [234] =	{	.name = "DSP2AP_INT",
 		.functions = {
 			[0] = "GPIO234",
 			[1] = "DSP2AP_INT",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [235] =	{	.name = "DSP2AP_INT_CLR",
 		.functions = {
 			[0] = "GPIO235",
 			[1] = "DSP2AP_INT_CLR",
 		},
+		DRIVE(2_4_6_8, GPIO_DRV_SEL9, __BITS(0,3)),
 	},
 [236] =	{	.name = "EXT_SDIO3",
 		.functions = {
@@ -2247,12 +2283,13 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			     GPIO_SDIO_CTRL2, __BITS(0,2), 3, 4),
 		PUPDR1R0_SMT(GPIO_SDIO_CTRL3, 0, 1, 2, 3),
 	},
-	/* XXXJRT Linux driver has drive for 258-261 XXX */
 [258] =	{	.name = "MSDC3_CMD",
 		.functions = {
 			[0] = "GPIO258",
 			[1] = "MSDC3_CMD",
 		},
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC3_CTRL1, __BITS(0,2), 3, 4),
 		PUPDR1R0_SMT(GPIO_MSDC3_CTRL1, 8, 9, 10, 11),
 	},
 [259] =	{	.name = "MSDC3_CLK",
@@ -2260,6 +2297,8 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[0] = "GPIO259",
 			[1] = "MSDC3_CLK",
 		},
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC3_CTRL0, __BITS(0,2), 3, 4),
 		PUPDR1R0_SMT(GPIO_MSDC3_CTRL0, 8, 9, 10, 11),
 	},
 [260] =	{	.name = "MSDC3_DSL",	/* XXX */
@@ -2267,6 +2306,9 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[0] = "GPIO260",
 			[1] = "MSDC3_DSL",
 		},
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_SDIO_CTRL7, __BITS(0,2), 3, 4),
+		PUPDR1R0_SMT(GPIO_SDIO_CTRL7, 8, 9, 10, 11),
 	},
 [261] =	{	.name = "MSDC1_INS",	/* XXX */
 		.functions = {
@@ -2274,6 +2316,8 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 			[1] = "MSDC1_INS",
 			[7] = "DBG_MON_B[29]",
 		},
+		DRIVE_SR_IES(2_4_6_8_10_12_14_16,
+			     GPIO_MSDC1_CTRL2, __BITS(0,2), 3, 4),
 		PUPDR1R0(GPIO_SDIO_CTRL5, 8, 9, 10),
 	},
 [262] =	{	.name = "G2_TXEN",
@@ -2358,12 +2402,12 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
-	/* XXXJRT Linux driver has drive for 273. XXX */
 [273] =	{	.name = "ESW_INT",
 		.functions = {
 			[0] = "GPIO273",
 			[1] = "ESW_INT",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
 [274] =	{	.name = "G2_RXDV",
 		.functions = {
@@ -2388,12 +2432,12 @@ static const struct mt7623_gpio_pin mt7623_gpio_pins[] = {
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
-	/* XXXJRT Linux driver has drive for 277. XXX */
 [277] =	{	.name = "ESW_RST"
 		.functions = {
 			[0] = "GPIO277",
 			[1] = "ESW_RST",
 		},
+		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
 [278] =	{	.name = "JTAG_RESET",
 		.functions = {
