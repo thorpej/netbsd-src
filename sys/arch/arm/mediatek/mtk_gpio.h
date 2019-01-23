@@ -80,6 +80,11 @@ struct mtk_gpio_pinconf {
 		uint16_t r1;		/* 50K resistor control bit */
 		uint16_t r0;		/* 10K resistor control bit */
 	} pupdr1r0;
+	struct {
+		uint8_t eint_flags;
+		uint8_t pin_func;	/* this function selects for intrs */
+		uint16_t eint_num;	/* EINT interrupt number */
+	} eint;
 };
 
 #define	_DRIVE(_params, _reg, _sel, _srval)				\
@@ -103,6 +108,19 @@ struct mtk_gpio_pinconf {
 		.r1 = __BIT(_r1),					\
 		.r0 = __BIT(_r0),					\
 	}
+
+#define	MTK_EINT_SOURCE		0x01
+#define	MTK_EINT_DEBOUNCE_REQD	0x02
+
+#define	EINT_FLAGS(_func, _num, _flags)					\
+	.eint = {							\
+		.eint_flags = MTK_EINT_SOURCE | (_flags),		\
+		.pin_func = (_func),					\
+		.eint_num = (_num),					\
+	},
+
+#define	EINT(_func, _num)						\
+	EINT_FLAGS(_func, _num, 0)
 
 struct mtk_gpio_reg_group {
 	const bus_size_t *regs;
