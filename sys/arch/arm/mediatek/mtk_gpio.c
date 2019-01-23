@@ -288,7 +288,7 @@ mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
 			      pin_def->pupdr1r0.r0);
 		
 		/* Only pull-up and pull-down supported. */
-		if (flags & GPIO_PIN_GPIO_PIN_PULLDOWN)
+		if (flags & GPIO_PIN_PULLDOWN)
 			pupdr1r0 |= pin_def->pupdr1r0.pupd;
 		else if ((flags & GPIO_PIN_PULLUP) == 0)
 			return ENXIO;
@@ -513,14 +513,57 @@ mtk_gpio_ctl(struct mtk_gpio_softc * const sc,
 
 static int
 mtk_gpio_getval(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf * const pin_def, bool *valp)
+		const struct mtk_gpio_pinconf * const pin_def, int *valp)
 {
+	bus_size_t din_reg;
+	u_int din_shift;
+	uint16_t din;
+	int error;
+
+	/* No lock needed for read. */
+
+	if ((error = mtk_gpio_reg_for_pin(sc, pin_def, MTK_GPIO_REGS_DIN,
+					  &din_reg, &din_shift)) != 0) {
+		return error;
+	}
+
+	const uint16_t din_mask = (1U << din_shift);
+
+	din = GPIO_READ(sc, din_reg);
+
+	*valp = (din & din_mask) ? true : false;
+
+	return 0;
 }
 
 static int
 mtk_gpio_setval(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf * const pin_def, bool val)
+		const struct mtk_gpio_pinconf * const pin_def, int val)
 {
+	bus_size_t dout_reg;
+	u_int dout_shift;
+	uint16_t dout;
+	int error;
+
+	KASSERT(mutex_owned(&sc->sc_lock));
+
+	if ((error = mtk_gpio_reg_for_pin(sc, pin_def, MTK_GPIO_REGS_DOUT,
+					  &dout_reg, &dout_shift)) != 0)
+		return error;
+	}
+
+	const uint16_t dout_shift = (1U << dout_shift);
+
+	dout = GPIO_READ(sc, dout_reg);
+
+	if (val)
+		dout |= dout_shift;
+	else
+		dout &= ~dout_shift;
+	
+	GPIO_WRITE(sc, dout_reg, dout);
+
+	return 0;
 }
 
 static void *
@@ -578,8 +621,7 @@ mtk_gpio_fdt_read(device_t dev, void *priv, bool raw)
 	struct mtk_gpio_softc * const sc = device_private(dev);
 	struct mtk_gpio_pin * const pin = priv;
 	const struct mtk_gpio_pinconf * const pin_def = pin->pin_def;
-	int error;
-	bool val;
+	int error, val;
 
 	KASSERT(sc == pin->pin_sc);
 
@@ -705,7 +747,86 @@ static struct fdtbus_pinctrl_controller_func mtk_pinctrl_funcs = {
 	.set_config = mtk_pinctrl_set_config,
 };
 
-/* XXXJRT GPIO API support */
+static int
+mtk_gpio_pin_read(void *priv, int pin)
+{
+	struct mtk_gpio_softc * const sc = priv;
+	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	int error, val;
+
+	KASSERT((u_int)pin < sc->sc_padconf->npins);
+
+	/* No lock required for reads. */
+	error = mtk_gpio_getval(sc, pin_def, &val);
+	KASSERT(error == 0);
+
+	return val;
+}
+
+static void
+mtk_gpio_pin_write(void *priv, int pin, int val)
+{
+	struct mtk_gpio_softc * const sc = priv;
+	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	int error;
+
+	KASSERT((u_int)pin < sc->sc_padconf->npins);
+
+	mutex_enter(&sc->sc_lock);
+	error = mtk_gpio_setval(sc, pin_def, val);
+	mutex_exit(&sc->sc_lock);
+	KASSERT(error == 0);
+}
+
+static void
+mtk_gpio_pin_ctl(void *priv, int pin, int flags)
+{
+	struct mtk_gpio_softc * const sc = priv;
+	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	int error;
+
+	KASSERT((u_int)pin < sc->sc_padconf->npins);
+
+	mutex_enter(&sc->sc_lock);
+	error = mtk_gpio_ctl(sc,, pin_def, flags);
+	if (error == 0)
+		error = mtk_gpio_setpull(sc, pin_def, flags);
+	mutex_exit(&sc->sc_lock);
+	KASSERT(error == 0);
+}
+
+static void
+mtk_gpio_attach_pins(struct mtk_gpio_softc * const sc)
+{
+	const struct mtk_gpio_pinconf *pin_def;
+	struct gpio_chipset_tag *gp = &sc->sc_gp;
+	struct gpiobus_attach_args gba;
+	u_int pin;
+
+	gp->gp_cookie = sc;
+	gp->gp_pin_read = mtk_gpio_pin_read;
+	gp->gp_pin_write = mtk_gpio_pin_write;
+	gp->gp_pin_ctl = mtk_gpio_pin_ctl;
+
+	const u_int npins = sc->sc_padconf->npins;
+	sc->sc_pins = kmem_zalloc(sizeof(*sc->sc_pins) * npins, KM_SLEEP);
+
+	for (pin = 0; pin < npins; pin++) {
+		pin_def = &sc->sc_padconf->pins[pin];
+		sc->sc_pins[pin].pin_num = pin;
+		sc->sc_pins[pin].pin_caps = GPIO_PIN_INPUT | GPIO_PIN_OUTPUT |
+		    GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN;
+		sc->sc_pins[pin].pin_state = mtk_gpio_pin_read(sc, pin);
+		strlcpy(sc->sc_pins[pin].pin_defname, pin_def->name,
+		    sizeof(sc->sc_pins[pin].pin_defname));
+	}
+
+	memset(&gba, 0, sizeof(gba));
+	gba.gba_gc = gp;
+	gba.gba_pins = sc->sc_pins;
+	gba.gba_npins = npins;
+	sc->sc_gpiodev = config_found_ia(sc->sc_dev, "gpiobus", &gba, NULL);
+}
 
 static int
 mtk_gpio_match(device_t parent, cfdata_t cf, void *aux)
@@ -787,7 +908,7 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 
 	fdtbus_pinctrl_configure();
 
-	/* XXXJRT attach GPIO ports. */
+	mtk_gpio_attach_pins(sc);
 
 	/* XXXJRT interrupt support. */
 }
