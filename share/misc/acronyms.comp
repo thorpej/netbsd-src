@@ -1,4 +1,4 @@
-$NetBSD: acronyms.comp,v 1.223 2019/01/07 18:48:07 sevan Exp $
+$NetBSD: acronyms.comp,v 1.225 2019/01/22 01:32:30 htodd Exp $
 3WHS	three-way handshake
 8VSB	8-state vestigial side band modulation
 AA	anti-aliasing
@@ -468,6 +468,8 @@ EMR	electro-magnetic radiation
 EMACS	Editor MACroS
 EOF	end of file
 EOI	end of interrupt
+EOIS	end of interactive support
+EOL	end of life
 EOL	end of line
 EOT	end of transmission
 EPIC	explicitly parallel instruction computing
@@ -480,7 +482,9 @@ ERE	extended regular expression
 ERST	error record serialization table
 ESAN	Efficiency Sanitizer
 ESB	enterprise service bus
+ESDI	enhanced small disk interface
 ESDRAM	enhanced synchronous dynamic random access memory
+ESI	enclosure services interface
 ESS	electronic switching system
 ESS	extended service set
 ESSID	extended service set identifier
@@ -673,6 +677,7 @@ IP	intellectual property
 IPC	instructions per cycle
 IPC	interprocess communication
 IPE	integrated programming environment
+IPI	intelligent peripheral interface
 IPI	interprocessor interrupt
 IPL	Initial Program Load
 IPL	Interrupt Priority Level
@@ -943,6 +948,7 @@ NOC	network operations center
 NOP	no operation
 NOS	network operating system
 NP	nondeterministic polynomial time
+NRND	not recommended for new designs
 NRZ	non-return to zero
 NSA	nation-state adversary
 NSA	no such agency
@@ -1282,6 +1288,7 @@ SDT	syntax-directed translation
 SEA	synchronous external abort
 SEGV	segmentation violation
 SEO	search engine optimization
+SES	scsi enclosure services
 SFC	sequential function chart
 SFI	simple firmware interface
 SFI	software fault isolation
@@ -1318,6 +1325,7 @@ SMB	Server Message Block
 SMB	system management bus
 SMBIOS	System Management BIOS
 SMC	system management controller
+SMD	storage module device
 SMEP	supervisor mode execution protection
 SMF	single mode fiber
 SMI	structure of management information
@@ -1358,6 +1366,7 @@ SQCIF	sub quarter common intermediate format
 SQL	Structured Query Language
 SRAM	static random access memory
 SRC	sample rate conversion
+SRP	scsi rdma protocol
 SS	self-snoop
 SS	stack segment
 SSA	static single assignment

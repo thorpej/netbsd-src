@@ -1,7 +1,7 @@
-/*	$NetBSD: expandm.c,v 1.1 2019/01/11 20:37:30 christos Exp $	*/
+/*	$NetBSD: expandm.c,v 1.11 2019/01/23 02:48:48 kre Exp $	*/
 
 /*-
- * Copyright (c) 2018 The NetBSD Foundation, Inc.
+ * Copyright (c) 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -29,8 +29,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-__RCSID("$NetBSD: expandm.c,v 1.1 2019/01/11 20:37:30 christos Exp $");
+__RCSID("$NetBSD: expandm.c,v 1.11 2019/01/23 02:48:48 kre Exp $");
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -38,19 +39,70 @@ __RCSID("$NetBSD: expandm.c,v 1.1 2019/01/11 20:37:30 christos Exp $");
 
 #include "expandm.h"
 
-char * __attribute__((__format_arg__(1)))
-expandm(const char *fmt, const char *sf)
+#ifdef TEST
+#undef INT_MAX
+#define INT_MAX 31
+#endif
+
+
+const char * __attribute__((__format_arg__(1)))
+expandm(const char *fmt, const char *sf, char **rbuf)
 {
-	const char *e = strerror(errno);
+	const int err = errno;
+	const char *e = NULL;
 	char *buf, *m, *nbuf;
 	const char *ptr;
 
-	for (ptr = fmt, buf = NULL; (m = strstr(ptr, "%m")); ptr = m + 2) {
+	buf = NULL;
+	for (ptr = fmt; (m = strstr(ptr, "%m")) != NULL; ptr = m + 2) {
 		size_t cnt = 0;
+		size_t nlen;
+
 		for (char *p = m; p >= ptr && *p == '%'; p--)
 			cnt++;
+
+		nlen = (size_t)(m - ptr);
+		/*
+		 * we can't exceed INT_MAX because int is used as 
+		 * a format width
+		 */
+		if (__predict_false(nlen >= INT_MAX)) {
+			size_t blen = buf ? strlen(buf) : 0;
+			size_t tlen;
+
+			/*
+			 * if we would overflow a ptrdiff_t when computing
+			 * tlen, then don't bother.  The format string is
+			 * simply too large to be converted.
+			 */
+			if (blen >= PTRDIFF_MAX ||
+			    nlen >= PTRDIFF_MAX - blen ||
+			    nlen >= SIZE_T_MAX - blen)
+				goto out;
+
+			tlen = nlen + blen;
+
+			/*
+			 * We can't exceed PTRDIFF_MAX because we would
+			 * not be able to address the pointers
+			 */
+			if (tlen >= PTRDIFF_MAX)
+				goto out;
+
+			nbuf = realloc(buf, tlen + 1);
+			if (nbuf == NULL)
+				goto out;
+
+			memcpy(nbuf + blen, ptr, nlen);
+			nbuf[tlen] = '\0';
+			ptr += nlen;
+			buf = nbuf;
+		}
+
+		if (__predict_true(e == NULL && (cnt & 1) != 0))
+			e = strerror(err);
 		if (asprintf(&nbuf, "%s%.*s%s", buf ? buf : "",
-		    (int)(m - ptr), ptr, (cnt & 1) ? e : "%%m") == -1)
+		    (int)(m - ptr), ptr, (cnt & 1) ? e : "%m") == -1)
 			goto out;
 		free(buf);
 		buf = nbuf;
@@ -60,10 +112,16 @@ expandm(const char *fmt, const char *sf)
 		goto out;
 
 	free(buf);
+	if (rbuf)
+		*rbuf = nbuf;
+	errno = err;
 	return nbuf;
 out:
 	free(buf);
-	return __UNCONST(fmt);
+	if (rbuf)
+		*rbuf = NULL;
+	errno = err;
+	return fmt;
 }
 
 #ifdef TEST
@@ -71,7 +129,8 @@ int
 main(int argc, char *argv[])
 {
 	errno = ERANGE;
-	printf("%s\n", expandm(argv[1]));
+	printf("%s\n", expandm(argc > 1 ? argv[1] : "Message %%m=%m: %%%m%%",
+	    "...", NULL));
 	return 0;
 }
 #endif
