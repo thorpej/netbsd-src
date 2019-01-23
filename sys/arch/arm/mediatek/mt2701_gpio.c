@@ -71,59 +71,6 @@ static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8_10_12_14_16 = {
 	.nsel = __arraycount(sel_to_mA_2_4_6_8_10_12_14_16),
 };
 
-#if 0
-static int
-sel_to_mA(const struct mtk_gpio_drive *drive, u_int sel, uint8_t *mAp)
-{
-
-	if (sel > drive->nsel)
-		return EINVAL;
-	if (drive->sel_to_mA[sel] == 0)
-		return EINVAL;
-	if (mAp)
-		*mAp = drive->sel_to_mA[sel];
-	return 0;
-}
-
-static int
-mA_to_sel(const struct mtk_gpio_drive *drive, uint8_t mA, u_int *selp)
-{
-	u_int sel;
-
-	if (mA == 0)
-		return EINVAL;
-
-	for (sel = 0; sel < drive->nsel; sel++) {
-		if (drive->sel_to_mA[sel] == mA) {
-			if (selp)
-				*selp = sel;
-			return 0;
-		}
-	}
-	return EINVAL;
-}
-#endif
-
-#if 0
-static const struct mtk_ies_smt_group *
-lookup_ies_smt(const struct mtk_gpio_conf *conf, u_int pin, u_int which)
-{
-	u_int i;
-
-	KASSERT(which == MTK_IES_SMT_BIT_IES || which == MTK_IES_SMT_BIT_SMT);
-
-	for (i = 0; i < conf->nies_smt_groups; i++) {
-		if (pin >= conf->ies_smt_groups[i].first_pin &&
-		    pin <= conf->ies_smt_groups[i].last_pin &&
-		    conf->ies_smt_groups[i].bits[which] != 0) {
-			return &conf->ies_smt_groups[i];
-		}
-	}
-
-	return NULL;
-}
-#endif
-
 static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
 	IES_SMT(  0,   6, GPIO_IES_EN0, GPIO_SMT_EN0,  0),
 	IES_SMT(  7,   9, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
@@ -247,7 +194,7 @@ static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
 	IES_SMT(278, 278, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
 };
 
-static const struct mtk_gpio_pin mt2701_gpio_pins[] = {
+static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 	/* 0 */
 [0] =	{	.name = "PWRAP_SPI0_MI",
 		.functions = {
@@ -2542,9 +2489,52 @@ static const struct mtk_gpio_pin mt2701_gpio_pins[] = {
 	},
 };
 
-const struct mtk_gpio_conf mt2701_gpio_conf = {
+static const bus_size_t dir_regs[] = {
+	GPIO_GPIO_DIR1,  GPIO_GPIO_DIR2,  GPIO_GPIO_DIR3,  GPIO_GPIO_DIR4,
+	GPIO_GPIO_DIR5,  GPIO_GPIO_DIR6,  GPIO_GPIO_DIR7,  GPIO_GPIO_DIR8,
+	GPIO_GPIO_DIR9,  GPIO_GPIO_DIR10, GPIO_GPIO_DIR11, GPIO_GPIO_DIR12,
+	GPIO_GPIO_DIR13, GPIO_GPIO_DIR14, GPIO_GPIO_DIR15, GPIO_GPIO_DIR16,
+	GPIO_GPIO_DIR17, GPIO_GPIO_DIR18,
+};
+
+static const bus_size_t pullen_regs[] = {
+	GPIO_GPIO_PULLEN1,  GPIO_GPIO_PULLEN2,  GPIO_GPIO_PULLEN3,
+	GPIO_GPIO_PULLEN4,  GPIO_GPIO_PULLEN5,  GPIO_GPIO_PULLEN6,
+	GPIO_GPIO_PULLEN7,  GPIO_GPIO_PULLEN8,  GPIO_GPIO_PULLEN9,
+	GPIO_GPIO_PULLEN10, GPIO_GPIO_PULLEN11, GPIO_GPIO_PULLEN12,
+	GPIO_GPIO_PULLEN13, GPIO_GPIO_PULLEN14, GPIO_GPIO_PULLEN15,
+	GPIO_GPIO_PULLEN16, GPIO_GPIO_PULLEN17, GPIO_GPIO_PULLEN18,
+};
+
+static const bus_size_t pullsel_regs[] = {
+};
+
+static const bus_size_t dout_regs[] = {
+};
+
+static const bus_size_t din_regs[] = {
+};
+
+static const bus_size_t mode_regs[] = {
+};
+
+const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 	.pins = mt2701_gpio_pins,
 	.npins = __arraycount(mt2701_gpio_pins),
 	.ies_smt_groups = mt2701_ies_smt_groups,
 	.nies_smt_groups = __arraycount(mt2701_ies_smt_groups),
+	.reg_groups = {
+		REG_GROUP(MTK_GPIO_REGS_DIR, dir_regs,
+			  GPIO_DIR_PINS_PER_REG),
+		REG_GROUP(MTK_GPIO_REGS_PULLEN, pullen_regs,
+			  GPIO_PULLEN_PINS_PER_REG),
+		REG_GROUP(MTK_GPIO_REGS_PULLSEL, pullsel_regs,
+			  GPIO_PULLSEL_PINS_PER_REG),
+		REG_GROUP(MTK_GPIO_REGS_DOUT, dout_regs,
+			  GPIO_DOUT_PINS_PER_REG),
+		REG_GROUP(MTK_GPIO_REGS_DIN, din_regs,
+			  GPIO_DIN_PINS_PER_REG),
+		REG_GROUP(MTK_GPIO_REGS_MODE, mode_regs,
+			  GPIO_MODE_PINS_PER_REG),
+	},
 };
