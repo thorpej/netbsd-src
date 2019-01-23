@@ -29,7 +29,11 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD$");
 
+#include <sys/types.h>
+#include <sys/bus.h>
+
 #include <arm/mediatek/mtk_gpio.h>
+#include <arm/mediatek/mt7623_gpioreg.h>
 
 static const uint8_t sel_to_mA_4_8_12_16[] = {
 	[0] = 4,
@@ -55,7 +59,7 @@ static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8 = {
 	.nsel = __arraycount(sel_to_mA_2_4_6_8),
 };
 
-static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16 = {
+static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16[] = {
 	[0] = 2,
 	[1] = 4,
 	[2] = 6,
@@ -165,7 +169,7 @@ static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
 	IES_SMT(236, 241, GPIO_IES_EN2, GPIO_SMT_EN2,  6),
 	IES_SMT(242, 243, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
 	IES_SMT(244, 247, GPIO_IES_EN2, GPIO_SMT_EN2,  8),
-	IES_SMT(248, 248, GPIO_IES_EN2, GPIO_SMT_EN2,  9)
+	IES_SMT(248, 248, GPIO_IES_EN2, GPIO_SMT_EN2,  9),
 
 	IES(    249, 257, GPIO_SDIO_CTRL2,             4),
 	SMT(    249, 249, GPIO_SDIO_CTRL5,             3),
@@ -237,7 +241,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 		},
 		DRIVE(2_4_6_8, GPIO_DRV_SEL0, __BITS(0,3)),
 		EINT(0, 152),
-	}
+	},
 [5] =	{	.name = "PWRAP_SPI0_CK2",
 		.functions = {
 			[0] = "GPIO5",
@@ -763,7 +767,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 [54] =	{	.name = "SPI0_CK",
 		.functions = {
 			[0] = "GPIO54",
-			[1] = "SPI0_CK
+			[1] = "SPI0_CK",
 			[3] = "SPDIF_IN1",
 			[4] = "ADC_DAT_IN",
 			[7] = "DBG_MON_A[10]",
@@ -774,7 +778,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 [55] =	{	.name = "SPI0_MI",
 		.functions = {
 			[0] = "GPIO55",
-			[1] = "SPI0_MI
+			[1] = "SPI0_MI",
 			[2] = "SPI0_MO",
 			[3] = "MSDC1_WP",
 			[4] = "ADC_WS",
@@ -787,7 +791,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 [56] =	{	.name = "SPI0_MO",
 		.functions = {
 			[0] = "GPIO56",
-			[1] = "SPI0_MO
+			[1] = "SPI0_MO",
 			[2] = "SPI0_MI",
 			[3] = "SPDIF_IN0",
 			[7] = "DBG_MON_A[9]",
@@ -939,7 +943,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[6] = "WCN_I2S_DI",
 			[7] = "DBG_MON_B[2]",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7)),
 		EINT(0, 53),
 	},
 [73] =	{	.name = "I2S0_LRCK",
@@ -950,7 +954,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[6] = "WCN_I2S_LRCK",
 			[7] = "DBG_MON_B[5]",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7)),
 		EINT(0, 54),
 	},
 [74] =	{	.name = "I2S0_BCK",
@@ -961,7 +965,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[6] = "WCN_I2S_BCK",
 			[7] = "DBG_MON_B[4]",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL3, __BITS(4,7)),
 		EINT(0, 55),
 	},
 [75] =	{	.name = "SDA0",
@@ -1849,7 +1853,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[0] = "GPIO188",
 			[1] = "I2S2_MCLK",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL2, __BITS(4,7));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL2, __BITS(4,7)),
 	},
 [189] =	{	.name = "I2S3_DATA",
 		.functions = {
@@ -1858,7 +1862,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[2] = "I2S3_DATA_BYPS",
 			[3] = "PCM_TX",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11)),
 	},
 [190] =	{	.name = "I2S3_DATA_IN",
 		.functions = {
@@ -1866,7 +1870,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S3_DATA_IN",
 			[3] = "PCM_RX",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11)),
 	},
 [191] =	{	.name = "I2S3_BCK",
 		.functions = {
@@ -1874,7 +1878,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S3_BCK",
 			[3] = "PCM_CLK0",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11)),
 	},
 	/* 192 */
 [192] =	{	.name = "I2S3_LRCK",
@@ -1883,14 +1887,14 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S3_LRCK",
 			[3] = "PCM_SYNC",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11)),
 	},
 [193] =	{	.name = "I2S3_MCLK",
 		.functions = {
 			[0] = "GPIO193",
 			[1] = "I2S3_MCLK",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(8,11)),
 	},
 [194] =	{	.name = "I2S4_DATA",
 		.functions = {
@@ -1899,7 +1903,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[2] = "I2S4_DATA_BYPS",
 			[3] = "PCM_TX",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15)),
 	},
 [195] =	{	.name = "I2S4_DATA_IN",
 		.functions = {
@@ -1907,7 +1911,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S4_DATA_IN",
 			[3] = "PCM_RX",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15)),
 	},
 [196] =	{	.name = "I2S4_BCK",
 		.functions = {
@@ -1915,7 +1919,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S4_BCK",
 			[3] = "PCM_CLK0",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15)),
 	},
 [197] =	{	.name = "I2S4_LRCK",
 		.functions = {
@@ -1923,14 +1927,14 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "I2S4_LRCK",
 			[3] = "PCM_SYNC",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15)),
 	},
 [198] =	{	.name = "I2S4_MCLK",
 		.functions = {
 			[0] = "GPIO198",
 			[1] = "I2S4_MCLK",
 		},
-		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15));
+		DRIVE(4_8_12_16, GPIO_DRV_SEL7, __BITS(12,15)),
 	},
 [199] =	{	.name = "SPI1_CK",
 		.functions = {
@@ -2038,7 +2042,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[2] = "PWM0",
 			[3] = "PCIE0_PERST_N",	/* MT7623 only */
 			[4] = "ANT_SEL5",
-			[5] = "DISP_PWM"
+			[5] = "DISP_PWM",
 			[7] = "DBG_MON_A[31]",
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(8,11)),
@@ -2050,7 +2054,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[1] = "AUD_EXT_CK2",
 			[2] = "MSDC1_WP",
 			[3] = "PCIE1_PERST_N",	/* MT7623 only */
-			[5] = "PWM1"
+			[5] = "PWM1",
 			[7] = "DBG_MON_A[32]",
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(8,11)),
@@ -2598,7 +2602,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL10, __BITS(8,11)),
 	},
-[277] =	{	.name = "ESW_RST"
+[277] =	{	.name = "ESW_RST",
 		.functions = {
 			[0] = "GPIO277",
 			[1] = "ESW_RST",

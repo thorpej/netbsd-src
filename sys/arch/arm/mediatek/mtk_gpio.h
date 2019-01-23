@@ -92,7 +92,7 @@ struct mtk_gpio_pinconf {
 		.params = &mt2701_gpio_drive_ ## _params,		\
 		.reg = (_reg),						\
 		.sel = (_sel),						\
-		.sr = (_srval),
+		.sr = (_srval),						\
 	}
 
 #define	DRIVE(_params, _reg, _sel)					\
@@ -117,7 +117,7 @@ struct mtk_gpio_pinconf {
 		.eint_flags = MTK_EINT_SOURCE | (_flags),		\
 		.pin_func = (_func),					\
 		.eint_num = (_num),					\
-	},
+	}
 
 #define	EINT(_func, _num)						\
 	EINT_FLAGS(_func, _num, 0)
