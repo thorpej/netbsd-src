@@ -38,8 +38,7 @@ struct mtk_gpio_drive {
 #define	MTK_IES_SMT_BIT_SMT	1
 
 struct mtk_ies_smt_group {
-	bus_size_t	ies_reg;
-	bus_size_t	smt_reg;
+	bus_size_t	regs[2];
 	uint16_t	first_pin;
 	uint16_t	last_pin;
 	uint16_t	bits[2];
@@ -49,8 +48,8 @@ struct mtk_ies_smt_group {
 	{								\
 		.first_pin = (_fp),					\
 		.last_pin = (_lp),					\
-		.ies_reg = (_ireg),					\
-		.smt_reg = (_sreg),					\
+		.regs[MTK_IES_SMT_BIT_IES] = (_ireg),			\
+		.regs[MTK_IES_SMT_BIT_SMT] = (_sreg),			\
 		.bits[MTK_IES_SMT_BIT_IES] = (_ival),			\
 		.bits[MTK_IES_SMT_BIT_SMT] = (_sval),			\
 	}
@@ -66,7 +65,7 @@ struct mtk_ies_smt_group {
 
 #define	MTK_GPIO_MAXFUNC	8
 
-struct mtk_gpio_pin {
+struct mtk_gpio_pinconf {
 	const char *name;
 	const char *functions[MTK_GPIO_MAXFUNC];
 	struct {
@@ -80,7 +79,7 @@ struct mtk_gpio_pin {
 		uint16_t pupd;		/* 0=pull-up, 1=pull-down bit */
 		uint16_t r1;		/* 50K resistor control bit */
 		uint16_t r0;		/* 10K resistor control bit */
-	} pupdr1r0_smt;
+	} pupdr1r0;
 };
 
 #define	_DRIVE(_params, _reg, _sel, _srval)				\
@@ -98,18 +97,59 @@ struct mtk_gpio_pin {
 	_DRIVE(_params, _reg, _sel, __BIT(_sr))
 
 #define	PUPDR1R0(_reg, _pupd, _r1, _r0)					\
-	.pupdr1r0_smt = {						\
+	.pupdr1r0 = {							\
 		.reg = (_reg),						\
 		.pupd = __BIT(_pupd),					\
 		.r1 = __BIT(_r1),					\
 		.r0 = __BIT(_r0),					\
 	}
 
-struct mtk_gpio_conf {
-	const struct mtk_gpio_pin * const pins;
+struct mtk_gpio_reg_group {
+	const bus_size_t *regs;
+	u_int		 nregs;
+	u_int		 pins_per_reg;
+};
+
+#define	MTK_GPIO_REGS_DIR	0
+#define	MTK_GPIO_REGS_PULLEN	1
+#define	MTK_GPIO_REGS_PULLSEL	2
+#define	MTK_GPIO_REGS_DOUT	3
+#define	MTK_GPIO_REGS_DIN	4
+#define	MTK_GPIO_REGS_MODE	5
+#define	MTK_GPIO_NREGS		6
+
+#define	REG_GROUP(_which, _regs, _ppr)					\
+	[(_which)] = {							\
+		.regs = (_regs),					\
+		.nregs = __arraycount(_regs),				\
+		.pins_per_reg = (_ppr),					\
+	}
+
+struct mtk_gpio_padconf {
+	const struct mtk_gpio_pinconf * const pins;
 	size_t npins;
 	const struct mtk_ies_smt_group * const ies_smt_groups;
 	size_t nies_smt_groups;
+	struct mtk_gpio_reg_group reg_groups[MTK_GPIO_NREGS];
 };
+
+/*
+ * Device tree bindings:
+ *
+ * MediaTek device trees use the pinctrl "pinmux" property in their
+ * pin configurations to describe pin configurations in a compact
+ * way.
+ *
+ * Furthermore, the bias-pull-up and bias-pull-down properies will
+ * specify a resistor configuration for the pins that have those
+ * configuration options.
+ */
+#define	MTK_PINMUX_PIN(x)	((x) >> 8)
+#define	MTK_PINMUX_FUNC(x)	((x) & 0xf)
+
+#define	MTK_BIAS_R1R0_00	100
+#define	MTK_BIAS_R1R0_01	101
+#define	MTK_BIAS_R1R0_10	102
+#define	MTK_BIAS_R1R0_11	103
 
 #endif /* _ARM_MEDIATEK_MTK_GPIO_H_ */

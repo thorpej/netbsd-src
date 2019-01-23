@@ -19,6 +19,12 @@ file	arch/arm/mediatek/mtk_cru_fixed.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_gate.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_mux.c		mtk_cru
 
+# GPIO / pin mux control
+device	mtkgpio
+attach	mtkgpio at fdt with mtk_gpio
+file	arch/arm/mediatek/mtk_gpio.c		mtk_gpio
+file	arch/arm/mediatek/mt2701_gpio.c		mtk_gpio & soc_mt7623
+
 # MT6577-compatible SYSIRQ interrupt polarity controller
 device	mt6577sysirq
 attach	mt6577sysirq at fdt with mt6577_sysirq
