@@ -48,7 +48,11 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #include <arm/mediatek/mtk_gpio.h>
 
-static const struct of_compat_data[] = {
+#ifdef SOC_MT7623
+extern struct mtk_gpio_padconf mt2701_gpio_padconf;
+#endif
+
+static const struct of_compat_data compat_data[] = {
 #ifdef SOC_MT7623
 	{ "mediatek,mt7623-pinctrl",	(uintptr_t)&mt2701_gpio_padconf },
 #endif
@@ -58,7 +62,7 @@ static const struct of_compat_data[] = {
 struct mtk_gpio_softc {
 	device_t		sc_dev;
 	bus_space_tag_t		sc_bst;
-	const struct mtk_gpio_conf *sc_padconf;
+	const struct mtk_gpio_padconf *sc_padconf;
 	kmutex_t		sc_lock;
 
 	bus_space_handle_t	sc_gpio_bsh;
@@ -88,24 +92,26 @@ CFATTACH_DECL_NEW(mtk_gpio, sizeof(struct mtk_gpio_softc),
 	mtk_gpio_match, mtk_gpio_attach, NULL, NULL);
 
 static const struct mtk_gpio_pinconf *
-mtk_gpio_lookup(struct mtk_gpio_softc *sc, u_int pin)
+mtk_gpio_lookup(struct mtk_gpio_softc *sc, const u_int pin)
 {
-	const struct mtk_gpio_softc *pin_def;
 
 	if (pin >= sc->sc_padconf->npins)
 		return NULL;
-	
-	pin_def = &sc->sc_padconf->pins[pin];
+
+	const struct mtk_gpio_pinconf * const pin_def =
+	    &sc->sc_padconf->pins[pin];
 	if (pin_def->name == NULL || pin_def->functions[0] == NULL)
 		return NULL;
-	
+
 	return (pin_def);
 }
 
+#if 0
 static const struct mtk_gpio_pinconf *
-mtk_gpio_lookup_byname(struct mtk_gpio_softc *sc, const char *name)
+mtk_gpio_lookup_byname(struct mtk_gpio_softc * const sc,
+		       const char * const name)
 {
-	const struct mtk_gpio_softc *pin_def;
+	const struct mtk_gpio_pinconf *pin_def;
 	u_int n;
 
 	for (n = 0; n < sc->sc_padconf->npins; n++) {
@@ -117,9 +123,12 @@ mtk_gpio_lookup_byname(struct mtk_gpio_softc *sc, const char *name)
 
 	return NULL;
 }
+#endif
 
+#if 0
 static int
-mtk_gpio_sel_to_mA(const struct mtk_gpio_drive *drive, u_int sel, uint8_t *mAp)
+mtk_gpio_sel_to_mA(const struct mtk_gpio_drive * const drive, u_int sel,
+		   uint8_t * const mAp)
 {
 
 	if (sel > drive->nsel)
@@ -130,9 +139,11 @@ mtk_gpio_sel_to_mA(const struct mtk_gpio_drive *drive, u_int sel, uint8_t *mAp)
 		*mAp = drive->sel_to_mA[sel];
 	return 0;
 }
+#endif
 
 static int
-mtk_gpio_mA_to_sel(const struct mtk_gpio_drive *drive, uint8_t mA, u_int *selp)
+mtk_gpio_mA_to_sel(const struct mtk_gpio_drive * const drive, uint8_t mA,
+		   u_int * const selp)
 {
 	u_int sel;
 
@@ -150,8 +161,8 @@ mtk_gpio_mA_to_sel(const struct mtk_gpio_drive *drive, uint8_t mA, u_int *selp)
 }
 
 static inline u_int
-mtk_gpio_pinconf_to_pin(struct mtk_gpio_softc *sc,
-			const struct mtk_gpio_pinconf *pin_def)
+mtk_gpio_pinconf_to_pin(struct mtk_gpio_softc * const sc,
+			const struct mtk_gpio_pinconf * const pin_def)
 {
 	return (u_int)((uintptr_t)(pin_def - sc->sc_padconf->pins));
 }
@@ -159,9 +170,10 @@ mtk_gpio_pinconf_to_pin(struct mtk_gpio_softc *sc,
 static const struct mtk_ies_smt_group *
 mtk_gpio_ies_smt_for_pin(struct mtk_gpio_softc * const sc,
 			 const struct mtk_gpio_pinconf * const pin_def,
-			 u_int which)
+			 const u_int which)
 {
 	const struct mtk_ies_smt_group *group;
+	const u_int pin = mtk_gpio_pinconf_to_pin(sc, pin_def);
 	u_int i;
 
 	KASSERT(which == MTK_IES_SMT_BIT_IES || which == MTK_IES_SMT_BIT_SMT);
@@ -180,7 +192,8 @@ mtk_gpio_ies_smt_for_pin(struct mtk_gpio_softc * const sc,
 static int
 mtk_gpio_reg_for_pin(struct mtk_gpio_softc * const sc,
 		     const struct mtk_gpio_pinconf * const pin_def,
-		     u_int which, bus_size_t *regp, u_int *shiftp)
+		     const u_int which, bus_size_t * const regp,
+		     u_int * const shiftp)
 {
 	const struct mtk_gpio_reg_group *group;
 	u_int pin, idx, off;
@@ -206,24 +219,24 @@ mtk_gpio_reg_for_pin(struct mtk_gpio_softc * const sc,
 }
 
 static int
-mtk_gpio_setfunc(struct mtk_gpio_softc *sc,
-		 const struct mtk_gpio_pinconf *pin_def,
+mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
+		 const struct mtk_gpio_pinconf * const pin_def,
 		 const char *func, u_int func_num)
 {
 	bus_size_t mode_reg;
-	u_int snift;
+	u_int mode_shift;
 	int error;
 	uint16_t reg;
 
 	KASSERT(mutex_owned(&sc->sc_lock));
 
 	if ((error = mtk_gpio_reg_for_pin(sc, pin_def, MTK_GPIO_REGS_MODE,
-					  &func_reg, &shift)) != 0) {
+					  &mode_reg, &mode_shift)) != 0) {
 		return error;
 	}
-	shift *= 3;	/* 3 bits per pin */
+	mode_shift *= 3;	/* 3 bits per pin */
 
-	const uint16_t mode_mask = (7U << shift);
+	const uint16_t mode_mask = (7U << mode_shift);
 
 	/*
 	 * If the function is specified by name, look it up.
@@ -232,14 +245,14 @@ mtk_gpio_setfunc(struct mtk_gpio_softc *sc,
 	 */
 	if (func) {
 		for (func_num = 0; func_num < MTK_GPIO_MAXFUNC; func_num++) {
-			if (pin_def->functions[n] == NULL)
+			if (pin_def->functions[func_num] == NULL)
 				continue;
-			if (strcmp(pin_def->functions[n], func) == 0) {
+			if (strcmp(pin_def->functions[func_num], func) == 0) {
 				break;
 			}
 		}
 	} else if (func_num < MTK_GPIO_MAXFUNC) {
-		func = pin_def->functions[n];
+		func = pin_def->functions[func_num];
 	}
 	if (func == NULL || func_num >= MTK_GPIO_MAXFUNC) {
 		/* Function not found. */
@@ -255,7 +268,7 @@ mtk_gpio_setfunc(struct mtk_gpio_softc *sc,
 		return ENXIO;
 	}
 
-	reg = GPIO_READ(sc, func_reg);
+	reg = GPIO_READ(sc, mode_reg);
 	reg &= ~mode_mask;
 	reg |= __SHIFTIN(func_num, mode_mask);
 #ifdef MTK_GPIO_DEBUG
@@ -269,8 +282,8 @@ mtk_gpio_setfunc(struct mtk_gpio_softc *sc,
 
 static int
 mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
-		 const struct mtk_gpio_pinconf *pin_def,
-		 int flags, int pull_strength)
+		 const struct mtk_gpio_pinconf * const pin_def,
+		 const int flags, const int pull_strength)
 {
 
 	KASSERT(mutex_owned(&sc->sc_lock));
@@ -307,6 +320,7 @@ mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
 		case MTK_BIAS_R1R0_11:
 			pupdr1r0 |= pin_def->pupdr1r0.r0;
 			/* FALLTHROUGH */
+		case -1:/* unspecified == 50K */	/* XXXJRT */
 		case MTK_BIAS_R1R0_10:
 			pupdr1r0 |= pin_def->pupdr1r0.r1;
 			break;
@@ -368,8 +382,8 @@ mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
 
 static int
 mtk_gpio_setdrv(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf *pin_def,
-		u_int drive /*mA*/)
+		const struct mtk_gpio_pinconf * const pin_def,
+		const u_int drive /*mA*/)
 {
 	u_int sel;
 	int error;
@@ -385,29 +399,30 @@ mtk_gpio_setdrv(struct mtk_gpio_softc * const sc,
 	}
 
 	if ((error = mtk_gpio_mA_to_sel(pin_def->drive.params, drive,
-					&selp)) != 0) {
+					&sel)) != 0) {
 		device_printf(sc->sc_dev,
 		    "drive strength '%u mA' not supported on P%03u\n",
 		    drive, mtk_gpio_pinconf_to_pin(sc, pin_def));
 		return error;
 	}
 
-	drv = GPIO_READ(sc, pin_dev->drive.reg);
+	drv = GPIO_READ(sc, pin_def->drive.reg);
 	drv &= ~pin_def->drive.sel;
-	drv |= __SHIFTIN(sel, pin_dev->drive.sel);
+	drv |= __SHIFTIN(sel, pin_def->drive.sel);
 #ifdef MTK_GPIO_DEBUG
 	device_printf(sc->sc_dev, "P%03u drv %04x -> %04x\n",
 	    mtk_gpio_pinconf_to_pin(sc, pin_def),
 	    GPIO_READ(sc, pin_dev->drive.reg), drv);
 #endif
-	GPIO_WRITE(sc, pin_dev->drive.reg, drv);
+	GPIO_WRITE(sc, pin_def->drive.reg, drv);
 
 	return 0;
 }
 
 static int
 mtk_gpio_setdir(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf *pin_def, int flags)
+		const struct mtk_gpio_pinconf * const pin_def,
+		const int flags)
 {
 	bus_size_t dir_reg;
 	u_int dir_shift;
@@ -445,9 +460,9 @@ mtk_gpio_setdir(struct mtk_gpio_softc * const sc,
 static int
 mtk_gpio_setinput(struct mtk_gpio_softc * const sc,
 		  const struct mtk_gpio_pinconf * const pin_def,
-		  bool enable, bool schmitt)
-
-	static const struct mtk_ies_smt_group *group;
+		  const bool enable, const bool schmitt)
+{
+	const struct mtk_ies_smt_group *group;
 	const u_int which = schmitt ? MTK_IES_SMT_BIT_SMT : MTK_IES_SMT_BIT_IES;
 	uint16_t val;
 
@@ -481,7 +496,8 @@ mtk_gpio_setinput(struct mtk_gpio_softc * const sc,
 
 static int
 mtk_gpio_ctl(struct mtk_gpio_softc * const sc,
-	     const struct mtk_gpio_pinconf * const pin_def, int flags)
+	     const struct mtk_gpio_pinconf * const pin_def,
+	     const int flags)
 {
 	int error;
 
@@ -513,7 +529,7 @@ mtk_gpio_ctl(struct mtk_gpio_softc * const sc,
 
 static int
 mtk_gpio_getval(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf * const pin_def, int *valp)
+		const struct mtk_gpio_pinconf * const pin_def, int * const valp)
 {
 	bus_size_t din_reg;
 	u_int din_shift;
@@ -530,7 +546,6 @@ mtk_gpio_getval(struct mtk_gpio_softc * const sc,
 	const uint16_t din_mask = (1U << din_shift);
 
 	din = GPIO_READ(sc, din_reg);
-
 	*valp = (din & din_mask) ? true : false;
 
 	return 0;
@@ -538,7 +553,7 @@ mtk_gpio_getval(struct mtk_gpio_softc * const sc,
 
 static int
 mtk_gpio_setval(struct mtk_gpio_softc * const sc,
-		const struct mtk_gpio_pinconf * const pin_def, int val)
+		const struct mtk_gpio_pinconf * const pin_def, const int val)
 {
 	bus_size_t dout_reg;
 	u_int dout_shift;
@@ -548,26 +563,25 @@ mtk_gpio_setval(struct mtk_gpio_softc * const sc,
 	KASSERT(mutex_owned(&sc->sc_lock));
 
 	if ((error = mtk_gpio_reg_for_pin(sc, pin_def, MTK_GPIO_REGS_DOUT,
-					  &dout_reg, &dout_shift)) != 0)
+					  &dout_reg, &dout_shift)) != 0) {
 		return error;
 	}
 
-	const uint16_t dout_shift = (1U << dout_shift);
+	const uint16_t dout_mask = (1U << dout_shift);
 
 	dout = GPIO_READ(sc, dout_reg);
-
 	if (val)
-		dout |= dout_shift;
+		dout |= dout_mask;
 	else
-		dout &= ~dout_shift;
-	
+		dout &= ~dout_mask;
 	GPIO_WRITE(sc, dout_reg, dout);
 
 	return 0;
 }
 
 static void *
-mtk_gpio_fdt_acquire(device_t dev, const void *data, size_t len, int flags)
+mtk_gpio_fdt_acquire(device_t dev, const void *data, const size_t len,
+		     const int flags)
 {
 	struct mtk_gpio_softc * const sc = device_private(dev);
 	const struct mtk_gpio_pinconf *pin_def;
@@ -579,7 +593,7 @@ mtk_gpio_fdt_acquire(device_t dev, const void *data, size_t len, int flags)
 		return NULL;
 
 	const u_int pin = be32toh(gpio[1]);
-	const bool actlo = bt32toh(gpio[2]) & 1;
+	const bool actlo = be32toh(gpio[2]) & 1;
 
 	pin_def = mtk_gpio_lookup(sc, pin);
 	if (pin_def == NULL)
@@ -609,7 +623,7 @@ mtk_gpio_fdt_release(device_t dev, void *priv)
 
 	mutex_enter(&sc->sc_lock);
 	/* XXXJRT maybe not -- this (maybe) enables the input buffer! */
-	mtk_gpio_ctl(sc, pin_def, GPIO_PIN_INPUT);
+	mtk_gpio_ctl(sc, pin->pin_def, GPIO_PIN_INPUT);
 	mutex_exit(&sc->sc_lock);
 
 	kmem_free(pin, sizeof(*pin));
@@ -688,13 +702,15 @@ mtk_pinctrl_set_config_for_group(struct mtk_gpio_softc * const sc,
 
 	mutex_enter(&sc->sc_lock);
 
-	for (; pinmux_len > 0; pinmux_len -= 4, pinmux++) {
-		u_int pin = MTK_PINMUX_PIN(be32dec(pinmux[0]));
-		u_int func_num = MTK_PINMUX_FUNC(be32dec(pinmux[0]));
+	for (; pinmux_len >= 4; pinmux_len -= 4, pinmux++) {
+		uint32_t pinmux_native = be32dec(pinmux);
+		u_int pin = MTK_PINMUX_PIN(pinmux_native);
+		u_int func_num = MTK_PINMUX_FUNC(pinmux_native);
 
 		pin_def = mtk_gpio_lookup(sc, pin);
 		if (pin_def == NULL) {
-			aprint_error_dev(dev, "unknown pin number %u\n", pin);
+			aprint_error_dev(sc->sc_dev,
+			    "unknown pin number %u\n", pin);
 			continue;
 		}
 
@@ -702,7 +718,7 @@ mtk_pinctrl_set_config_for_group(struct mtk_gpio_softc * const sc,
 			continue;
 
 		if (bias != -1)
-			mtk_gpio_setpull(sc, pin_def, bias);
+			mtk_gpio_setpull(sc, pin_def, bias, pull_strength);
 
 		if (drive_strength != -1)
 			mtk_gpio_setdrv(sc, pin_def, drive_strength);
@@ -741,6 +757,8 @@ mtk_pinctrl_set_config(device_t dev, const void *data, size_t len)
 			return rv;
 		}
 	}
+
+	return 0;
 }
 
 static struct fdtbus_pinctrl_controller_func mtk_pinctrl_funcs = {
@@ -751,7 +769,8 @@ static int
 mtk_gpio_pin_read(void *priv, int pin)
 {
 	struct mtk_gpio_softc * const sc = priv;
-	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	const struct mtk_gpio_pinconf * const pin_def =
+	    &sc->sc_padconf->pins[pin];
 	int error, val;
 
 	KASSERT((u_int)pin < sc->sc_padconf->npins);
@@ -767,7 +786,8 @@ static void
 mtk_gpio_pin_write(void *priv, int pin, int val)
 {
 	struct mtk_gpio_softc * const sc = priv;
-	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	const struct mtk_gpio_pinconf * const pin_def =
+	    &sc->sc_padconf->pins[pin];
 	int error;
 
 	KASSERT((u_int)pin < sc->sc_padconf->npins);
@@ -782,15 +802,16 @@ static void
 mtk_gpio_pin_ctl(void *priv, int pin, int flags)
 {
 	struct mtk_gpio_softc * const sc = priv;
-	const struct mtk_gpio_pinconf *pin_def = &sc->sc_padconf->pins[pin];
+	const struct mtk_gpio_pinconf * const pin_def =
+	    &sc->sc_padconf->pins[pin];
 	int error;
 
 	KASSERT((u_int)pin < sc->sc_padconf->npins);
 
 	mutex_enter(&sc->sc_lock);
-	error = mtk_gpio_ctl(sc,, pin_def, flags);
+	error = mtk_gpio_ctl(sc, pin_def, flags);
 	if (error == 0)
-		error = mtk_gpio_setpull(sc, pin_def, flags);
+		error = mtk_gpio_setpull(sc, pin_def, flags, -1);
 	mutex_exit(&sc->sc_lock);
 	KASSERT(error == 0);
 }
@@ -799,7 +820,7 @@ static void
 mtk_gpio_attach_pins(struct mtk_gpio_softc * const sc)
 {
 	const struct mtk_gpio_pinconf *pin_def;
-	struct gpio_chipset_tag *gp = &sc->sc_gp;
+	struct gpio_chipset_tag * const gp = &sc->sc_gp;
 	struct gpiobus_attach_args gba;
 	u_int pin;
 
@@ -860,7 +881,7 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 		aprint_error(": couldn't get regmap property\n");
 		return;
 	}
-	const int regmap_phandle = fdtbus_get_phandle_from_native(be32dec(val));
+	const int regmap_phandle = fdtbus_get_phandle_from_native(val);
 
 	if (fdtbus_get_reg(phandle, 0, &eint_addr, &eint_size) != 0) {
 		aprint_error(": couldn't get eint registers\n");
@@ -888,12 +909,13 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	}
 
 	mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_VM);
-	sc->sc_padconf = (void *)of_search_compatible(phandle, compat_data)->data;
+	sc->sc_padconf =
+	    (void *)of_search_compatible(phandle, compat_data)->data;
 
 	aprint_naive("\n");
 	aprint_normal(": Pin MUX controller\n");
 
-	fdtbus_register_gpio_controller(self, phandle, &mtk_gpio_funcs);
+	fdtbus_register_gpio_controller(self, phandle, &mtk_gpio_fdt_funcs);
 
 	/*
 	 * MediaTek pinctrl configurations are nodes that themselves
