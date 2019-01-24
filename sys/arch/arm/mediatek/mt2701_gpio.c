@@ -2669,8 +2669,16 @@ static const struct {
 
 static int
 mt2701_setfunc_hook(struct mtk_gpio_softc * const sc, const u_int pin,
-		    u_int * const func_num)
+		    int * const func_num)
 {
+	if (func_num < 0) {
+		/*
+		 * The function wasn't found; no bank switching
+		 * is necessary.
+		 */
+		return 0;
+	}
+
 	/*
 	 * Some pins require some special handling when setting the
 	 * pin function.
@@ -2713,6 +2721,7 @@ const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 	.npins = __arraycount(mt2701_gpio_pins),
 	.ies_smt_groups = mt2701_ies_smt_groups,
 	.nies_smt_groups = __arraycount(mt2701_ies_smt_groups),
+	.reg_index_shift = 4,
 	.reg_groups = {
 		[MTK_GPIO_REGS_DIR] = {
 			.base = GPIO_GPIO_DIR1,

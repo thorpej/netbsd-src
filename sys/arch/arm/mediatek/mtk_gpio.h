@@ -151,11 +151,10 @@ struct mtk_gpio_padconf {
 	size_t npins;
 	const struct mtk_ies_smt_group * const ies_smt_groups;
 	size_t nies_smt_groups;
-	uint16_t reg_index_mask;
 	uint16_t reg_index_shift;
 	struct mtk_gpio_reg_group reg_groups[MTK_GPIO_NREGS];
 	int (*setfunc_hook)(struct mtk_gpio_softc * const, const u_int,
-			    u_int * const);
+			    int * const);
 };
 
 struct mtk_gpio_softc {
