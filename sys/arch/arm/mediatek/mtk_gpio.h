@@ -29,6 +29,15 @@
 #ifndef _ARM_MEDIATEK_MTK_GPIO_H_
 #define _ARM_MEDIATEK_MTK_GPIO_H_
 
+#include <sys/types.h>
+#include <sys/bus.h>
+#include <sys/mutex.h>
+#include <sys/gpio.h>
+
+#include <dev/gpio/gpiovar.h>
+
+struct mtk_gpio_softc;
+
 struct mtk_gpio_drive {
 	const uint8_t *sel_to_mA;
 	size_t nsel;
@@ -123,9 +132,10 @@ struct mtk_gpio_pinconf {
 	EINT_FLAGS(_func, _num, 0)
 
 struct mtk_gpio_reg_group {
-	const bus_size_t *regs;
-	u_int		 nregs;
-	u_int		 pins_per_reg;
+	bus_size_t	base;
+	void		(*addr_fixup)(bus_size_t *, u_int);
+	uint8_t		pins_per_reg;
+	uint8_t		bits_per_pin;	/* 1 if not otherwise set */
 };
 
 #define	MTK_GPIO_REGS_DIR	0
@@ -136,20 +146,36 @@ struct mtk_gpio_reg_group {
 #define	MTK_GPIO_REGS_MODE	5
 #define	MTK_GPIO_NREGS		6
 
-#define	REG_GROUP(_which, _regs, _ppr)					\
-	[(_which)] = {							\
-		.regs = (_regs),					\
-		.nregs = __arraycount(_regs),				\
-		.pins_per_reg = (_ppr),					\
-	}
-
 struct mtk_gpio_padconf {
 	const struct mtk_gpio_pinconf * const pins;
 	size_t npins;
 	const struct mtk_ies_smt_group * const ies_smt_groups;
 	size_t nies_smt_groups;
+	uint16_t reg_index_mask;
+	uint16_t reg_index_shift;
 	struct mtk_gpio_reg_group reg_groups[MTK_GPIO_NREGS];
+	int (*setfunc_hook)(struct mtk_gpio_softc * const, const u_int,
+			    u_int * const);
 };
+
+struct mtk_gpio_softc {
+	device_t		sc_dev;
+	bus_space_tag_t		sc_bst;
+	const struct mtk_gpio_padconf *sc_padconf;
+	kmutex_t		sc_lock;
+
+	bus_space_handle_t	sc_gpio_bsh;
+	bus_space_handle_t	sc_eint_bsh;
+
+	struct gpio_chipset_tag	sc_gp;
+	gpio_pin_t		*sc_pins;
+	device_t		sc_gpiodev;
+};
+
+#define	GPIO_READ(sc, reg)		\
+	bus_space_read_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg))
+#define	GPIO_WRITE(sc, reg, val)	\
+	bus_space_write_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg), (val))
 
 /*
  * Device tree bindings:
