@@ -50,11 +50,11 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #ifdef SOC_MT7623
 /*
- * The MT7623 GPIO block is compatible with the MT2701 GPIO block,
- * with just tweaks to the banking configuration of a few pins that
- * we are largely insulated from because of how the "pinmux" bindings
- * for these SoCs.  (We would have to care about these differences if
- * we were selecting pin functions by name.)
+ * The MT7623 GPIO block is compatible with the MT2701 GPIO block, with
+ * just tweaks to the banking configuration of a few pins that we are
+ * largely insulated from because of how the "pinmux" bindings for these
+ * SoCs work.  (We would have to care about these differences if we were
+ * selecting pin functions by name.)
  */
 extern struct mtk_gpio_padconf mt2701_gpio_padconf;
 #endif
