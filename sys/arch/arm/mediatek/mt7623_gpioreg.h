@@ -195,7 +195,7 @@
 #define	GPIO_GPIO_MODE54		0xab0
 #define	GPIO_GPIO_MODE55		0xac0
 #define	GPIO_GPIO_MODE56		0xad0
-#define	GPIO_GPIO_BANK			0xb10
+#define	GPIO_BANK_CTRL0			0xb10
 #define	GPIO_IES_EN0			0xb20
 #define	GPIO_IES_EN1			0xb30
 #define	GPIO_IES_EN2			0xb40
@@ -254,8 +254,10 @@
 #define	GPIO_BIAS_CTRL0			0xeb0
 #define	GPIO_BIAS_CTRL1			0xec0
 #define	GPIO_BIAS_CTRL2			0xed0
+#define	GPIO_BANK_CTRL2			0xef0
 #define	GPIO_DRV_SEL10			0xf00
 #define	GPIO_DRV_SEL11			0xf10
+#define	GPIO_BANK_CTRL1			0xf20
 #define	GPIO_DRV_SEL12			0xf30
 #define	GPIO_SDIO_CTRL3			0xf40	/* a.k.a. MSDC3_CTRL3 */
 #define	GPIO_DRV_SEL0			0xf50
@@ -312,9 +314,5 @@
 #define	GPIO_MODE_PIN_SHIFT(x)		(((x) % GPIO_MODE_PINS_PER_REG) * 3)
 #define	GPIO_MODE_PIN_TO_REG(x)		\
 	((((x) / GPIO_MODE_PINS_PER_REG) << 4) + GPIO_GPIO_MODE1)
-
-/* GPIO Misc Control Register */
-#define	GPIO_BANK_GPS_SYNC_SEL		__BIT(1) /* 1=external */
-#define	GPIO_BANK_MIPI_GPI_EN		__BIT(2)
 
 #endif /* _MEDIATEK_MT7623_GPIOREG_H_ */

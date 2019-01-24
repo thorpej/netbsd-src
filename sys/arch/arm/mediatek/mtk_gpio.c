@@ -59,31 +59,12 @@ static const struct of_compat_data compat_data[] = {
 	{ NULL }
 };
 
-struct mtk_gpio_softc {
-	device_t		sc_dev;
-	bus_space_tag_t		sc_bst;
-	const struct mtk_gpio_padconf *sc_padconf;
-	kmutex_t		sc_lock;
-
-	bus_space_handle_t	sc_gpio_bsh;
-	bus_space_handle_t	sc_eint_bsh;
-
-	struct gpio_chipset_tag	sc_gp;
-	gpio_pin_t		*sc_pins;
-	device_t		sc_gpiodev;
-};
-
 struct mtk_gpio_pin {
 	struct mtk_gpio_softc	*pin_sc;
 	const struct mtk_gpio_pinconf *pin_def;
 	int			pin_flags;
 	bool			pin_actlo;
 };
-
-#define	GPIO_READ(sc, reg)		\
-	bus_space_read_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg))
-#define	GPIO_WRITE(sc, reg, val)	\
-	bus_space_write_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg), (val))
 
 static int	mtk_gpio_match(device_t, cfdata_t, void *);
 static void	mtk_gpio_attach(device_t, device_t, void *);
@@ -207,11 +188,16 @@ mtk_gpio_reg_for_pin(struct mtk_gpio_softc * const sc,
 	idx = pin / group->pins_per_reg;
 	off = pin % group->pins_per_reg;
 
-	if (idx >= group->nregs)
-		return EINVAL;
+	if (group->bits_per_pin)
+		off *= group->bits_per_pin;
 
-	if (regp)
-		*regp = group->regs[idx];
+	if (regp) {
+		*regp = group->base +
+		    ((idx & sc->sc_padconf->reg_index_mask) <<
+		     sc->sc_padconf->reg_index_shift);
+		if (group->addr_fixup)
+			(*group->addr_fixup)(regp, pin);
+	}
 	if (shiftp)
 		*shiftp = off;
 
@@ -234,7 +220,6 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 					  &mode_reg, &mode_shift)) != 0) {
 		return error;
 	}
-	mode_shift *= 3;	/* 3 bits per pin */
 
 	const uint16_t mode_mask = (7U << mode_shift);
 
@@ -251,7 +236,19 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 				break;
 			}
 		}
-	} else if (func_num < MTK_GPIO_MAXFUNC) {
+	}
+
+	/*
+	 * Now that we have the function selector, perform any special
+	 * handling this pin may require.  NOTE: This may change the
+	 * function selector!
+	 */
+	if (sc->sc_padconf->setfunc_hook != NULL &&
+	    (error = (*sc->sc_padconf->setfunc_hook)(sc,
+	    		mtk_gpio_pinconf_to_pin(sc, pin_def), &func_num))) {
+		return error;
+	}
+	if (func_num < MTK_GPIO_MAXFUNC) {
 		func = pin_def->functions[func_num];
 	}
 	if (func == NULL || func_num >= MTK_GPIO_MAXFUNC) {
@@ -283,7 +280,7 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 static int
 mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
 		 const struct mtk_gpio_pinconf * const pin_def,
-		 const int flags, const int pull_strength)
+		 const int flags, int pull_strength)
 {
 
 	KASSERT(mutex_owned(&sc->sc_lock));
@@ -303,8 +300,13 @@ mtk_gpio_setpull(struct mtk_gpio_softc * const sc,
 		/* Only pull-up and pull-down supported. */
 		if (flags & GPIO_PIN_PULLDOWN)
 			pupdr1r0 |= pin_def->pupdr1r0.pupd;
-		else if ((flags & GPIO_PIN_PULLUP) == 0)
-			return ENXIO;
+		else if ((flags & GPIO_PIN_PULLUP) == 0) {
+			/*
+			 * This is how we disable bias with
+			 * these pins.
+			 */
+			pull_strength = MTK_BIAS_R1R0_00;
+		}
 
 		/*
 		 * In this case, pull_strength is actually a constant
@@ -866,6 +868,16 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	bus_addr_t eint_addr, gpio_addr;
 	bus_size_t eint_size, gpio_size;
 	uint32_t val;
+
+	/*
+	 * We currently only support "pins-are-numbered" pinctrl
+	 * bindings.
+	 */
+	if (!of_hasprop(phandle, "pins-are-numbered")) {
+		aprint_error(
+		    ": non-\"pins-are-numbered\" bindings not supported\n");
+		return;
+	}
 
 	/*
 	 * The device tree for MediaTek pin controllers is a little goofy.

@@ -421,11 +421,12 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 		.functions = {
 			[0] = "GPIO22",
 			[1] = "UCTS0",
-			[2] = "PCIE0_PERST_N",	/* MT7623 only */
+			[2] = "PCIE0_PERST_N",	/* MT7623 */
 			[3] = "KCOL3",
 			[4] = "CONN_DSP_JDO",
 			[5] = "EXT_FRAME_SYNC",
 			[7] = "DBG_MON_A[30]",
+		/*	10 == "PCIE0_PERST_N"	   MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL1, __BITS(8,11)),
 		EINT_FLAGS(0, 0, MTK_EINT_DEBOUNCE_REQD),
@@ -434,11 +435,12 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 		.functions = {
 			[0] = "GPIO23",
 			[1] = "URTS0",
-			[2] = "PCIE1_PERST_N",	/* MT7623 only */
+			[2] = "PCIE1_PERST_N",	/* MT7623 */
 			[3] = "KCOL2",
 			[4] = "CONN_MCU_TDO",
 			[5] = "EXT_FRAME_SYNC",
 			[7] = "DBG_MON_A[29]",
+		/*	10 == "PCIE1_PERST_N"	  MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL1, __BITS(8,11)),
 		EINT_FLAGS(0, 1, MTK_EINT_DEBOUNCE_REQD),
@@ -447,10 +449,11 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 		.functions = {
 			[0] = "GPIO24",
 			[1] = "UCTS1",
-			[2] = "PCIE2_PERST_N",	/* MT7623 only */
+			[2] = "PCIE2_PERST_N",	/* MT7623 */
 			[3] = "KCOL1",
 			[4] = "CONN_MCU_DBGACK_N",
 			[7] = "DBG_MON_A[28]",
+		/*	10 == "PCIE2_PERST_N"	   MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL1, __BITS(8,11)),
 		EINT_FLAGS(0, 2, MTK_EINT_DEBOUNCE_REQD),
@@ -513,8 +516,9 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[3] = "KROW0",
 			[4] = "CONN_MCU_TMS",
 			[5] = "CONN_MCU_AICE_JMSC",
-			[6] = "PCIE2_PERST_N",	/* MT7623 only */
+			[6] = "PCIE2_PERST_N",	/* MT7623 */
 			[7] = "DBG_MON_A[23]",
+		/*	14 == "PCIE2_PERST_N"	   MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL1, __BITS(12,15)),
 		EINT_FLAGS(0, 7, MTK_EINT_DEBOUNCE_REQD),
@@ -1984,6 +1988,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[2] = "DISP_PWM",
 			[5] = "G1_TXD2",
 			[7] = "DBG_MON_B[18]",
+		/*	 9 == "I2S2_DATA"	*/
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(4,7)),
 		EINT(0, 115),
@@ -1995,6 +2000,7 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[2] = "CLKM3",
 			[5] = "G1_TXD1",
 			[7] = "DBG_MON_B[19]",
+		/*	 9 == "I2S3_DATA"	*/
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(4,7)),
 		EINT(0, 116),
@@ -2040,10 +2046,11 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[0] = "GPIO208",
 			[1] = "AUD_EXT_CK1",
 			[2] = "PWM0",
-			[3] = "PCIE0_PERST_N",	/* MT7623 only */
+			[3] = "PCIE0_PERST_N",	/* MT7623 */
 			[4] = "ANT_SEL5",
 			[5] = "DISP_PWM",
 			[7] = "DBG_MON_A[31]",
+		/*	11 == "PCIE0_PERST_N"	   MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(8,11)),
 		EINT(0, 120),
@@ -2053,9 +2060,10 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 			[0] = "GPIO209",
 			[1] = "AUD_EXT_CK2",
 			[2] = "MSDC1_WP",
-			[3] = "PCIE1_PERST_N",	/* MT7623 only */
+			[3] = "PCIE1_PERST_N",	/* MT7623 */
 			[5] = "PWM1",
 			[7] = "DBG_MON_A[32]",
+		/*	11 == "PCIE1_PERST_N"	   MT2701 */
 		},
 		DRIVE(4_8_12_16, GPIO_DRV_SEL8, __BITS(8,11)),
 		EINT(0, 121),
@@ -2625,72 +2633,80 @@ static const struct mtk_gpio_pinconf mt2701_gpio_pins[] = {
 	},
 };
 
-static const bus_size_t dir_regs[] = {
-	GPIO_GPIO_DIR1,  GPIO_GPIO_DIR2,  GPIO_GPIO_DIR3,
-	GPIO_GPIO_DIR4,  GPIO_GPIO_DIR5,  GPIO_GPIO_DIR6,
-	GPIO_GPIO_DIR7,  GPIO_GPIO_DIR8,  GPIO_GPIO_DIR9,
-	GPIO_GPIO_DIR10, GPIO_GPIO_DIR11, GPIO_GPIO_DIR12,
-	GPIO_GPIO_DIR13, GPIO_GPIO_DIR14, GPIO_GPIO_DIR15,
-	GPIO_GPIO_DIR16, GPIO_GPIO_DIR17, GPIO_GPIO_DIR18,
+#define	BANKED_PIN(_pin, _reg, _bit)					\
+	{								\
+		.pin = (_pin),						\
+		.bank_reg = (_reg),					\
+		.mask = __BIT(_bit),					\
+	}
+
+static const struct {
+	u_int		pin;
+	bus_size_t	bank_reg;
+	uint16_t	mask;
+} mt2701_banked_pinmux[] = {
+	BANKED_PIN( 22, GPIO_BANK_CTRL0, 3),	/* f10 == PCIE0_PERST_N */
+	BANKED_PIN( 23, GPIO_BANK_CTRL0, 4),	/* f10 == PCIE1_PERST_N */
+	BANKED_PIN( 24, GPIO_BANK_CTRL0, 5),	/* f10 == PCIE2_PERST_N */
+	BANKED_PIN( 29, GPIO_BANK_CTRL0, 9),	/* f14 == PCIE2_PERST_N */
+	BANKED_PIN(208, GPIO_BANK_CTRL0, 7),	/* f11 == PCIE0_PERST_N */
+	BANKED_PIN(209, GPIO_BANK_CTRL0, 8),	/* f11 == PCIE1_PERST_N */
+	BANKED_PIN(203, GPIO_BANK_CTRL1, 0),	/* f9  == I2S2_DATA */
+	BANKED_PIN(204, GPIO_BANK_CTRL1, 1),	/* f9  == I2S3_DATA */
+	BANKED_PIN(249, GPIO_BANK_CTRL2, 0),	/* MSDC3 ... */
+	BANKED_PIN(250, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(251, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(252, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(253, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(254, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(255, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(256, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(257, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(258, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(259, GPIO_BANK_CTRL2, 0),	/* . */
+	BANKED_PIN(260, GPIO_BANK_CTRL2, 0),	/* . */
 };
 
-static const bus_size_t pullen_regs[] = {
-	GPIO_GPIO_PULLEN1,  GPIO_GPIO_PULLEN2,  GPIO_GPIO_PULLEN3,
-	GPIO_GPIO_PULLEN4,  GPIO_GPIO_PULLEN5,  GPIO_GPIO_PULLEN6,
-	GPIO_GPIO_PULLEN7,  GPIO_GPIO_PULLEN8,  GPIO_GPIO_PULLEN9,
-	GPIO_GPIO_PULLEN10, GPIO_GPIO_PULLEN11, GPIO_GPIO_PULLEN12,
-	GPIO_GPIO_PULLEN13, GPIO_GPIO_PULLEN14, GPIO_GPIO_PULLEN15,
-	GPIO_GPIO_PULLEN16, GPIO_GPIO_PULLEN17, GPIO_GPIO_PULLEN18,
-};
+static int
+mt2701_setfunc_hook(struct mtk_gpio_softc * const sc, const u_int pin,
+		    u_int * const func_num)
+{
+	/*
+	 * Some pins require some special handling when setting the
+	 * pin function.
+	 *
+	 * WARNING: There is some dark magick here that's not fully
+	 * documented, but that is used in device trees that exist
+	 * in the wild.
+	 */
+	u_int idx;
+	for (idx = 0; idx < __arraycount(mt2701_banked_pinmux); idx++) {
+		if (pin == mt2701_banked_pinmux[idx].pin)
+			break;
+	}
+	if (idx == __arraycount(mt2701_banked_pinmux))
+		return 0;
 
-static const bus_size_t pullsel_regs[] = {
-	GPIO_GPIO_PULLSEL1,  GPIO_GPIO_PULLSEL2,  GPIO_GPIO_PULLSEL3,
-	GPIO_GPIO_PULLSEL4,  GPIO_GPIO_PULLSEL5,  GPIO_GPIO_PULLSEL6,
-	GPIO_GPIO_PULLSEL7,  GPIO_GPIO_PULLSEL8,  GPIO_GPIO_PULLSEL9,
-	GPIO_GPIO_PULLSEL10, GPIO_GPIO_PULLSEL11, GPIO_GPIO_PULLSEL12,
-	GPIO_GPIO_PULLSEL13, GPIO_GPIO_PULLSEL14, GPIO_GPIO_PULLSEL15,
-	GPIO_GPIO_PULLSEL16, GPIO_GPIO_PULLSEL17, GPIO_GPIO_PULLSEL18,
-};
+	const uint16_t bank_mask = mt2701_banked_pinmux[idx].mask;
+	uint16_t val = GPIO_READ(sc, mt2701_banked_pinmux[idx].bank_reg);
+	if (*func_num > 7) {
+		val &= ~bank_mask;
+		*func_num -= 8;
+	} else {
+		val |= bank_mask;
+	}
+	GPIO_WRITE(sc, mt2701_banked_pinmux[idx].bank_reg, val);
 
-static const bus_size_t dout_regs[] = {
-	GPIO_GPIO_DOUT1,  GPIO_GPIO_DOUT2,  GPIO_GPIO_DOUT3,
-	GPIO_GPIO_DOUT4,  GPIO_GPIO_DOUT5,  GPIO_GPIO_DOUT6,
-	GPIO_GPIO_DOUT7,  GPIO_GPIO_DOUT8,  GPIO_GPIO_DOUT9,
-	GPIO_GPIO_DOUT10, GPIO_GPIO_DOUT11, GPIO_GPIO_DOUT12,
-	GPIO_GPIO_DOUT13, GPIO_GPIO_DOUT14, GPIO_GPIO_DOUT15,
-	GPIO_GPIO_DOUT16, GPIO_GPIO_DOUT17, GPIO_GPIO_DOUT18,
-};
+	return 0;
+}
 
-static const bus_size_t din_regs[] = {
-	GPIO_GPIO_DIN1,  GPIO_GPIO_DIN2,  GPIO_GPIO_DIN3,
-	GPIO_GPIO_DIN4,  GPIO_GPIO_DIN5,  GPIO_GPIO_DIN6,
-	GPIO_GPIO_DIN7,  GPIO_GPIO_DIN8,  GPIO_GPIO_DIN9,
-	GPIO_GPIO_DIN10, GPIO_GPIO_DIN11, GPIO_GPIO_DIN12,
-	GPIO_GPIO_DIN13, GPIO_GPIO_DIN14, GPIO_GPIO_DIN15,
-	GPIO_GPIO_DIN16, GPIO_GPIO_DIN17, GPIO_GPIO_DIN18,
-};
-
-static const bus_size_t mode_regs[] = {
-	GPIO_GPIO_MODE1,  GPIO_GPIO_MODE2,  GPIO_GPIO_MODE3,
-	GPIO_GPIO_MODE4,  GPIO_GPIO_MODE5,  GPIO_GPIO_MODE6,
-	GPIO_GPIO_MODE7,  GPIO_GPIO_MODE8,  GPIO_GPIO_MODE9,
-	GPIO_GPIO_MODE10, GPIO_GPIO_MODE11, GPIO_GPIO_MODE12,
-	GPIO_GPIO_MODE13, GPIO_GPIO_MODE14, GPIO_GPIO_MODE15,
-	GPIO_GPIO_MODE16, GPIO_GPIO_MODE17, GPIO_GPIO_MODE18,
-	GPIO_GPIO_MODE19, GPIO_GPIO_MODE20, GPIO_GPIO_MODE21,
-	GPIO_GPIO_MODE22, GPIO_GPIO_MODE23, GPIO_GPIO_MODE24,
-	GPIO_GPIO_MODE25, GPIO_GPIO_MODE26, GPIO_GPIO_MODE27,
-	GPIO_GPIO_MODE28, GPIO_GPIO_MODE29, GPIO_GPIO_MODE30,
-	GPIO_GPIO_MODE31, GPIO_GPIO_MODE32, GPIO_GPIO_MODE33,
-	GPIO_GPIO_MODE34, GPIO_GPIO_MODE35, GPIO_GPIO_MODE36,
-	GPIO_GPIO_MODE37, GPIO_GPIO_MODE38, GPIO_GPIO_MODE39,
-	GPIO_GPIO_MODE40, GPIO_GPIO_MODE41, GPIO_GPIO_MODE42,
-	GPIO_GPIO_MODE43, GPIO_GPIO_MODE44, GPIO_GPIO_MODE45,
-	GPIO_GPIO_MODE46, GPIO_GPIO_MODE47, GPIO_GPIO_MODE48,
-	GPIO_GPIO_MODE49, GPIO_GPIO_MODE50, GPIO_GPIO_MODE51,
-	GPIO_GPIO_MODE52, GPIO_GPIO_MODE53, GPIO_GPIO_MODE54,
-	GPIO_GPIO_MODE55, GPIO_GPIO_MODE56,
-};
+static void
+mt2701_dir_addr_fixup(bus_size_t *addrp, u_int pin __unused)
+{
+	/* There's a register between DIR11 and DIR12; hop over it. */
+	if (*addrp > GPIO_GPIO_DIR11)
+		*addrp += 0x10;
+}
 
 const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 	.pins = mt2701_gpio_pins,
@@ -2698,17 +2714,32 @@ const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 	.ies_smt_groups = mt2701_ies_smt_groups,
 	.nies_smt_groups = __arraycount(mt2701_ies_smt_groups),
 	.reg_groups = {
-		REG_GROUP(MTK_GPIO_REGS_DIR, dir_regs,
-			  GPIO_DIR_PINS_PER_REG),
-		REG_GROUP(MTK_GPIO_REGS_PULLEN, pullen_regs,
-			  GPIO_PULLEN_PINS_PER_REG),
-		REG_GROUP(MTK_GPIO_REGS_PULLSEL, pullsel_regs,
-			  GPIO_PULLSEL_PINS_PER_REG),
-		REG_GROUP(MTK_GPIO_REGS_DOUT, dout_regs,
-			  GPIO_DOUT_PINS_PER_REG),
-		REG_GROUP(MTK_GPIO_REGS_DIN, din_regs,
-			  GPIO_DIN_PINS_PER_REG),
-		REG_GROUP(MTK_GPIO_REGS_MODE, mode_regs,
-			  GPIO_MODE_PINS_PER_REG),
+		[MTK_GPIO_REGS_DIR] = {
+			.base = GPIO_GPIO_DIR1,
+			.addr_fixup = mt2701_dir_addr_fixup,
+			.pins_per_reg = 16,
+		},
+		[MTK_GPIO_REGS_PULLEN] = {
+			.base = GPIO_GPIO_PULLEN1,
+			.pins_per_reg = 16,
+		},
+		[MTK_GPIO_REGS_PULLSEL] = {
+			.base = GPIO_GPIO_PULLSEL1,
+			.pins_per_reg = 16,
+		},
+		[MTK_GPIO_REGS_DOUT] = {
+			.base = GPIO_GPIO_DOUT1,
+			.pins_per_reg = 16,
+		},
+		[MTK_GPIO_REGS_DIN] = {
+			.base = GPIO_GPIO_DIN1,
+			.pins_per_reg = 16,
+		},
+		[MTK_GPIO_REGS_MODE] = {
+			.base = GPIO_GPIO_MODE1,
+			.pins_per_reg = 5,
+			.bits_per_pin = 3,
+		},
 	},
+	.setfunc_hook = mt2701_setfunc_hook,
 };
