@@ -49,11 +49,23 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <arm/mediatek/mtk_gpio.h>
 
 #ifdef SOC_MT7623
+/*
+ * The MT7623 GPIO block is compatible with the MT2701 GPIO block,
+ * with just tweaks to the banking configuration of a few pins that
+ * we are largely insulated from because of how the "pinmux" bindings
+ * for these SoCs.  (We would have to care about these differences if
+ * we were selecting pin functions by name.)
+ */
 extern struct mtk_gpio_padconf mt2701_gpio_padconf;
 #endif
 
 static const struct of_compat_data compat_data[] = {
 #ifdef SOC_MT7623
+	/*
+	 * Device trees, however, don't list both mediatek,mt2701-pinctrl
+	 * and mediatek,mt7623-pinctrl as "compatible" properties, so
+	 * we need to match the MT7623 explcitly.
+	 */
 	{ "mediatek,mt7623-pinctrl",	(uintptr_t)&mt2701_gpio_padconf },
 #endif
 	{ NULL }
@@ -192,9 +204,7 @@ mtk_gpio_reg_for_pin(struct mtk_gpio_softc * const sc,
 		off *= group->bits_per_pin;
 
 	if (regp) {
-		*regp = group->base +
-		    ((idx & sc->sc_padconf->reg_index_mask) <<
-		     sc->sc_padconf->reg_index_shift);
+		*regp = group->base + (idx << sc->sc_padconf->reg_index_shift);
 		if (group->addr_fixup)
 			(*group->addr_fixup)(regp, pin);
 	}
@@ -207,7 +217,7 @@ mtk_gpio_reg_for_pin(struct mtk_gpio_softc * const sc,
 static int
 mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 		 const struct mtk_gpio_pinconf * const pin_def,
-		 const char *func, u_int func_num)
+		 const char *func, int func_num)
 {
 	bus_size_t mode_reg;
 	u_int mode_shift;
@@ -229,10 +239,12 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 	 * function number instead.
 	 */
 	if (func) {
-		for (func_num = 0; func_num < MTK_GPIO_MAXFUNC; func_num++) {
-			if (pin_def->functions[func_num] == NULL)
+		func_num = -1;
+		for (int idx = 0; idx < MTK_GPIO_MAXFUNC; idx++) {
+			if (pin_def->functions[idx] == NULL)
 				continue;
-			if (strcmp(pin_def->functions[func_num], func) == 0) {
+			if (strcmp(pin_def->functions[idx], func) == 0) {
+				func_num = idx;
 				break;
 			}
 		}
@@ -248,10 +260,10 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 	    		mtk_gpio_pinconf_to_pin(sc, pin_def), &func_num))) {
 		return error;
 	}
-	if (func_num < MTK_GPIO_MAXFUNC) {
+	if (func_num > 0 && func_num < MTK_GPIO_MAXFUNC) {
 		func = pin_def->functions[func_num];
 	}
-	if (func == NULL || func_num >= MTK_GPIO_MAXFUNC) {
+	if (func == NULL || func_num < 0 || func_num >= MTK_GPIO_MAXFUNC) {
 		/* Function not found. */
 		if (func) {
 			device_printf(sc->sc_dev,
@@ -707,7 +719,7 @@ mtk_pinctrl_set_config_for_group(struct mtk_gpio_softc * const sc,
 	for (; pinmux_len >= 4; pinmux_len -= 4, pinmux++) {
 		uint32_t pinmux_native = be32dec(pinmux);
 		u_int pin = MTK_PINMUX_PIN(pinmux_native);
-		u_int func_num = MTK_PINMUX_FUNC(pinmux_native);
+		int func_num = MTK_PINMUX_FUNC(pinmux_native);
 
 		pin_def = mtk_gpio_lookup(sc, pin);
 		if (pin_def == NULL) {
@@ -930,9 +942,9 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	fdtbus_register_gpio_controller(self, phandle, &mtk_gpio_fdt_funcs);
 
 	/*
-	 * MediaTek pinctrl configurations are nodes that themselves
-	 * contain sub-nodes that group the pins of similar settings
-	 * together.  Each sub-node group is configured when that
+	 * MediaTek "pins-are-numbered" pinctrl configurations are nodes
+	 * that themselves contain sub-nodes that group the pins of similar
+	 * settings together.  Each sub-node group is configured when that
 	 * pinctrl configuration is selected.
 	 */
 	int child;
