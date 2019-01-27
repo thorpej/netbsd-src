@@ -36,6 +36,8 @@
 
 #include <dev/gpio/gpiovar.h>
 
+#include <arch/arm/mediatek/mtk_eintc.h>
+
 struct mtk_gpio_softc;
 
 struct mtk_gpio_drive {
@@ -155,6 +157,7 @@ struct mtk_gpio_padconf {
 	struct mtk_gpio_reg_group reg_groups[MTK_GPIO_NREGS];
 	int (*setfunc_hook)(struct mtk_gpio_softc * const, const u_int,
 			    int * const);
+	const struct mtk_eintc_config * const * eintc;
 };
 
 struct mtk_gpio_softc {
@@ -163,8 +166,9 @@ struct mtk_gpio_softc {
 	const struct mtk_gpio_padconf *sc_padconf;
 	kmutex_t		sc_lock;
 
-	bus_space_handle_t	sc_gpio_bsh;
-	bus_space_handle_t	sc_eint_bsh;
+	bus_space_handle_t	sc_bsh;
+
+	struct mtk_eintc_softc	sc_eintc;
 
 	struct gpio_chipset_tag	sc_gp;
 	gpio_pin_t		*sc_pins;
@@ -172,9 +176,9 @@ struct mtk_gpio_softc {
 };
 
 #define	GPIO_READ(sc, reg)		\
-	bus_space_read_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg))
+	bus_space_read_2((sc)->sc_bst, (sc)->sc_bsh, (reg))
 #define	GPIO_WRITE(sc, reg, val)	\
-	bus_space_write_2((sc)->sc_bst, (sc)->sc_gpio_bsh, (reg), (val))
+	bus_space_write_2((sc)->sc_bst, (sc)->sc_bsh, (reg), (val))
 
 /*
  * Device tree bindings:

@@ -273,6 +273,148 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #define	GPIO_DRV_SEL7			0xfe0
 #define	GPIO_DRV_SEL9			0xff0
 
+/* Relative to EINTC base address */
+#define	GPIO_EINT_STA(x)		MTK_EINT_REG_OFF(0x000, x)
+#define	GPIO_EINT_ACK(x)		MTK_EINT_REG_OFF(0x040, x)
+#define	GPIO_EINT_MASK(x)		MTK_EINT_REG_OFF(0x080, x)
+#define	GPIO_EINT_MASK_SET(x)		MTK_EINT_REG_OFF(0x0c0, x)
+#define	GPIO_EINT_MASK_CLR(x)		MTK_EINT_REG_OFF(0x100, x)
+#define	GPIO_EINT_SENS(x)		MTK_EINT_REG_OFF(0x140, x)
+#define	GPIO_EINT_SENS_SET(x)		MTK_EINT_REG_OFF(0x180, x)
+#define	GPIO_EINT_SENS_CLR(x)		MTK_EINT_REG_OFF(0x1c0, x)
+#define	GPIO_EINT_SOFT(x)		MTK_EINT_REG_OFF(0x200, x)
+#define	GPIO_EINT_SOFT_SET(x)		MTK_EINT_REG_OFF(0x240, x)
+#define	GPIO_EINT_SOFT_CLR(x)		MTK_EINT_REG_OFF(0x280, x)
+#define	GPIO_EINT_POL(x)		MTK_EINT_REG_OFF(0x300, x)
+#define	GPIO_EINT_POL_SET(x)		MTK_EINT_REG_OFF(0x340, x)
+#define	GPIO_EINT_POL_CLR(x)		MTK_EINT_REG_OFF(0x380, x)
+#define	GPIO_EINT_D0EN(x)		MTK_EINT_REG_OFF(0x400, x)
+#define	GPIO_EINT_D1EN(x)		MTK_EINT_REG_OFF(0x420, x)
+#define	GPIO_EINT_D2EN(x)		MTK_EINT_REG_OFF(0x440, x)
+#define	GPIO_EINT_DBNC_3_0(x)		MTK_EINT_REG_OFF(0x500, x)
+#eefine	GPIO_EINT_DBNC_SET_3_0(x)	MTK_EINT_REG_OFF(0x600, x)
+#define	GPIO_EINT_DBNC_CLR_3_0(x)	MTK_EINT_REG_OFF(0x700, x)
+
+static const uint8_t sel_to_mA_4_8_12_16[] = {
+	[0] = 4,
+	[2] = 8,
+	[4] = 12,
+	[6] = 16,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_4_8_12_16 = {
+	.sel_to_mA = sel_to_mA_4_8_12_16,
+	.nsel = __arraycount(sel_to_mA_4_8_12_16),
+};
+
+static const uint8_t sel_to_mA_2_4_6_8[] = {
+	[0] = 2,
+	[2] = 4,
+	[4] = 6,
+	[6] = 8,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8 = {
+	.sel_to_mA = sel_to_mA_2_4_6_8,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8),
+};
+
+static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16[] = {
+	[0] = 2,
+	[1] = 4,
+	[2] = 6,
+	[3] = 8,
+	[4] = 10,
+	[5] = 12,
+	[6] = 14,
+	[7] = 16,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8_10_12_14_16 = {
+	.sel_to_mA = sel_to_mA_2_4_6_8_10_12_14_16,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8_10_12_14_16),
+};
+
+static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
+	IES_SMT(  0,   6, GPIO_IES_EN0, GPIO_SMT_EN0,  0),
+	IES_SMT(  7,   9, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
+	IES_SMT( 10,  13, GPIO_IES_EN1, GPIO_SMT_EN1,  3),
+	IES_SMT( 14,  15, GPIO_IES_EN1, GPIO_SMT_EN1, 13),
+	IES_SMT( 16,  17, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 18,  21, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 22,  26, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 27,  29, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 30,  32, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 33,  37, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 38,  38, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 39,  42, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 43,  45, GPIO_IES_EN0, GPIO_SMT_EN0, 10),
+	IES_SMT( 47,  48, GPIO_IES_EN0, GPIO_SMT_EN0, 11),
+	IES_SMT( 49,  49, GPIO_IES_EN0, GPIO_SMT_EN0, 12),
+	IES_SMT( 50,  52, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 53,  56, GPIO_IES_EN0, GPIO_SMT_EN0, 14),
+	IES_SMT( 57,  58, GPIO_IES_EN0, GPIO_SMT_EN0, 15),
+
+static const uint8_t sel_to_mA_4_8_12_16[] = {
+	[0] = 4,
+	[2] = 8,
+	[4] = 12,
+	[6] = 16,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_4_8_12_16 = {
+	.sel_to_mA = sel_to_mA_4_8_12_16,
+	.nsel = __arraycount(sel_to_mA_4_8_12_16),
+};
+
+static const uint8_t sel_to_mA_2_4_6_8[] = {
+	[0] = 2,
+	[2] = 4,
+	[4] = 6,
+	[6] = 8,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8 = {
+	.sel_to_mA = sel_to_mA_2_4_6_8,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8),
+};
+
+static const uint8_t sel_to_mA_2_4_6_8_10_12_14_16[] = {
+	[0] = 2,
+	[1] = 4,
+	[2] = 6,
+	[3] = 8,
+	[4] = 10,
+	[5] = 12,
+	[6] = 14,
+	[7] = 16,
+};
+
+static const struct mtk_gpio_drive mt2701_gpio_drive_2_4_6_8_10_12_14_16 = {
+	.sel_to_mA = sel_to_mA_2_4_6_8_10_12_14_16,
+	.nsel = __arraycount(sel_to_mA_2_4_6_8_10_12_14_16),
+};
+
+static const struct mtk_ies_smt_group mt2701_ies_smt_groups[] = {
+	IES_SMT(  0,   6, GPIO_IES_EN0, GPIO_SMT_EN0,  0),
+	IES_SMT(  7,   9, GPIO_IES_EN0, GPIO_SMT_EN0,  1),
+	IES_SMT( 10,  13, GPIO_IES_EN1, GPIO_SMT_EN1,  3),
+	IES_SMT( 14,  15, GPIO_IES_EN1, GPIO_SMT_EN1, 13),
+	IES_SMT( 16,  17, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 18,  21, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 22,  26, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 27,  29, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 30,  32, GPIO_IES_EN2, GPIO_SMT_EN2,  7),
+	IES_SMT( 33,  37, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 38,  38, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 39,  42, GPIO_IES_EN2, GPIO_SMT_EN2, 13),
+	IES_SMT( 43,  45, GPIO_IES_EN0, GPIO_SMT_EN0, 10),
+	IES_SMT( 47,  48, GPIO_IES_EN0, GPIO_SMT_EN0, 11),
+	IES_SMT( 49,  49, GPIO_IES_EN0, GPIO_SMT_EN0, 12),
+	IES_SMT( 50,  52, GPIO_IES_EN0, GPIO_SMT_EN0, 13),
+	IES_SMT( 53,  56, GPIO_IES_EN0, GPIO_SMT_EN0, 14),
+	IES_SMT( 57,  58, GPIO_IES_EN0, GPIO_SMT_EN0, 15),
+
 static const uint8_t sel_to_mA_4_8_12_16[] = {
 	[0] = 4,
 	[2] = 8,
@@ -2954,6 +3096,39 @@ mt2701_dir_addr_fixup(bus_size_t *addrp, u_int pin __unused)
 		*addrp += 0x10;
 }
 
+static const struct mtk_eintc_config mt2701_eintc = {
+	.nintrs = 197,
+	.reg_groups = {
+		[MTK_EINTC_REGS_STA_ACK] = {
+			.base = GPIO_EINT_STA(0),
+			.clr_base = GPIO_EINT_ACK(0),
+		},
+		[MTK_EINTC_REGS_MASK] = {
+			.base = GPIO_EINT_MASK(0),
+			.set_base = GPIO_EINT_MASK_SET(0),
+			.clr_base = GPIO_EINT_MASK_CLR(0),
+		},
+		[MTK_EINTC_REGS_SENS] = {
+			.base = GPIO_EINT_SENS(0),
+			.set_base = GPIO_EINT_SENS_SET(0),
+			.clr_base = GPIO_EINT_SENS_CLR(0),
+		},
+		[MTK_EINTC_REGS_SOFT] = {
+			.base = GPIO_EINT_SOFT(0),
+			.set_base = GPIO_EINT_SOFT_SET(0),
+			.clr_base = GPIO_EINT_SOFT_CLR(0),
+		},
+		[MTK_EINTC_REGS_POL] = {
+			.base = GPIO_EINT_POL(0),
+			.set_base = GPIO_EINT_POL_SET(0),
+			.clr_base = GPIO_EINT_POL_CLR(0),
+		},
+	},
+	.nbanks = 6,
+	.irqs_per_bank = 32,
+	.domen_base = GPIO_EINT_D0EN(0),
+};
+
 const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 	.pins = mt2701_gpio_pins,
 	.npins = __arraycount(mt2701_gpio_pins),
@@ -2989,4 +3164,5 @@ const struct mtk_gpio_padconf mt2701_gpio_padconf = {
 		},
 	},
 	.setfunc_hook = mt2701_setfunc_hook,
+	.eintc = &mt2701_eintc;
 };

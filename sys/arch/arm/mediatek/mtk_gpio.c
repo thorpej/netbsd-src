@@ -689,7 +689,146 @@ static struct fdtbus_gpio_controller_func mtk_gpio_fdt_funcs = {
 	.write = mtk_gpio_fdt_write,
 };
 
-/* XXXJRT interrupt support */
+static const struct mtk_gpio_pinconf *
+mtk_gpio_lookup_eint_pin(struct mtk_gpio_softc * const sc, u_int pin)
+{
+	const struct mtk_gpio_pinconf * const pin_def =
+	    mtk_gpio_lookup(sc, pin);
+
+	if (pin_def == NULL)
+		return NULL;
+
+	if ((pin_def->eint_flags & MTK_EINT_SOURCE) == 0) {
+		/* This pin is not a valid interrupt source. */
+		return NULL;
+	}
+
+	return pin_def;
+}
+
+static bool
+mtk_gpio_intrstr(struct mtk_gpio_softc * const sc,
+		  const struct mtk_gpio_pinconf * const pin_def,
+		  char *buf, const size_t buflen)
+{
+	snprintf(buf, buflen, "GPIO %u (EINT %" PRIu16 ")",
+		 mtk_gpio_pinconf_to_pin(pin_def), pin_def->eint_num);
+}
+
+static void *
+mtk_gpio_fdt_intr_establish(device_t dev, u_int *specifier, int ipl,
+			    int flags, int (*func)(void *), void *arg)
+{
+	struct mtk_gpio_softc * const sc = device_private(dev);
+	u_int eint_flags = (flags & FDT_INTR_MPSAFE)
+	    ? MTK_EINTC_INTR_MPSAFE : 0;
+
+	/* 1st cell is the GPIO pin number. */
+	/* 2nd cell is the interrupt type. */
+	const u_int pin = be32toh(specifier[0]);
+	const u_int type = be32toh(specifier[1]);
+
+	const struct mtk_gpio_pinconf * const pin_def =
+	    mtk_gpio_lookup_eint_pin(sc, pin);
+
+	if (pin_def == NULL)
+		return false;
+
+	return mtk_eintc_intr_enable(&sc->sc_eintc, func, arg, ipl,
+				     pin_def->eint_num, type, eint_flags);
+}
+
+static void
+mtk_gpio_fdt_intr_disestablish(device_t dev, void *ih)
+{
+	struct mtk_gpio_softc * const sc = device_private(dev);
+
+	mtk_eintc_intr_disable(&sc->sc_eintc, ih);
+}
+
+static bool
+mtk_gpio_fdt_intrstr(device_t dev, u_int *specifier, char *buf, size_t buflen)
+{
+
+	if (!specifier)
+		return false;
+	
+	/* 1st cell is the GPIO pin number. */
+	const u_int pin = be32toh(specifier[0]);
+
+	const struct mtk_gpio_softc * const sc = device_private(dev);
+
+	return mtk_gpio_intrstr(sc, pin_def, buf, buflen);
+}
+
+static struct fdtbus_interrupt_controller_func mtk_gpio_fdt_intrfuncs = {
+	.establish = mtk_gpio_fdt_intr_establish,
+	.disestablish = mtk_gpio_fdt_intr_disestablish,
+	.intrstr = mtk_gpio_fdt_intrstr,
+};
+
+static void *
+mtk_gpio_gpio_intr_establish(void *vsc, int pin, int ipl, int irqmode,
+			     int (*func)(void *), void *arg)
+{
+	struct mtk_gpio_softc * const sc = vsc;
+	u_int eint_flags = (irqmode & GPIO_INTR_MPSAFE)
+	    ? MTK_EINTC_INTR_MPSAFE : 0;
+	u_int type;
+
+	switch (irqmode & GPIO_INTR_MODE_MASK) {
+	case GPIO_INTR_POS_EDGE:
+		type = FDT_INTR_TYPE_POS_EDGE;
+		break;
+	case GPIO_INTR_NEG_EDGE:
+		type = FDT_INTR_TYPE_NEG_EDGE;
+		break;
+	case GPIO_INTR_DOUBLE_EDGE:
+		type = FDT_INTR_TYPE_DOUBLE_EDGE;
+		break;
+	case GPIO_INTR_HIGH_LEVEL:
+		type = FDT_INTR_TYPE_HIGH_LEVEL;
+		break;
+	case GPIO_INTR_LOW_LEVEL:
+		type = FDT_INTR_TYPE_LOW_LEVEL;
+		break;
+	default:
+		aprint_error_dev(sc->sc_dev, "%s: unsupported irq type 0x%x\n",
+				 __func__, type);
+		return NULL;
+	}
+
+	const struct mtk_gpio_pinconf * const pin_def =
+	    mtk_gpio_lookup_eint_pin(sc, pin);
+
+	if (pin_def == NULL)
+		return NULL;
+
+	return mtk_eintc_intr_enable(&sc->sc_eintc, func, arg, ipl,
+				     pin_def->eint_num, type, flags);
+}
+
+static void
+mtk_gpio_gpio_intr_disestablish(void *vsc, void *ih)
+{
+	struct mtk_gpio_softc * const sc = vsc;
+
+	mtk_eintc_intr_disable(&sc->sc_eintc, ih);
+}
+
+static bool
+mtk_gpio_gpio_intrstr(void *vsc, int pin, int irqmode, char *buf, size_t buflen)
+{
+
+	const struct mtk_gpio_softc * const sc = vsc;
+	const struct mtk_gpio_pinconf * const pin_def =
+	    mtk_gpio_lookup(sc, (u_int)pin);
+
+	if (pin_def == NULL)
+		return false;
+
+	return mtk_gpio_intrstr(sc, pin_def, buf, buflen);
+}
 
 static int
 mtk_pinctrl_set_config_for_group(struct mtk_gpio_softc * const sc,
@@ -842,6 +981,9 @@ mtk_gpio_attach_pins(struct mtk_gpio_softc * const sc)
 	gp->gp_pin_read = mtk_gpio_pin_read;
 	gp->gp_pin_write = mtk_gpio_pin_write;
 	gp->gp_pin_ctl = mtk_gpio_pin_ctl;
+	gp->gp_intr_establish = mtk_gpio_gpio_intr_establish;
+	gp->gp_intr_disestablish = mtk_gpio_gpio_intr_disestablish;
+	gp->gp_intr_str = mtk_gpio_gpio_intrstr;
 
 	const u_int npins = sc->sc_padconf->npins;
 	sc->sc_pins = kmem_zalloc(sizeof(*sc->sc_pins) * npins, KM_SLEEP);
@@ -851,6 +993,20 @@ mtk_gpio_attach_pins(struct mtk_gpio_softc * const sc)
 		sc->sc_pins[pin].pin_num = pin;
 		sc->sc_pins[pin].pin_caps = GPIO_PIN_INPUT | GPIO_PIN_OUTPUT |
 		    GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN;
+		sc->sc_pins[pin].pin_intrcaps =
+		    GPIO_INTR_POS_EDGE |
+		    GPIO_INTR_NEG_EDGE |
+#if 0
+		    /*
+		     * Double-edge is not supported natively by the
+		     * hardware.  We could emulate it, but we don't
+		     * right now.
+		     */
+		    GPIO_INTR_DOUBLE_EDGE |
+#endif
+		    GPIO_INTR_HIGH_LEVEL |
+		    GPIO_INTR_LOW_LEVEL |
+		    GPIO_INTR_MPSAFE;
 		sc->sc_pins[pin].pin_state = mtk_gpio_pin_read(sc, pin);
 		strlcpy(sc->sc_pins[pin].pin_defname, pin_def->name,
 		    sizeof(sc->sc_pins[pin].pin_defname));
@@ -917,17 +1073,17 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 
-	sc->sc_dev = self;
-	sc->sc_bst = faa->faa_bst;
+	sc->sc_dev = sc->sc_eintc.sc_dev = self;
+	sc->sc_bst = sc->sc_eintc.sc_bst = faa->faa_bst;
 
 	if (bus_space_map(sc->sc_bst, eint_addr, eint_size, 0,
-			  &sc->sc_eint_bsh) != 0) {
+			  &sc->sc_eintc.sc_bsh) != 0) {
 		aprint_error(": couldn't map eint registers\n");
 		return;
 	}
 
 	if (bus_space_map(sc->sc_bst, gpio_addr, gpio_size, 0,
-			  &sc->sc_gpio_bsh) != 0) {
+			  &sc->sc_bsh) != 0) {
 		aprint_error(": couldn't map gpio registers\n");
 		return;
 	}
@@ -935,9 +1091,13 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_VM);
 	sc->sc_padconf =
 	    (void *)of_search_compatible(phandle, compat_data)->data;
+	sc->sc_eintc.sc_eintc = sc->sc_padconf->eintc;
 
 	aprint_naive("\n");
 	aprint_normal(": Pin MUX controller\n");
+
+	/* XXXJRT interrupt support. */
+	mtk_eintc_init(&sc->sc_eintc);
 
 	fdtbus_register_gpio_controller(self, phandle, &mtk_gpio_fdt_funcs);
 
@@ -955,6 +1115,4 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	fdtbus_pinctrl_configure();
 
 	mtk_gpio_attach_pins(sc);
-
-	/* XXXJRT interrupt support. */
 }
