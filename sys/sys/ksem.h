@@ -38,6 +38,8 @@ struct timespec;
 
 typedef struct ksem {
 	LIST_ENTRY(ksem)	ks_entry;	/* global list entry */
+	struct proc *		ks_pshared_proc;/* owner of pshared sem */
+	intptr_t		ks_pshared_id;	/* global id for pshared sem */
 	kmutex_t		ks_lock;	/* lock on this ksem */
 	kcondvar_t		ks_cv;		/* condition variable */
 	u_int			ks_ref;		/* number of references */
@@ -51,13 +53,17 @@ typedef struct ksem {
 	gid_t			ks_gid;		/* creator gid */
 } ksem_t;
 
-int do_ksem_init(struct lwp *, unsigned int, intptr_t *, copyout_t);
+int do_ksem_init(struct lwp *, unsigned int, intptr_t *, copyin_t, copyout_t);
 int do_ksem_open(struct lwp *, const char *, int, mode_t, unsigned int,
     intptr_t *, copyout_t);
 int do_ksem_wait(struct lwp *, intptr_t, bool, struct timespec *);
 
 extern int	ksem_max;
-#endif
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_LIBC)
+#define	KSEM_PSHARED		0x50535244U	/* 'PSRD' */
+#endif /* _KERNEL || _LIBC */
 
 #ifdef _LIBC
 __BEGIN_DECLS

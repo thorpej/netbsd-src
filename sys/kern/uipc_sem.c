@@ -400,6 +400,27 @@ ksem_free(ksem_t *ks)
  	atomic_dec_uint(&curproc->p_nsems);	
 }
 
+static void
+ksem_release(ksem_t *ksem)
+{
+	bool destroy = false;
+
+	mutex_enter(&ks->ks_lock);
+	KASSERT(ks->ks_ref > 0);
+	if (--ks->ks_ref == 0) {
+		/*
+		 * Destroy if the last reference and semaphore is unnamed,
+		 * or unlinked (for named semaphore).
+		 */
+		destroy = (ks->ks_flags & KS_UNLINKED) || (ks->ks_name == NULL);
+	}
+	mutex_exit(&ks->ks_lock);
+
+	if (destroy) {
+		ksem_free(ks);
+	}
+}
+
 int
 sys__ksem_init(struct lwp *l, const struct sys__ksem_init_args *uap,
     register_t *retval)
@@ -409,17 +430,30 @@ sys__ksem_init(struct lwp *l, const struct sys__ksem_init_args *uap,
 		intptr_t *idp;
 	} */
 
-	return do_ksem_init(l, SCARG(uap, value), SCARG(uap, idp), copyout);
+	return do_ksem_init(l, SCARG(uap, value), SCARG(uap, idp),
+	    copyin, copyout);
 }
 
 int
-do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyout_t docopyout)
+do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
+    copyout_t docopyout)
 {
 	proc_t *p = l->l_proc;
 	ksem_t *ks;
 	file_t *fp;
-	intptr_t id;
+	intptr_t id, arg;
 	int fd, error;
+
+	/*
+	 * Newer versions of libpthread pass us 'PSRD' in *idp to indicate
+	 * that a pshared semaphore is wanted.  In that case we allocate
+	 * globally unique ID and return that, rather than the process-scoped
+	 * file descriptor ID.
+	 */
+	error = (*docopyin)(&arg, idp, sizeof(*idp));
+	if (error) {
+		return error;
+	}
 
 	error = fd_allocfile(&fp, &fd);
 	if (error) {
@@ -429,19 +463,22 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyout_t docopyout)
 	fp->f_flag = FREAD | FWRITE;
 	fp->f_ops = &semops;
 
-	id = (intptr_t)fd;
-	error = (*docopyout)(&id, idp, sizeof(*idp));
-	if (error) {
-		fd_abort(p, fp, fd);
-		return error;
-	}
-
 	/* Note the mode does not matter for anonymous semaphores. */
 	error = ksem_create(l, NULL, &ks, 0, val);
 	if (error) {
 		fd_abort(p, fp, fd);
 		return error;
 	}
+
+	id = (intptr_t)fd;
+
+	error = (*docopyout)(&id, idp, sizeof(*idp));
+	if (error) {
+		ksem_free(ks);
+		fd_abort(p, fp, fd);
+		return error;
+	}
+
 	fp->f_ksem = ks;
 	fd_affix(p, fp, fd);
 	return error;
@@ -639,22 +676,8 @@ static int
 ksem_close_fop(file_t *fp)
 {
 	ksem_t *ks = fp->f_ksem;
-	bool destroy = false;
 
-	mutex_enter(&ks->ks_lock);
-	KASSERT(ks->ks_ref > 0);
-	if (--ks->ks_ref == 0) {
-		/*
-		 * Destroy if the last reference and semaphore is unnamed,
-		 * or unlinked (for named semaphore).
-		 */
-		destroy = (ks->ks_flags & KS_UNLINKED) || (ks->ks_name == NULL);
-	}
-	mutex_exit(&ks->ks_lock);
-
-	if (destroy) {
-		ksem_free(ks);
-	}
+	ksem_release(ks);
 	return 0;
 }
 
