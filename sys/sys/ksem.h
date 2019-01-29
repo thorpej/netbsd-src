@@ -65,7 +65,7 @@ extern int	ksem_max;
 #define	KSEM_PSHARED		0x50535244U	/* 'PSRD' */
 
 #define	KSEM_MARKER_MASK	0xff000001U
-#define	KSEM_PSHARED_MARKER	0x50000001U	/* 'P' << 24 | 1 */
+#define	KSEM_PSHARED_MARKER	0x70000001U	/* 'p' << 24 | 1 */
 #endif /* _KERNEL || _LIBC */
 
 #ifdef _LIBC

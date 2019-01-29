@@ -72,15 +72,21 @@ __RCSID("$NetBSD: sem.c,v 1.24 2012/03/10 18:01:10 joerg Exp $");
 
 #include "pthread.h"
 
-#define	KSEM_MAGIC		0x90af0421U
 #define	KSEM_NAMED		0x4e414d44U	/* 'NAMD' */
-
+#define	KSEM_MAGIC		0x90af0421U
 #define	KSEM_MAGIC_NAMED	(KSEM_MAGIC ^ KSEM_NAMED)
 
-#define	KSEM_MAGIC_OK(m)	((k)->ksem_magic == KSEM_MAGIC || 	\
-				 (k)->ksem_magic == KSEM_MAGIC_NAMED)
+#define	KSEM_IS_SEMID(k)	((((intptr_t)(k)) & KSEM_MARKER_MASK)	\
+							== KSEM_PSHARED_MARKER)
 
-#define	KSEM_IS_NAMED(m)	((k)->ksem_magic == KSEM_MAGIC_NAMED)
+#define	KSEM_IS_ANONYMOUS(k)	(KSEM_IS_SEMID(k) ||			\
+				 (k)->ksem_magic == KSEM_MAGIC)
+
+#define	KSEM_IS_NAMED(k)	(!KSEM_IS_ANONYMOUS(k))
+
+#define	KSEM_MAGIC_OK(k)	(KSEM_IS_SEMID(k) ||			\
+				 (k)->ksem_magic == KSEM_MAGIC || 	\
+				 (k)->ksem_magic == KSEM_MAGIC_NAMED)
 
 struct _sem_st {
 	unsigned int	ksem_magic;
@@ -93,6 +99,16 @@ struct _sem_st {
 
 static LIST_HEAD(, _sem_st) named_sems = LIST_HEAD_INITIALIZER(&named_sems);
 static pthread_mutex_t named_sems_mtx = PTHREAD_MUTEX_INITIALIZER;
+
+static inline intptr_t
+sem_to_semid(sem_t *sem)
+{
+
+	if (KSEM_IS_SEMID(*sem))
+		return (intptr_t)*sem;
+	
+	return (*sem)->ksem_semid;
+}
 
 static void
 sem_free(sem_t sem)
@@ -130,6 +146,29 @@ sem_init(sem_t *sem, int pshared, unsigned int value)
 	if (_ksem_init(value, &semid) == -1)
 		return (-1);
 
+	/*
+	 * pshared anonymous semaphores are treated a little differently.
+	 * We don't allocate a sem structure and return a pointer to it.
+	 * That pointer might live in the shared memory segment that's
+	 * shared between processes, but the _sem_st that contains the
+	 * important bits certainly would not be.
+	 *
+	 * So, instead, we return the ksem ID given to us by the kernel.
+	 * The kernel has arranged for the least-significant bit of the
+	 * ksem ID to always be 1 so as to ensure we can always tell
+	 * these IDs apart from the pointers that we vend out for other
+	 * non-pshared semaphores.
+	 */
+	if (pshared) {
+		if ((semid & KSEM_MARKER_MASK) != KSEM_PSHARED_MARKER) {
+			_ksem_destroy(semid);
+			errno = EFAULT;		/* XXX */
+			return (-1);
+		}
+		*semp = (sem_t)semid;
+		return (0);
+	}
+
 	if ((error = sem_alloc(value, semid, KSEM_MAGIC, sem)) != 0) {
 		_ksem_destroy(semid);
 		errno = error;
@@ -151,15 +190,19 @@ sem_destroy(sem_t *sem)
 	}
 #endif
 
-	if (KSEM_IS_NAMED(*sem)) {
-		errno = EINVAL;
-		return (-1);
-	}
+	if (KSEM_IS_SEMID(*sem)) {
+		error = _ksem_destroy((intptr_t)*sem);
+	} else {
+		if (KSEM_IS_NAMED(*sem)) {
+			errno = EINVAL;
+			return (-1);
+		}
 
-	error = _ksem_destroy((*sem)->ksem_semid);
-	save_errno = errno;
-	sem_free(*sem);
-	errno = save_errno;
+		error = _ksem_destroy((*sem)->ksem_semid);
+		save_errno = errno;
+		sem_free(*sem);
+		errno = save_errno;
+	}
 
 	return error;
 }
@@ -274,7 +317,10 @@ sem_wait(sem_t *sem)
 	}
 #endif
 
-	return (_ksem_wait((*sem)->ksem_semid));
+	intptr_t semid = KSEM_IS_SEMID(*sem) ? (intptr_t)*sem
+					     : (*sem)->ksem_semid;
+
+	return (_ksem_wait(semid);
 }
 
 int
@@ -288,7 +334,10 @@ sem_timedwait(sem_t *sem, const struct timespec * __restrict abstime)
 	}
 #endif
 
-	return (_ksem_timedwait((*sem)->ksem_semid, abstime));
+	intptr_t semid = KSEM_IS_SEMID(*sem) ? (intptr_t)*sem
+					     : (*sem)->ksem_semid;
+
+	return (_ksem_timedwait(semid, abstime));
 }
 
 int
@@ -302,7 +351,10 @@ sem_trywait(sem_t *sem)
 	}
 #endif
 
-	return (_ksem_trywait((*sem)->ksem_semid));
+	intptr_t semid = KSEM_IS_SEMID(*sem) ? (intptr_t)*sem
+					     : (*sem)->ksem_semid;
+
+	return (_ksem_trywait(semid));
 }
 
 int
@@ -316,7 +368,10 @@ sem_post(sem_t *sem)
 	}
 #endif
 
-	return (_ksem_post((*sem)->ksem_semid));
+	intptr_t semid = KSEM_IS_SEMID(*sem) ? (intptr_t)*sem
+					     : (*sem)->ksem_semid;
+
+	return (_ksem_post(semid));
 }
 
 int
@@ -329,5 +384,8 @@ sem_getvalue(sem_t * __restrict sem, int * __restrict sval)
 		return (-1);
 	}
 #endif
-	return (_ksem_getvalue((*sem)->ksem_semid, sval));
+	intptr_t semid = KSEM_IS_SEMID(*sem) ? (intptr_t)*sem
+					     : (*sem)->ksem_semid;
+
+	return (_ksem_getvalue(semid, sval));
 }
