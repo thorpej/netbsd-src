@@ -1,11 +1,11 @@
 /*	$NetBSD: uipc_sem.c,v 1.51 2018/05/06 00:46:09 christos Exp $	*/
 
 /*-
- * Copyright (c) 2011 The NetBSD Foundation, Inc.
+ * Copyright (c) 2011, 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Mindaugas Rasiukevicius.
+ * by Mindaugas Rasiukevicius and Jason R. Thorpe.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -298,26 +298,41 @@ ksem_perm(lwp_t *l, ksem_t *ks)
 /*
  * ksem_get: get the semaphore from the descriptor.
  *
- * => locks the semaphore, if found.
+ * => locks the semaphore, if found, and holds an extra reference.
  * => holds a reference on the file descriptor.
  */
 static int
-ksem_get(int fd, ksem_t **ksret)
+ksem_get(intptr_t id, ksem_t **ksret, int *fdp)
 {
 	ksem_t *ks;
-	file_t *fp;
+	int fd;
 
-	fp = fd_getfile(fd);
-	if (__predict_false(fp == NULL))
-		return EINVAL;
-	if (__predict_false(fp->f_type != DTYPE_SEM)) {
-		fd_putfile(fd);
+	if ((fd & KSEM_MARKER_MASK) == KSEM_PSHARED_MARKER) {
+		ks = ksem_lookup_pshared(fd);
+		if (ks == NULL)
+			return EINVAL;
+		KASSERT(ks->ks_pshared_id != 0);
+		/* ksem_t is locked, extra ref taken on ksem_t. */
+		fd = -1;
+	} else if (id <= INT_MAX) {
+		fd = (int)id;
+		file_t *fp = fd_getfile(fd);
+
+		if (__predict_false(fp == NULL))
+			return EINVAL;
+		if (__predict_false(fp->f_type != DTYPE_SEM)) {
+			fd_putfile(fd);
+			return EINVAL;
+		}
+		ks = fp->f_ksem;
+		mutex_enter(&ks->ks_lock);
+		ks->ks_ref++;
+	} else {
 		return EINVAL;
 	}
-	ks = fp->f_ksem;
-	mutex_enter(&ks->ks_lock);
 
 	*ksret = ks;
+	*fdp = fd;
 	return 0;
 }
 
@@ -400,12 +415,85 @@ ksem_free(ksem_t *ks)
  	atomic_dec_uint(&curproc->p_nsems);	
 }
 
+#define	KSEM_ID_IS_PSHARED(id)		\
+	(((id) & KSEM_MARKER_MASK) == KSEM_PSHARED_MARKER)
+
+static void
+ksem_insert_pshared_locked(ksem_t *ksem)
+{
+
+	LIST_INSERT_HEAD(&ksem_pshared_list, ksem, ks_entry);
+}
+
+static void
+ksem_remove_pshared_locked(ksem_t *ksem)
+{
+
+	LIST_REMOVE(ksem, ks_entry);
+}
+
+static void
+ksem_remove_pshared(ksem_t *ksem)
+{
+
+	rw_enter(&ksem_pshared_lock, RW_WRITER);
+	ksem_remove_pshared_locked(ksem);
+	rw_exit(&ksem_pshared_lock);
+}
+
+static ksem_t *
+ksem_lookup_pshared(intptr_t id)
+{
+	ksem_t *ksem;
+
+	/* ksem_t is locked upon return. */
+
+	rw_enter(&ksem_pshared_lock, RW_READER);
+
+	LIST_FOREACH(ksem, &ksem_pshared_list, ks_entry) {
+		if (ksem->ks_pshared_id == id) {
+			mutex_enter(&ksem->ks_lock);
+			ks->ks_ref++;
+			KASSERT(ks->ks_ref != 0);
+		}
+	}
+
+	rw_exit(&ksem_pshared_lock);
+
+	return ksem;
+}
+
+static void
+ksem_alloc_pshared_id(ksem_t *ksem)
+{
+	uint32_t try;
+
+	rw_enter(&ksem_pshared_lock, RW_WRITER);
+
+	for (;;) {
+		try = (cprng_fast32() & ~KSEM_MARKER_MASK) |
+		    KSEM_PSHARED_MARKER;
+
+		if (ksem_pshared_lookup_locked(try) == NULL) {
+			/* Got it! */
+			break;
+		}
+	}
+
+	ksem->ks_pshared_id = try;
+
+	ksem_insert_pshared_locked(ksem);
+
+	rw_exit(&ksem_pshared_lock);
+}
+
 static void
 ksem_release(ksem_t *ksem)
 {
 	bool destroy = false;
 
-	mutex_enter(&ks->ks_lock);
+	KASSERT(mutex_owned(&ks->ks_lock));
+
 	KASSERT(ks->ks_ref > 0);
 	if (--ks->ks_ref == 0) {
 		/*
@@ -421,7 +509,6 @@ ksem_release(ksem_t *ksem)
 	}
 }
 
-int
 sys__ksem_init(struct lwp *l, const struct sys__ksem_init_args *uap,
     register_t *retval)
 {
@@ -463,6 +550,16 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	fp->f_flag = FREAD | FWRITE;
 	fp->f_ops = &semops;
 
+	if (fd >= KSEM_MARKER_MASK) {
+		/*
+		 * This is super-unlikely, but we check for it anyway
+		 * because potential collisions with the pshared marker
+		 * would be bad.
+		 */
+		fd_abort(p, fp, fd);
+		return EMFILE;
+	}
+
 	/* Note the mode does not matter for anonymous semaphores. */
 	error = ksem_create(l, NULL, &ks, 0, val);
 	if (error) {
@@ -470,10 +567,19 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 		return error;
 	}
 
-	id = (intptr_t)fd;
+	if (arg == KSEM_PSHARED) {
+		ksem_alloc_pshared_id(ksem);
+		ks->ks_pshared_proc = curproc();
+		id = ks->ks_pshared_id;
+	} else {
+		id = (intptr_t)fd;
+	}
 
 	error = (*docopyout)(&id, idp, sizeof(*idp));
 	if (error) {
+		if (arg == KSEM_PSHARED) {
+			ksem_remove_pshared(ksem);
+		}
 		ksem_free(ks);
 		fd_abort(p, fp, fd);
 		return error;
@@ -523,6 +629,16 @@ do_ksem_open(struct lwp *l, const char *semname, int oflag, mode_t mode,
 	fp->f_type = DTYPE_SEM;
 	fp->f_flag = FREAD | FWRITE;
 	fp->f_ops = &semops;
+
+	if (fd >= KSEM_MARKER_MASK) {
+		/*
+		 * This is super-unlikely, but we check for it anyway
+		 * because potential collisions with the pshared marker
+		 * would be bad.
+		 */
+		fd_abort(p, fp, fd);
+		return EMFILE;
+	}
 
 	/*
 	 * The ID (file descriptor number) can be stored early.
@@ -677,6 +793,7 @@ ksem_close_fop(file_t *fp)
 {
 	ksem_t *ks = fp->f_ksem;
 
+	mutex_enter(&ks->ks_lock);
 	ksem_release(ks);
 	return 0;
 }
@@ -739,10 +856,10 @@ sys__ksem_post(struct lwp *l, const struct sys__ksem_post_args *uap,
 	/* {
 		intptr_t id;
 	} */
-	int fd = (int)SCARG(uap, id), error;
+	int fd, error;
 	ksem_t *ks;
 
-	error = ksem_get(fd, &ks);
+	error = ksem_get(SCARG(uap, id), &ks, &fd);
 	if (error) {
 		return error;
 	}
@@ -756,18 +873,19 @@ sys__ksem_post(struct lwp *l, const struct sys__ksem_post_args *uap,
 		cv_broadcast(&ks->ks_cv);
 	}
 out:
-	mutex_exit(&ks->ks_lock);
-	fd_putfile(fd);
+	ksem_release(ks);
+	if (fd != -1)
+		fd_putfile(fd);
 	return error;
 }
 
 int
 do_ksem_wait(lwp_t *l, intptr_t id, bool try_p, struct timespec *abstime)
 {
-	int fd = (int)id, error, timeo;
+	int fd, error, timeo;
 	ksem_t *ks;
 
-	error = ksem_get(fd, &ks);
+	error = ksem_get(id, &ks, &fd);
 	if (error) {
 		return error;
 	}
@@ -790,8 +908,9 @@ do_ksem_wait(lwp_t *l, intptr_t id, bool try_p, struct timespec *abstime)
 	}
 	ks->ks_value--;
 out:
-	mutex_exit(&ks->ks_lock);
-	fd_putfile(fd);
+	ksem_release(ks);
+	if (fd != -1)
+		fd_putfile(fd);
 	return error;
 }
 
@@ -849,18 +968,19 @@ sys__ksem_getvalue(struct lwp *l, const struct sys__ksem_getvalue_args *uap,
 		intptr_t id;
 		unsigned int *value;
 	} */
-	int fd = (int)SCARG(uap, id), error;
+	int fd, error;
 	ksem_t *ks;
 	unsigned int val;
 
-	error = ksem_get(fd, &ks);
+	error = ksem_get(SCARG(uap, id), &ks, &fd);
 	if (error) {
 		return error;
 	}
 	KASSERT(mutex_owned(&ks->ks_lock));
 	val = ks->ks_value;
-	mutex_exit(&ks->ks_lock);
-	fd_putfile(fd);
+	ksem_release(ks);
+	if (fd != -1)
+		fd_putfile(fd);
 
 	return copyout(&val, SCARG(uap, value), sizeof(val));
 }
@@ -872,10 +992,10 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 	/* {
 		intptr_t id;
 	} */
-	int fd = (int)SCARG(uap, id), error;
+	int fd, error;
 	ksem_t *ks;
 
-	error = ksem_get(fd, &ks);
+	error = ksem_get(SCARG(uap, id), &ks, &fd);
 	if (error) {
 		return error;
 	}
@@ -892,7 +1012,8 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 		goto out;
 	}
 out:
-	mutex_exit(&ks->ks_lock);
+	/* XXXJRT needs work for pshared */
+	ksem_release(ks);
 	if (error) {
 		fd_putfile(fd);
 		return error;
