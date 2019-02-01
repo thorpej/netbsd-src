@@ -67,6 +67,7 @@ __KERNEL_RCSID(0, "$NetBSD: uipc_sem.c,v 1.51 2018/05/06 00:46:09 christos Exp $
 
 #include <sys/atomic.h>
 #include <sys/proc.h>
+#include <sys/lwp.h>
 #include <sys/ksem.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
@@ -84,6 +85,7 @@ __KERNEL_RCSID(0, "$NetBSD: uipc_sem.c,v 1.51 2018/05/06 00:46:09 christos Exp $
 #include <sys/syscallargs.h>
 #include <sys/syscallvar.h>
 #include <sys/sysctl.h>
+#include <sys/cprng.h>
 
 MODULE(MODULE_CLASS_MISC, ksem, NULL);
 
@@ -96,6 +98,9 @@ static kmutex_t		ksem_lock	__cacheline_aligned;
 static LIST_HEAD(,ksem)	ksem_head	__cacheline_aligned;
 static u_int		nsems_total	__cacheline_aligned;
 static u_int		nsems		__cacheline_aligned;
+
+static krwlock_t	ksem_pshared_lock __cacheline_aligned;
+static LIST_HEAD(, ksem) ksem_pshared_list __cacheline_aligned;
 
 static kauth_listener_t	ksem_listener;
 
@@ -136,9 +141,6 @@ static const struct syscall_package ksem_syscalls[] = {
 
 struct sysctllog *ksem_clog;
 int ksem_max;
-
-static krwlock_t ksem_pshared_lock;
-static LIST_HEAD(, ksem) ksem_pshared_list;
 
 static int
 name_copyin(const char *uname, char **name)
@@ -253,7 +255,7 @@ ksem_sysfini(bool interface)
 		}
 	}
 	kauth_unlisten_scope(ksem_listener);
-	rwlock_destroy(&ksem_pshared_lock);
+	rw_destroy(&ksem_pshared_lock);
 	mutex_destroy(&ksem_lock);
 	sysctl_teardown(&ksem_clog);
 	return 0;
@@ -345,8 +347,8 @@ ksem_lookup_pshared_locked(intptr_t id)
 				mutex_exit(&ksem->ks_lock);
 				continue;
 			}
-			ks->ks_ref++;
-			KASSERT(ks->ks_ref != 0);
+			ksem->ks_ref++;
+			KASSERT(ksem->ks_ref != 0);
 		}
 	}
 
@@ -375,7 +377,7 @@ ksem_alloc_pshared_id(ksem_t *ksem)
 		try = (cprng_fast32() & ~KSEM_MARKER_MASK) |
 		    KSEM_PSHARED_MARKER;
 
-		if (ksem_pshared_lookup_locked(try) == NULL) {
+		if (ksem_lookup_pshared_locked(try) == NULL) {
 			/* Got it! */
 			break;
 		}
@@ -524,23 +526,25 @@ ksem_release(ksem_t *ksem)
 {
 	bool destroy = false;
 
-	KASSERT(mutex_owned(&ks->ks_lock));
+	KASSERT(mutex_owned(&ksem->ks_lock));
 
-	KASSERT(ks->ks_ref > 0);
-	if (--ks->ks_ref == 0) {
+	KASSERT(ksem->ks_ref > 0);
+	if (--ksem->ks_ref == 0) {
 		/*
 		 * Destroy if the last reference and semaphore is unnamed,
 		 * or unlinked (for named semaphore).
 		 */
-		destroy = (ks->ks_flags & KS_UNLINKED) || (ks->ks_name == NULL);
+		destroy = (ksem->ks_flags & KS_UNLINKED) ||
+		    (ksem->ks_name == NULL);
 	}
-	mutex_exit(&ks->ks_lock);
+	mutex_exit(&ksem->ks_lock);
 
 	if (destroy) {
-		ksem_free(ks);
+		ksem_free(ksem);
 	}
 }
 
+int
 sys__ksem_init(struct lwp *l, const struct sys__ksem_init_args *uap,
     register_t *retval)
 {
@@ -600,9 +604,9 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	}
 
 	if (arg == KSEM_PSHARED) {
-		ks->ks_pshared_proc = curproc();
+		ks->ks_pshared_proc = curproc;
 		ks->ks_pshared_fd = fd;
-		ksem_alloc_pshared_id(ksem);
+		ksem_alloc_pshared_id(ks);
 		id = ks->ks_pshared_id;
 	} else {
 		id = (intptr_t)fd;
@@ -611,7 +615,7 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	error = (*docopyout)(&id, idp, sizeof(*idp));
 	if (error) {
 		if (arg == KSEM_PSHARED) {
-			ksem_remove_pshared(ksem);
+			ksem_remove_pshared(ks);
 		}
 		ksem_free(ks);
 		fd_abort(p, fp, fd);
@@ -1028,7 +1032,9 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 	int fd, error;
 	ksem_t *ks;
 
-	error = ksem_get(SCARG(uap, id), &ks, &fd);
+	intptr_t id = SCARG(uap, id);
+
+	error = ksem_get(id, &ks, &fd);
 	if (error) {
 		return error;
 	}
@@ -1048,14 +1054,14 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 		/* Cannot destroy if we did't create it. */
 		KASSERT(fd == -1);
 		KASSERT(ks->ks_pshared_proc != NULL);
-		if (ks->ks_pshared_proc != curproc()) {
+		if (ks->ks_pshared_proc != curproc) {
 			error = EINVAL;
 			goto out;
 		}
 		fd = ks->ks_pshared_fd;
 
 		/* Mark it dead so subsequent lookups fail. */
-		ksem->ks_pshared_proc = NULL;
+		ks->ks_pshared_proc = NULL;
 	}
 out:
 	ksem_release(ks);
