@@ -573,7 +573,7 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	 * globally unique ID and return that, rather than the process-scoped
 	 * file descriptor ID.
 	 */
-	error = (*docopyin)(&arg, idp, sizeof(*idp));
+	error = (*docopyin)(idp, &arg, sizeof(*idp));
 	if (error) {
 		return error;
 	}
