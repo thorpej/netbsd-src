@@ -128,6 +128,12 @@ struct _sem_st {
 static LIST_HEAD(, _sem_st) named_sems = LIST_HEAD_INITIALIZER(&named_sems);
 #ifdef __LIBPTHREAD_SOURCE__
 static pthread_mutex_t named_sems_mtx = PTHREAD_MUTEX_INITIALIZER;
+
+#define	LOCK_NAMED_SEMS()	pthread_mutex_lock(&named_sems_mtx)
+#define	UNLOCK_NAMED_SEMS()	pthread_mutex_unlock(&named_sems_mtx)
+#else /* ! __LIBPTHREAD_SOURCE__ */
+#define	LOCK_NAMED_SEMS()	__nothing
+#define	UNLOCK_NAMED_SEMS()	__nothing
 #endif /* __LIBPTHREAD_SOURCE__ */
 
 #ifndef __LIBPTHREAD_SOURCE__
@@ -285,10 +291,10 @@ sem_open(const char *name, int oflag, ...)
 	 * Search for a duplicate ID, we must return the same sem_t *
 	 * if we locate one.
 	 */
-	pthread_mutex_lock(&named_sems_mtx);
+	LOCK_NAMED_SEMS();
 	LIST_FOREACH(s, &named_sems, ksem_list) {
 		if (s->ksem_semid == semid) {
-			pthread_mutex_unlock(&named_sems_mtx);
+			UNLOCK_NAMED_SEMS();
 			return (s->ksem_identity);
 		}
 	}
@@ -301,13 +307,13 @@ sem_open(const char *name, int oflag, ...)
 		goto bad;
 
 	LIST_INSERT_HEAD(&named_sems, *sem, ksem_list);
-	pthread_mutex_unlock(&named_sems_mtx);
+	UNLOCK_NAMED_SEMS();
 	(*sem)->ksem_identity = sem;
 
 	return (sem);
 
  bad:
-	pthread_mutex_unlock(&named_sems_mtx);
+	UNLOCK_NAMED_SEMS();
 	_ksem_close(semid);
 	if (sem != NULL) {
 		if (*sem != NULL)
@@ -335,11 +341,11 @@ sem_close(sem_t *sem)
 		return (-1);
 	}
 
-	pthread_mutex_lock(&named_sems_mtx);
+	LOCK_NAMED_SEMS();
 	error = _ksem_close((*sem)->ksem_semid);
 	LIST_REMOVE((*sem), ksem_list);
 	save_errno = errno;
-	pthread_mutex_unlock(&named_sems_mtx);
+	UNLOCK_NAMED_SEMS();
 	sem_free(*sem);
 	free(sem);
 	errno = save_errno;
