@@ -215,7 +215,7 @@ sem_init(sem_t *sem, int pshared, unsigned int value)
 	if (pshared) {
 		if ((semid & KSEM_MARKER_MASK) != KSEM_PSHARED_MARKER) {
 			_ksem_destroy(semid);
-			errno = EFAULT;		/* XXX */
+			errno = ENOTSUP;
 			return (-1);
 		}
 		*sem = (sem_t)semid;
