@@ -586,7 +586,7 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	fp->f_flag = FREAD | FWRITE;
 	fp->f_ops = &semops;
 
-	if (fd >= KSEM_MARKER_MASK) {
+	if (fd >= KSEM_MARKER_MIN) {
 		/*
 		 * This is super-unlikely, but we check for it anyway
 		 * because potential collisions with the pshared marker
