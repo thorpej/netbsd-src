@@ -47,6 +47,7 @@ __RCSID("$NetBSD: misc.c,v 1.20 2018/06/26 10:00:25 msaitoh Exp $");
 #include <sys/proc.h>
 #define _KERNEL
 #include <sys/file.h>
+#define copyin_t int
 #define copyout_t int
 #include <sys/ksem.h>
 #define _LIB_LIBKERN_LIBKERN_H_
