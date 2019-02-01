@@ -66,6 +66,7 @@ SRCS+=	pthread_specific.c
 SRCS+=	pthread_spin.c
 SRCS+=	pthread_tsd.c
 SRCS+=	res_state.c
+.PATH: ${.CURDIR}/../librt
 SRCS+=	sem.c
 # Architecture-dependent files
 .if exists(${ARCHDIR}/pthread_md.S)
