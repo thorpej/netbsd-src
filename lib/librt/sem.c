@@ -84,6 +84,7 @@ __RCSID("$NetBSD: sem.c,v 1.7 2012/03/10 19:59:21 joerg Exp $");
 #define	sem_getvalue	_librt_sem_getvalue
 #endif /* ! __LIBPTHREAD_SOURCE__ */
 
+#undef _LIBC
 #define	_LIBC
 
 #include <sys/types.h>
@@ -129,7 +130,7 @@ static LIST_HEAD(, _sem_st) named_sems = LIST_HEAD_INITIALIZER(&named_sems);
 static pthread_mutex_t named_sems_mtx = PTHREAD_MUTEX_INITIALIZER;
 #endif /* __LIBPTHREAD_SOURCE__ */
 
-#ifndef /* __LIBPTHREAD_SOURCE__ */
+#ifndef __LIBPTHREAD_SOURCE__
 #ifdef __weak_alias
 __weak_alias(sem_init,_librt_sem_init)
 __weak_alias(sem_destroy,_librt_sem_destroy)
@@ -211,7 +212,7 @@ sem_init(sem_t *sem, int pshared, unsigned int value)
 			errno = EFAULT;		/* XXX */
 			return (-1);
 		}
-		*semp = (sem_t)semid;
+		*sem = (sem_t)semid;
 		return (0);
 	}
 
@@ -363,7 +364,7 @@ sem_wait(sem_t *sem)
 	}
 #endif
 
-	return (_ksem_wait(sem_to_semid(sem));
+	return (_ksem_wait(sem_to_semid(sem)));
 }
 
 int
