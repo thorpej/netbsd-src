@@ -42,6 +42,7 @@ typedef struct ksem {
 	intptr_t		ks_pshared_id;	/* global id for pshared sem */
 	kmutex_t		ks_lock;	/* lock on this ksem */
 	kcondvar_t		ks_cv;		/* condition variable */
+	u_int			ks_pshared_fd;	/* fd in owning proc */
 	u_int			ks_ref;		/* number of references */
 	u_int			ks_value;	/* current value */
 	u_int			ks_waiters;	/* number of waiters */
