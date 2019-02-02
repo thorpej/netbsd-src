@@ -1077,7 +1077,7 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 		ks->ks_pshared_proc = NULL;
 
 		/* Do an fd_getfile() to for the benefit of fd_close(). */
-		file_t *fp = fd_getfile(fd);
+		file_t *fp __diagused = fd_getfile(fd);
 		KASSERT(fp != NULL);
 		KASSERT(fp->f_ksem == ks);
 	}
