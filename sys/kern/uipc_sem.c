@@ -567,10 +567,10 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 	int fd, error;
 
 	/*
-	 * Newer versions of libpthread pass us 'PSRD' in *idp to indicate
-	 * that a pshared semaphore is wanted.  In that case we allocate
-	 * globally unique ID and return that, rather than the process-scoped
-	 * file descriptor ID.
+	 * Newer versions of librt / libpthread pass us 'PSRD' in *idp to
+	 * indicate that a pshared semaphore is wanted.  In that case we
+	 * allocate globally unique ID and return that, rather than the
+	 * process-scoped file descriptor ID.
 	 */
 	error = (*docopyin)(idp, &arg, sizeof(*idp));
 	if (error) {
