@@ -100,7 +100,10 @@ static u_int		nsems_total	__cacheline_aligned;
 static u_int		nsems		__cacheline_aligned;
 
 static krwlock_t	ksem_pshared_lock __cacheline_aligned;
-static LIST_HEAD(, ksem) ksem_pshared_list __cacheline_aligned;
+static LIST_HEAD(, ksem) *ksem_pshared_hashtab __cacheline_aligned;
+static u_long		ksem_pshared_hashmask __read_mostly;
+
+#define	KSEM_PSHARED_HASHSIZE	32
 
 static kauth_listener_t	ksem_listener;
 
@@ -197,7 +200,9 @@ ksem_sysinit(void)
 	nsems = 0;
 
 	rw_init(&ksem_pshared_lock);
-	LIST_INIT(&ksem_pshared_list);
+	ksem_pshared_hashtab = hashinit(KSEM_PSHARED_HASHSIZE, HASH_LIST,
+	    true, &ksem_pshared_hashmask);
+	KASSERT(ksem_pshared_hashtab != NULL);
 
 	error = syscall_establish(NULL, ksem_syscalls);
 	if (error) {
@@ -255,6 +260,7 @@ ksem_sysfini(bool interface)
 		}
 	}
 	kauth_unlisten_scope(ksem_listener);
+	hashdone(ksem_pshared_hashtab, HASH_LIST, ksem_pshared_hashmask);
 	rw_destroy(&ksem_pshared_lock);
 	mutex_destroy(&ksem_lock);
 	sysctl_teardown(&ksem_clog);
@@ -306,37 +312,29 @@ ksem_perm(lwp_t *l, ksem_t *ks)
 	return 0;
 }
 
-static void
-ksem_insert_pshared_locked(ksem_t *ksem)
-{
-
-	LIST_INSERT_HEAD(&ksem_pshared_list, ksem, ks_entry);
-}
-
-static void
-ksem_remove_pshared_locked(ksem_t *ksem)
-{
-
-	LIST_REMOVE(ksem, ks_entry);
-}
+/*
+ * Bits 1..23 are random, just pluck a few of those and assume the
+ * distribution is going to be pretty good.
+ */
+#define	KSEM_PSHARED_HASH(id)	(((id) >> 1) & ksem_pshared_hashmask)
 
 static void
 ksem_remove_pshared(ksem_t *ksem)
 {
-
 	rw_enter(&ksem_pshared_lock, RW_WRITER);
-	ksem_remove_pshared_locked(ksem);
+	LIST_REMOVE(ksem, ks_entry);
 	rw_exit(&ksem_pshared_lock);
 }
 
 static ksem_t *
 ksem_lookup_pshared_locked(intptr_t id)
 {
+	u_long bucket = KSEM_PSHARED_HASH(id);
 	ksem_t *ksem = NULL;
 
 	/* ksem_t is locked and referenced upon return. */
 
-	LIST_FOREACH(ksem, &ksem_pshared_list, ks_entry) {
+	LIST_FOREACH(ksem, &ksem_pshared_hashtab[bucket], ks_entry) {
 		if (ksem->ks_pshared_id == id) {
 			mutex_enter(&ksem->ks_lock);
 			if (ksem->ks_pshared_proc == NULL) {
@@ -383,7 +381,8 @@ ksem_alloc_pshared_id(ksem_t *ksem)
 		}
 	}
 	ksem->ks_pshared_id = try;
-	ksem_insert_pshared_locked(ksem);
+	u_long bucket = KSEM_PSHARED_HASH(ksem->ks_pshared_id);
+	LIST_INSERT_HEAD(&ksem_pshared_hashtab[bucket], ksem, ks_entry);
 	rw_exit(&ksem_pshared_lock);
 }
 
