@@ -14,6 +14,7 @@ TESTS_C+=	t_mqueue
 TESTS_C+=	t_sysv
 TESTS_C+=	t_subr_prf
 TESTS_C+=	t_kauth_pr_47598
+TESTS_C+=	t_ksem
 TESTS_C+=	t_sysctl
 TESTS_C+=	t_timeleft
 TESTS_C+=	t_zombie
