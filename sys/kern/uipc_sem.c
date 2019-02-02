@@ -349,10 +349,11 @@ ksem_lookup_pshared_locked(intptr_t id)
 			}
 			ksem->ks_ref++;
 			KASSERT(ksem->ks_ref != 0);
+			return ksem;
 		}
 	}
 
-	return ksem;
+	return NULL;
 }
 
 static ksem_t *
@@ -372,7 +373,6 @@ ksem_alloc_pshared_id(ksem_t *ksem)
 	KASSERT(ksem->ks_pshared_proc != NULL);
 
 	rw_enter(&ksem_pshared_lock, RW_WRITER);
-
 	for (;;) {
 		try = (cprng_fast32() & ~KSEM_MARKER_MASK) |
 		    KSEM_PSHARED_MARKER;
@@ -382,11 +382,8 @@ ksem_alloc_pshared_id(ksem_t *ksem)
 			break;
 		}
 	}
-
 	ksem->ks_pshared_id = try;
-
 	ksem_insert_pshared_locked(ksem);
-
 	rw_exit(&ksem_pshared_lock);
 }
 
@@ -614,9 +611,6 @@ do_ksem_init(lwp_t *l, u_int val, intptr_t *idp, copyin_t docopyin,
 
 	error = (*docopyout)(&id, idp, sizeof(*idp));
 	if (error) {
-		if (arg == KSEM_PSHARED) {
-			ksem_remove_pshared(ks);
-		}
 		ksem_free(ks);
 		fd_abort(p, fp, fd);
 		return error;
@@ -770,10 +764,24 @@ sys__ksem_close(struct lwp *l, const struct sys__ksem_close_args *uap,
 	/* {
 		intptr_t id;
 	} */
-	int fd = (int)SCARG(uap, id);
+	intptr_t id = SCARG(uap, id);
+	int fd, error;
+	ksem_t *ks;
 
-	if (fd_getfile(fd) == NULL) {
-		return EBADF;
+	error = ksem_get(id, &ks, &fd);
+	if (error) {
+		return error;
+	}
+
+	/* This is only for named semaphores. */
+	if (ks->ks_name == NULL) {
+		error = EINVAL;
+	}
+	ksem_release(ks);
+	if (error) {
+		if (fd != -1)
+			fd_putfile(fd);
+		return error;
 	}
 	return fd_close(fd);
 }
@@ -829,6 +837,11 @@ static int
 ksem_close_fop(file_t *fp)
 {
 	ksem_t *ks = fp->f_ksem;
+
+	if (ks->ks_pshared_id != 0 && ks->ks_pshared_proc != curproc) {
+		/* Do nothing if this is not the creator. */
+		return 0;
+	}
 
 	mutex_enter(&ks->ks_lock);
 	ksem_release(ks);
@@ -1062,6 +1075,11 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 
 		/* Mark it dead so subsequent lookups fail. */
 		ks->ks_pshared_proc = NULL;
+
+		/* Do an fd_getfile() to for the benefit of fd_close(). */
+		file_t *fp = fd_getfile(fd);
+		KASSERT(fp != NULL);
+		KASSERT(fp->f_ksem == ks);
 	}
 out:
 	ksem_release(ks);
