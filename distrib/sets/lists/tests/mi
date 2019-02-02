@@ -2180,6 +2180,7 @@
 ./usr/tests/kernel/t_filedesc			tests-kernel-tests	atf,rump
 ./usr/tests/kernel/t_interp			tests-kernel-tests	atf
 ./usr/tests/kernel/t_kauth_pr_47598		tests-kernel-tests	compattestfile,atf
+./usr/tests/kernel/t_ksem			tests-kernel-tests	atf
 ./usr/tests/kernel/t_lock			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_lockf			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_lwpctl			tests-obsolete		obsolete
