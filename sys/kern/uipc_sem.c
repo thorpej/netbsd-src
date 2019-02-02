@@ -519,7 +519,7 @@ ksem_free(ksem_t *ks)
 	(((id) & KSEM_MARKER_MASK) == KSEM_PSHARED_MARKER)
 
 static void
-ksem_release(ksem_t *ksem)
+ksem_release(ksem_t *ksem, int fd)
 {
 	bool destroy = false;
 
@@ -538,6 +538,9 @@ ksem_release(ksem_t *ksem)
 
 	if (destroy) {
 		ksem_free(ksem);
+	}
+	if (fd != -1) {
+		fd_putfile(fd);
 	}
 }
 
@@ -777,7 +780,7 @@ sys__ksem_close(struct lwp *l, const struct sys__ksem_close_args *uap,
 	if (ks->ks_name == NULL) {
 		error = EINVAL;
 	}
-	ksem_release(ks);
+	ksem_release(ks, -1);
 	if (error) {
 		if (fd != -1)
 			fd_putfile(fd);
@@ -844,7 +847,7 @@ ksem_close_fop(file_t *fp)
 	}
 
 	mutex_enter(&ks->ks_lock);
-	ksem_release(ks);
+	ksem_release(ks, -1);
 	return 0;
 }
 
@@ -923,9 +926,7 @@ sys__ksem_post(struct lwp *l, const struct sys__ksem_post_args *uap,
 		cv_broadcast(&ks->ks_cv);
 	}
 out:
-	ksem_release(ks);
-	if (fd != -1)
-		fd_putfile(fd);
+	ksem_release(ks, fd);
 	return error;
 }
 
@@ -958,9 +959,7 @@ do_ksem_wait(lwp_t *l, intptr_t id, bool try_p, struct timespec *abstime)
 	}
 	ks->ks_value--;
 out:
-	ksem_release(ks);
-	if (fd != -1)
-		fd_putfile(fd);
+	ksem_release(ks, fd);
 	return error;
 }
 
@@ -1028,9 +1027,7 @@ sys__ksem_getvalue(struct lwp *l, const struct sys__ksem_getvalue_args *uap,
 	}
 	KASSERT(mutex_owned(&ks->ks_lock));
 	val = ks->ks_value;
-	ksem_release(ks);
-	if (fd != -1)
-		fd_putfile(fd);
+	ksem_release(ks, fd);
 
 	return copyout(&val, SCARG(uap, value), sizeof(val));
 }
@@ -1082,7 +1079,7 @@ sys__ksem_destroy(struct lwp *l, const struct sys__ksem_destroy_args *uap,
 		KASSERT(fp->f_ksem == ks);
 	}
 out:
-	ksem_release(ks);
+	ksem_release(ks, -1);
 	if (error) {
 		if (!KSEM_ID_IS_PSHARED(id))
 			fd_putfile(fd);
