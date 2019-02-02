@@ -82,7 +82,7 @@ ATF_TC_WITH_CLEANUP(destroy_on_named);
 ATF_TC_HEAD(destroy_on_named, tc)
 {
 	 atf_tc_set_md_var(tc, "descr",
-	     "test for correct error on destry of named semaphore");
+	     "test for correct error on destroy of named semaphore");
 }
 ATF_TC_BODY(destroy_on_named, tc)
 {
