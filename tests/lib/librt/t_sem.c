@@ -56,7 +56,7 @@
  */
 
 #include <sys/cdefs.h>
-__COPYRIGHT("@(#) Copyright (c) 2008, 2010\
+__COPYRIGHT("@(#) Copyright (c) 2008, 2010, 2019\
  The NetBSD Foundation, inc. All rights reserved.");
 __RCSID("$NetBSD: t_sem.c,v 1.3 2017/01/14 20:58:20 christos Exp $");
 
