@@ -1,4 +1,4 @@
-/*	$NetBSD: if_mue.c,v 1.28 2019/01/22 03:42:28 msaitoh Exp $	*/
+/*	$NetBSD: if_mue.c,v 1.30 2019/01/31 05:25:48 rin Exp $	*/
 /*	$OpenBSD: if_mue.c,v 1.3 2018/08/04 16:42:46 jsg Exp $	*/
 
 /*
@@ -20,7 +20,7 @@
 /* Driver for Microchip LAN7500/LAN7800 chipsets. */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: if_mue.c,v 1.28 2019/01/22 03:42:28 msaitoh Exp $");
+__KERNEL_RCSID(0, "$NetBSD: if_mue.c,v 1.30 2019/01/31 05:25:48 rin Exp $");
 
 #ifdef _KERNEL_OPT
 #include "opt_usb.h"
@@ -1077,6 +1077,7 @@ mue_detach(device_t self, int flags)
 	if (ifp->if_flags & IFF_RUNNING)
 		mue_stop(ifp, 1);
 
+	callout_destroy(&sc->mue_stat_ch);
 	rnd_detach_source(&sc->mue_rnd_source);
 	mii_detach(&sc->mue_mii, MII_PHY_ANY, MII_OFFSET_ANY);
 	ifmedia_delete_instance(&sc->mue_mii.mii_media, IFM_INST_ANY);
@@ -1402,17 +1403,23 @@ mue_sethwcsum(struct mue_softc *sc)
 	reg = (sc->mue_flags & LAN7500) ? MUE_7500_RFE_CTL : MUE_7800_RFE_CTL;
 	val = mue_csr_read(sc, reg);
 
-	if (ifp->if_capenable & (IFCAP_CSUM_TCPv4_Rx|IFCAP_CSUM_UDPv4_Rx)) {
-		DPRINTF(sc, "enabled\n");
-		val |= MUE_RFE_CTL_IGMP_COE | MUE_RFE_CTL_ICMP_COE;
-		val |= MUE_RFE_CTL_TCPUDP_COE | MUE_RFE_CTL_IP_COE;
+	if (ifp->if_capenable & IFCAP_CSUM_IPv4_Rx) {
+		DPRINTF(sc, "RX IPv4 hwcsum enabled\n");
+		val |= MUE_RFE_CTL_IP_COE;
 	} else {
-		DPRINTF(sc, "disabled\n");
-		val &=
-		    ~(MUE_RFE_CTL_IGMP_COE | MUE_RFE_CTL_ICMP_COE);
-		val &=
-		    ~(MUE_RFE_CTL_TCPUDP_COE | MUE_RFE_CTL_IP_COE);
-        }
+		DPRINTF(sc, "RX IPv4 hwcsum disabled\n");
+		val &= ~MUE_RFE_CTL_IP_COE;
+	}
+
+	if (ifp->if_capenable &
+	    (IFCAP_CSUM_TCPv4_Rx | IFCAP_CSUM_UDPv4_Rx |
+	     IFCAP_CSUM_TCPv6_Rx | IFCAP_CSUM_UDPv6_Rx)) {
+		DPRINTF(sc, "RX L4 hwcsum enabled\n");
+		val |= MUE_RFE_CTL_TCPUDP_COE;
+	} else {
+		DPRINTF(sc, "RX L4 hwcsum disabled\n");
+		val &= ~MUE_RFE_CTL_TCPUDP_COE;
+	}
 
 	val &= ~MUE_RFE_CTL_VLAN_FILTER;
 
