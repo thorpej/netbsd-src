@@ -388,7 +388,6 @@ pseudo-device	wsfont
 
 # GPU
 #nouveau*	at fdt?			# NVIDIA GPU
-sunxide2bus*	at fdt?			# Allwinner DE2 bus
 
 # Backlight
 pwmbacklight*	at fdt?			# PWM Backlight controls

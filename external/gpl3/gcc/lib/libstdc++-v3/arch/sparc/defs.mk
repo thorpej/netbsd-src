@@ -13,7 +13,6 @@ G_GLIBCXX_ABI_FLAGS=
 G_CPP98_SOURCES=bitmap_allocator.cc pool_allocator.cc mt_allocator.cc c98-codecvt.cc complex_io.cc globals_io.cc hash_tr1.cc hashtable_tr1.cc ios_failure.cc ios_init.cc ios_locale.cc list.cc list-aux.cc list-aux-2.cc list_associated.cc list_associated-2.cc locale.cc locale_init.cc locale_facets.cc localename.cc math_stubs_float.cc math_stubs_long_double.cc stdexcept.cc strstream.cc tree.cc istream.cc istream-string.cc streambuf.cc valarray.cc   atomicity.cc codecvt_members.cc collate_members.cc messages_members.cc monetary_members.cc numeric_members.cc time_members.cc basic_file.cc c++locale.cc allocator-inst.cc concept-inst.cc ext-inst.cc misc-inst.cc parallel_settings.cc
 G_FILESYSTEM_SOURCES=dir.cc ops.cc path.cc 
 G_ATOMICITY_SRCDIR=config/cpu/sparc
-G_ATOMICITY_SRCDIR=config/cpu/generic/atomicity_builtins
 G_BASIC_FILE_CC=config/io/basic_file_stdio.cc
 G_CLOCALE_CC=config/locale/generic/c_locale.cc
 G_CCODECVT_CC=config/locale/generic/codecvt_members.cc

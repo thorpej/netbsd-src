@@ -1455,7 +1455,7 @@ namespace std
 #define _GLIBCXX_FULLY_DYNAMIC_STRING 0
 
 /* Define if gthreads library is available. */
-/* #undef _GLIBCXX_HAS_GTHREADS */
+#define _GLIBCXX_HAS_GTHREADS 1
 
 /* Define to 1 if a full hosted library is built, or 0 if freestanding. */
 #define _GLIBCXX_HOSTED 1
@@ -1583,7 +1583,7 @@ namespace std
 /* #undef _GLIBCXX_USE_PTHREADS_NUM_PROCESSORS_NP */
 
 /* Define if POSIX read/write locks are available in <gthr.h>. */
-/* #undef _GLIBCXX_USE_PTHREAD_RWLOCK_T */
+#define _GLIBCXX_USE_PTHREAD_RWLOCK_T 1
 
 /* Define if /dev/random and /dev/urandom are available for the random_device
    of TR1 (Chapter 5.1). */

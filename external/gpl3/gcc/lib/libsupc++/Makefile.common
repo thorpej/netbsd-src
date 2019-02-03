@@ -74,13 +74,3 @@ STD_GNU1Z=	\
 .for _f in ${STD_GNU1Z}
 COPTS.${_f}+=	-std=gnu++1z
 .endfor
-
-STD_GNU1Z=	new_opa new_opant \
-		new_opva new_opvant \
-		del_opa del_opant del_opsa \
-		del_opva del_opvant del_opvsa
-
-.for _f in ${STD_GNU1Z}
-COPTS.${_f}.cc=	-std=gnu++1z
-.endfor
-
