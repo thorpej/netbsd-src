@@ -355,7 +355,6 @@ STRONG_ALIAS(ufetch_ptr_intrsafe, ufetch_uint32)
 STRONG_ALIAS(ufetch_long_intrsafe, ufetch_uint32)
 STRONG_ALIAS(ufetch_ulong_intrsafe, ufetch_uint32)
 STRONG_ALIAS(fuword, ufetch_uint32)
-STRONG_ALIAS(fuiword, ufetch_uint32)
 #endif
 
 #ifdef _LP64
@@ -381,7 +380,6 @@ STRONG_ALIAS(ufetch_ptr_intrsafe, ufetch_uint64)
 STRONG_ALIAS(ufetch_long_intrsafe, ufetch_uint64)
 STRONG_ALIAS(ufetch_ulong_intrsafe, ufetch_uint64)
 STRONG_ALIAS(fuword, ufetch_uint64)
-STRONG_ALIAS(fuiword, ufetch_uint64)
 #endif
 
 /*
