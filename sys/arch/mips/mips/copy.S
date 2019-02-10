@@ -437,7 +437,6 @@ STRONG_ALIAS(ufetch_uchar, ufetch_uint8)
 STRONG_ALIAS(ufetch_uint8_intrsafe, ufetch_uint8)
 STRONG_ALIAS(ufetch_uchar_intrsafe, ufetch_uint8)
 STRONG_ALIAS(fubyte, ufetch_uint8)
-STRONG_ALIAS(fuibyte, ufetch_uint8)
 
 /*
  * int8_t uftech_int8(void *)

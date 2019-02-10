@@ -1027,7 +1027,6 @@ XLEAF(fuisword, 1)
 	END(fusword)
 
 LEAF(fubyte, 1)
-XLEAF(fuibyte, 1)
 	LDGP(pv)
 	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
 	cmpult	a0, t0, t1			/* is in user space. */

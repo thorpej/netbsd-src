@@ -729,7 +729,6 @@ ENTRY(fusword)
 	retl				! made it
 	 membar	#StoreStore|#StoreLoad
 
-ALTENTRY(fuibyte)
 ENTRY(fubyte)
 	sethi	%hi(CPCB), %o2		! cpcb->pcb_onfault = Lfserr;
 	LDPTR	[%o2 + %lo(CPCB)], %o2
