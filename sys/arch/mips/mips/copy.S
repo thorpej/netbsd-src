@@ -328,10 +328,14 @@ LEAF(suswintr)
 END(suswintr)
 
 /*
- * uint32_t ufetch_uint32(void *)
- * Fetches a 32-bit datum from the user-space address.
+ * uint32_t mips_ufetch32(const void *)
+ * Fetches a 32-bit datum from the user-space address and
+ * returns it in v0.
+ *
+ * We have this in addition to the MI fetch(9) API for the convenience
+ * of bsd_emul.S and fp.S.
  */
-LEAF(ufetch_uint32)
+LEAF(mips_ufetch32)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
 	PTR_LA	v0, _C_LABEL(fswberr)
 	blt	a0, zero, _C_LABEL(fswberr)
@@ -340,27 +344,15 @@ LEAF(ufetch_uint32)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_uint32)
-STRONG_ALIAS(ufetch_int32, ufetch_uint32)
-STRONG_ALIAS(ufetch_int, ufetch_uint32)
-STRONG_ALIAS(ufetch_uint, ufetch_uint32)
-STRONG_ALIAS(ufetch_uint32_intrsafe, ufetch_uint32)
-STRONG_ALIAS(ufetch_int32_intrsafe, ufetch_uint32)
-STRONG_ALIAS(ufetch_int_intrsafe, ufetch_uint32)
-STRONG_ALIAS(ufetch_uint_intrsafe, ufetch_uint32)
 #ifndef _LP64
-STRONG_ALIAS(ufetch_ptr, ufetch_uint32)
-STRONG_ALIAS(ufetch_long, ufetch_uint32)
-STRONG_ALIAS(ufetch_ulong, ufetch_uint32)
-STRONG_ALIAS(ufetch_ptr_intrsafe, ufetch_uint32)
-STRONG_ALIAS(ufetch_long_intrsafe, ufetch_uint32)
-STRONG_ALIAS(ufetch_ulong_intrsafe, ufetch_uint32)
-STRONG_ALIAS(fuword, ufetch_uint32)
+STRONG_ALIAS(fuword, mips_ufetch32)
 #endif
 
 #ifdef _LP64
 /*
  * uint64_t ufetch_uint64(void *)
  * Fetches a 64-bit datum from the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ufetch_uint64)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -371,20 +363,13 @@ LEAF(ufetch_uint64)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_uint64)
-STRONG_ALIAS(ufetch_int64, ufetch_uint64)
-STRONG_ALIAS(ufetch_ptr, ufetch_uint64)
-STRONG_ALIAS(ufetch_long, ufetch_uint64)
-STRONG_ALIAS(ufetch_ulong, ufetch_uint64)
-STRONG_ALIAS(ufetch_int64_intrsafe, ufetch_uint64)
-STRONG_ALIAS(ufetch_ptr_intrsafe, ufetch_uint64)
-STRONG_ALIAS(ufetch_long_intrsafe, ufetch_uint64)
-STRONG_ALIAS(ufetch_ulong_intrsafe, ufetch_uint64)
 STRONG_ALIAS(fuword, ufetch_uint64)
 #endif
 
 /*
  * uint16_t ufetch_uint16(void *)
  * Fetches an unsigned 16-bit datum from the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ufetch_uint16)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -395,14 +380,13 @@ LEAF(ufetch_uint16)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_uint16)
-STRONG_ALIAS(ufetch_ushort, ufetch_uint16)
-STRONG_ALIAS(ufetch_uint16_intrsafe, ufetch_uint16)
-STRONG_ALIAS(ufetch_ushort_intrsafe, ufetch_uint16)
 STRONG_ALIAS(fusword, ufetch_uint16)
 
+#if 0 /* XXXJRT */
 /*
- * uint16_t ufetch_int16(void *)
+ * int16_t ufetch_int16(void *)
  * Fetches a signed 16-bit datum from the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ufetch_int16)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -413,13 +397,12 @@ LEAF(ufetch_int16)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_int16)
-STRONG_ALIAS(ufetch_short, ufetch_int16)
-STRONG_ALIAS(ufetch_int16_intrsafe, ufetch_int16)
-STRONG_ALIAS(ufetch_short_intrsafe, ufetch_int16)
+#endif /* XXXJRT */
 
 /*
  * uint8_t uftech_uint8(void *)
  * Fetch a byte from the user's address space.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ufetch_uint8)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -430,14 +413,13 @@ LEAF(ufetch_uint8)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_uint8)
-STRONG_ALIAS(ufetch_uchar, ufetch_uint8)
-STRONG_ALIAS(ufetch_uint8_intrsafe, ufetch_uint8)
-STRONG_ALIAS(ufetch_uchar_intrsafe, ufetch_uint8)
 STRONG_ALIAS(fubyte, ufetch_uint8)
 
+#if 0 /* XXXJRT */
 /*
  * int8_t uftech_int8(void *)
  * Fetch a byte from the user's address space.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ufetch_int8)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -448,13 +430,12 @@ LEAF(ufetch_int8)
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
 END(ufetch_int8)
-STRONG_ALIAS(ufetch_char, ufetch_int8)
-STRONG_ALIAS(ufetch_int8_intrsafe, ufetch_int8)
-STRONG_ALIAS(ufetch_char_intrsafe, ufetch_int8)
+#endif /* XXXJRT */
 
 /*
  * int ustore_uint32(void *, uint32_t)
  * Stores a 32-bit datum to the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ustore_uint32)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -466,28 +447,15 @@ LEAF(ustore_uint32)
 	j	ra
 	 move	v0, zero
 END(ustore_uint32)
-STRONG_ALIAS(ustore_int32, ustore_uint32)
-STRONG_ALIAS(ustore_int, ustore_uint32)
-STRONG_ALIAS(ustore_uint, ustore_uint32)
-STRONG_ALIAS(ustore_uint32_intrsafe, ustore_uint32)
-STRONG_ALIAS(ustore_int32_intrsafe, ustore_uint32)
-STRONG_ALIAS(ustore_int_intrsafe, ustore_uint32)
-STRONG_ALIAS(ustore_uint_intrsafe, ustore_uint32)
-#ifndef _LP64
-STRONG_ALIAS(ustore_ptr, ustore_uint32)
-STRONG_ALIAS(ustore_long, ustore_uint32)
-STRONG_ALIAS(ustore_ulong, ustore_uint32)
-STRONG_ALIAS(ustore_ptr_intrsafe, ustore_uint32)
-STRONG_ALIAS(ustore_long_intrsafe, ustore_uint32)
-STRONG_ALIAS(ustore_ulong_intrsafe, ustore_uint32)
 STRONG_ALIAS(suword, ustore_uint32)
 #endif
 
 /*
- * int ustore_uint32_isync(void *, uint32_t)
+ * int mips_ustore_uint32_isync(void *, uint32_t)
  * Have to flush instruction cache afterwards.
+ * XXXJRT CONVERT TO NEW API
  */
-LEAF(ustore_uint32_isync)
+LEAF(mips_ustore_uint32_isync)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
 	PTR_LA	v0, _C_LABEL(fswberr)
 	blt	a0, zero, _C_LABEL(fswberr)
@@ -498,12 +466,13 @@ LEAF(ustore_uint32_isync)
 	move	v0, zero
 	j	t9				# NOTE: must not clobber v0!
 	 li	a1, 4				# size of word
-END(ustore_uint32_isync)
+END(mips_ustore_uint32_isync)
 
 #ifdef _LP64
 /*
  * int ustore_uint64(void *, uint64_t)
  * Stores a 64-bit datum to the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ustore_uint64)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -515,24 +484,13 @@ LEAF(ustore_uint64)
 	j	ra
 	 move	v0, zero
 END(ustore_uint64)
-STRONG_ALIAS(ustore_int64, ustore_uint64)
-STRONG_ALIAS(ustore_int, ustore_uint64)
-STRONG_ALIAS(ustore_uint, ustore_uint64)
-STRONG_ALIAS(ustore_uint64_intrsafe, ustore_uint64)
-STRONG_ALIAS(ustore_int64_intrsafe, ustore_uint64)
-STRONG_ALIAS(ustore_int_intrsafe, ustore_uint64)
-STRONG_ALIAS(ustore_uint_intrsafe, ustore_uint64)
-STRONG_ALIAS(ustore_ptr, ustore_uint64)
-STRONG_ALIAS(ustore_long, ustore_uint64)
-STRONG_ALIAS(ustore_ulong, ustore_uint64)
-STRONG_ALIAS(ustore_long_intrsafe, ustore_uint64)
-STRONG_ALIAS(ustore_ulong_intrsafe, ustore_uint64)
 STRONG_ALIAS(suword, ustore_uint64)
 #endif
 
 /*
  * int ustore_uint16(void *, uint16_t)
  * Stores a short word of data to the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ustore_uint16)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -544,14 +502,12 @@ LEAF(ustore_uint16)
 	j	ra
 	 move	v0, zero
 END(ustore_uint16)
-STRONG_ALIAS(ustore_int16, ustore_uint16)
-STRONG_ALIAS(ustore_uint16_intrsafe, ustore_uint16)
-STRONG_ALIAS(ustore_int16_intrsafe, ustore_uint16)
 STRONG_ALIAS(susword, ustore_uint16)
 
 /*
  * int ustore_uint8(void *, uint8_t)
  * Stores a byte of data to the user-space address.
+ * XXXJRT CONVERT TO NEW API
  */
 LEAF(ustore_uint8)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -563,9 +519,6 @@ LEAF(ustore_uint8)
 	j	ra
 	 move	v0, zero
 END(ustore_uint8)
-STRONG_ALIAS(ustore_int8, ustore_uint8)
-STRONG_ALIAS(ustore_uint8_intrsafe, ustore_uint8)
-STRONG_ALIAS(ustore_int8_intrsafe, ustore_uint8)
 STRONG_ALIAS(subyte, ustore_uint8)
 
 /*

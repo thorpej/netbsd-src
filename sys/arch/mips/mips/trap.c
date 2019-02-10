@@ -550,15 +550,16 @@ trap(uint32_t status, uint32_t cause, vaddr_t vaddr, vaddr_t pc,
 		/*
 		 * Restore original instruction and clear BP
 		 */
-		rv = ustore_uint32_isync((void *)va, l->l_md.md_ss_instr);
-		if (rv < 0) {
+		rv = mips_ustore_uint32_isync((void *)va, l->l_md.md_ss_instr);
+		if (rv != 0) {
 			vaddr_t sa, ea;
 			sa = trunc_page(va);
 			ea = round_page(va + sizeof(int) - 1);
 			rv = uvm_map_protect(&p->p_vmspace->vm_map,
 				sa, ea, VM_PROT_ALL, false);
 			if (rv == 0) {
-				rv = ustore_uint32_isync((void *)va, l->l_md.md_ss_instr);
+				rv = mips_ustore_uint32_isync((void *)va,
+				    l->l_md.md_ss_instr);
 				(void)uvm_map_protect(&p->p_vmspace->vm_map,
 				sa, ea, VM_PROT_READ|VM_PROT_EXECUTE, false);
 			}
@@ -566,7 +567,7 @@ trap(uint32_t status, uint32_t cause, vaddr_t vaddr, vaddr_t pc,
 		mips_icache_sync_all();		/* XXXJRT -- necessary? */
 		mips_dcache_wbinv_all();	/* XXXJRT -- necessary? */
 
-		if (rv < 0)
+		if (rv != 0)
 			printf("Warning: can't restore instruction"
 			    " at %#"PRIxVADDR": 0x%x\n",
 			    l->l_md.md_ss_addr, l->l_md.md_ss_instr);
@@ -721,15 +722,16 @@ mips_singlestep(struct lwp *l)
 
 	l->l_md.md_ss_addr = va;
 	l->l_md.md_ss_instr = ufetch_uint32((void *)va);
-	rv = ustore_uint32_isync((void *)va, MIPS_BREAK_SSTEP);
-	if (rv < 0) {
+	rv = mips_ustore_uint32_isync((void *)va, MIPS_BREAK_SSTEP);
+	if (rv != 0) {
 		vaddr_t sa, ea;
 		sa = trunc_page(va);
 		ea = round_page(va + sizeof(int) - 1);
 		rv = uvm_map_protect(&p->p_vmspace->vm_map,
 		    sa, ea, VM_PROT_ALL, false);
 		if (rv == 0) {
-			rv = ustore_uint32_isync((void *)va, MIPS_BREAK_SSTEP);
+			rv = mips_ustore_uint32_isync((void *)va,
+			    MIPS_BREAK_SSTEP);
 			(void)uvm_map_protect(&p->p_vmspace->vm_map,
 			    sa, ea, VM_PROT_READ|VM_PROT_EXECUTE, false);
 		}

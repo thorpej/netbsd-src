@@ -594,7 +594,7 @@ bcemul_done:
 	REG_PROLOGUE
 	REG_L	a0, TF_REG_EPC(s0)
 	REG_EPILOGUE
-	jal	_C_LABEL(ufetch_uint32)
+	jal	_C_LABEL(mips_ufetch32)
 
 	/* Calculate branch destination */
 	sll	t0, v0, 16
