@@ -349,3 +349,54 @@ ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len)
 		return kcopy(src, dst, len);
 	return copyout(src, dst, len);
 }
+
+/*
+ * Fetch-from/store-to userspace.
+ *
+ * Machine-dependent code provides the following primitives:
+ *
+ *	ufetch_uint8
+ *	ufetch_uint16
+ *	ufetch_uint32
+ *	ufetch_uint64	_LP64 only
+ *
+ *	ustore_uint8
+ *	ustore_uint16
+ *	ustore_uint32
+ *	ustore_uint64	_LP64 only
+ *
+ * We provide the following aliases for ILP32 and LP64 platforms:
+ *
+ *	ufetch_uchar
+ *	ufetch_ushort
+ *	ufetch_uint
+ *	ufetch_ulong
+ *	ufetch_ptr
+ *
+ *	ustore_uchar
+ *	ustore_ushort
+ *	ustore_uint
+ *	ustore_ulong
+ *	ustore_ptr
+ */
+__strong_alias(ufetch_uchar,ufetch_uint8)
+__strong_alias(ufetch_ushort,ufetch_uint16)
+__strong_alias(ufetch_uint,ufetch_uint32)
+#ifdef _LP64
+__strong_alias(ufetch_ulong,ufetch_uint64)
+__strong_alias(ufetch_ptr,ufetch_uint64)
+#else
+__strong_alias(ufetch_ulong,ufetch_uint32)
+__strong_alias(ufetch_ptr,ufetch_uint32)
+#endif /* _LP64 */
+
+__strong_alias(ustore_uchar,ustore_uint8)
+__strong_alias(ustore_ushort,ustore_uint16)
+__strong_alias(ustore_uint,ustore_uint32)
+#ifdef _LP64
+__strong_alias(ustore_ulong,ustore_uint64)
+__strong_alias(ustore_ptr,ustore_uint64)
+#else
+__strong_alias(ustore_ulong,ustore_uint32)
+__strong_alias(ustore_ptr,ustore_uint32)
+#endif /* _LP64 */

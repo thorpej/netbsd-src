@@ -303,6 +303,32 @@ int	ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len);
 int	ucas_ptr(volatile void *, void *, void *, void *);
 int	ucas_int(volatile int *, int, int, int *);
 
+int	ufetch_uint8(const uint8_t *uaddr, uint8_t *valp);
+int	ufetch_uint16(const uint16_t *uaddr, uint16_t *valp);
+int	ufetch_uint32(const uint32_t *uaddr, uint32_t *valp);
+#ifdef _LP64
+int	ufetch_uint64(const uint64_t *uaddr, uint64_t *valp);
+#endif
+
+int	ufetch_uchar(const unsigned char *uaddr, unsigned char *valp);
+int	ufetch_ushort(const unsigned short *uaddr, unsigned short *valp);
+int	ufetch_uint(const unsigned int *uaddr, unsigned int *valp);
+int	ufetch_ulong(const unsigned long *uaddr, unsigned long *valp);
+int	ufetch_ptr(const void **uaddr, void **valp);
+
+int	ustore_uint8(uint8_t *uaddr, uint8_t val);
+int	ustore_uint16(uint16_t *uaddr, uint16_t val);
+int	ustore_uint32(uint32_t *uaddr, uint32_t val);
+#ifdef _LP64
+int	ustore_uint64(uint64_t *uaddr, uint64_t val);
+#endif
+
+int	ustore_uchar(unsigned char *uaddr, unsigned char val);
+int	ustore_ushort(unsigned short *uaddr, unsigned short val);
+int	ustore_uint(unsigned int *uaddr, unsigned int val);
+int	ustore_ulong(unsigned long *uaddr, unsigned long val);
+int	ustore_ptr(void **uaddr, void *val);
+
 int	subyte(void *, int);
 int	susword(void *, short);
 int	suswintr(void *, short);
