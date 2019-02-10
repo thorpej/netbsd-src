@@ -313,7 +313,6 @@ int	suiword(void *, long);
 
 int	fubyte(const void *);
 int	fusword(const void *);
-int	fuisword(const void *);
 int	fuswintr(const void *);
 long	fuword(const void *);
 long	fuiword(const void *);

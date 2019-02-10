@@ -401,7 +401,6 @@ STRONG_ALIAS(ufetch_ushort, ufetch_uint16)
 STRONG_ALIAS(ufetch_uint16_intrsafe, ufetch_uint16)
 STRONG_ALIAS(ufetch_ushort_intrsafe, ufetch_uint16)
 STRONG_ALIAS(fusword, ufetch_uint16)
-STRONG_ALIAS(fuisword, ufetch_uint16)
 
 /*
  * uint16_t ufetch_int16(void *)
