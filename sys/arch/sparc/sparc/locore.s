@@ -5037,9 +5037,8 @@ ENTRY(lwp_trampoline)
 	 add	%l1, 4, %l2		! npc = pc+4
 
 /*
- * {fu,su}{,i}{byte,word}
+ * {fu,su}{byte,word}
  */
-_ENTRY(fuiword)
 ENTRY(fuword)
 	set	KERNBASE, %o2
 	cmp	%o0, %o2		! if addr >= KERNBASE...

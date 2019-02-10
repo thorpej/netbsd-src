@@ -315,7 +315,6 @@ int	fubyte(const void *);
 int	fusword(const void *);
 int	fuswintr(const void *);
 long	fuword(const void *);
-long	fuiword(const void *);
 
 void	hardclock(struct clockframe *);
 void	softclock(void *);
