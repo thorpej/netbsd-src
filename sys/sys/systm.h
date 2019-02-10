@@ -304,7 +304,6 @@ int	ucas_ptr(volatile void *, void *, void *, void *);
 int	ucas_int(volatile int *, int, int, int *);
 
 int	subyte(void *, int);
-int	suibyte(void *, int);
 int	susword(void *, short);
 int	suisword(void *, short);
 int	suswintr(void *, short);

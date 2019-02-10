@@ -1164,34 +1164,6 @@ LEAF(subyte, 2)
 	RET
 	END(subyte)
 
-LEAF(suibyte, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	.set at
-	zap	a1, 0xfe, a1			/* kill arg's high bytes */
-	insbl	a1, a0, a1			/* move it to the right byte */
-	ldq_u	t0, 0(a0)			/* load quad around byte */
-	mskbl	t0, a0, t0			/* kill the target byte */
-	or	t0, a1, a1			/* put the result together */
-	stq_u	a1, 0(a0)			/* and store it. */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	call_pal PAL_OSF1_imb			/* sync instruction stream */
-	mov	zero, v0
-	RET
-	END(suibyte)
-
 LEAF(fswberr, 0)
 	LDGP(pv)
 	ldiq	v0, -1
