@@ -548,7 +548,6 @@ STRONG_ALIAS(ustore_int16, ustore_uint16)
 STRONG_ALIAS(ustore_uint16_intrsafe, ustore_uint16)
 STRONG_ALIAS(ustore_int16_intrsafe, ustore_uint16)
 STRONG_ALIAS(susword, ustore_uint16)
-STRONG_ALIAS(suisword, ustore_uint16)
 
 /*
  * int ustore_uint8(void *, uint8_t)
