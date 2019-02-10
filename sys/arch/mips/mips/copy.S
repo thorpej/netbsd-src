@@ -568,7 +568,6 @@ STRONG_ALIAS(ustore_int8, ustore_uint8)
 STRONG_ALIAS(ustore_uint8_intrsafe, ustore_uint8)
 STRONG_ALIAS(ustore_int8_intrsafe, ustore_uint8)
 STRONG_ALIAS(subyte, ustore_uint8)
-STRONG_ALIAS(suibyte, ustore_uint8)
 
 /*
  * int badaddr(void addr, int len)

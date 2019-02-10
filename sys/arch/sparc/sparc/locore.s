@@ -5161,7 +5161,6 @@ ENTRY(susword)
 	retl				! and return 0
 	clr	%o0
 
-_ENTRY(suibyte)
 ENTRY(subyte)
 	set	KERNBASE, %o2
 	cmp	%o0, %o2		! if addr >= KERNBASE
