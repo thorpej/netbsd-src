@@ -5115,7 +5115,6 @@ ENTRY(fubyte)
 	retl				! made it
 	st	%g0, [%o2 + PCB_ONFAULT]! but first clear onfault
 
-_ENTRY(suiword)
 ENTRY(suword)
 	set	KERNBASE, %o2
 	cmp	%o0, %o2		! if addr >= KERNBASE ...
