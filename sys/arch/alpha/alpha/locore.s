@@ -976,10 +976,8 @@ END(copyerr)
 /**************************************************************************/
 
 /*
- * {fu,su},{ibyte,isword,iword}, fetch or store a byte, short or word to
- * user text space.
  * {fu,su},{byte,sword,word}, fetch or store a byte, short or word to
- * user data space.
+ * user space.
  */
 LEAF(fuword, 1)
 	LDGP(pv)
@@ -1066,30 +1064,6 @@ LEAF(suword, 2)
 	mov	zero, v0
 	RET
 	END(suword)
-
-#ifdef notdef
-LEAF(suiword, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	.set at
-	/* XXX STORE IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	call_pal PAL_OSF1_imb			/* sync instruction stream */
-	mov	zero, v0
-	RET
-	END(suiword)
 
 LEAF(susword, 2)
 	LDGP(pv)

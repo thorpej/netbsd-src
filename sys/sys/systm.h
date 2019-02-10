@@ -307,7 +307,6 @@ int	subyte(void *, int);
 int	susword(void *, short);
 int	suswintr(void *, short);
 int	suword(void *, long);
-int	suiword(void *, long);
 
 int	fubyte(const void *);
 int	fusword(const void *);
