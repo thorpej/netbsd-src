@@ -846,7 +846,7 @@ bcemul_branch:
 	REG_L	a0, TF_REG_EPC(a1)
 	REG_EPILOGUE
 	PTR_ADDU a0, 4
-	jal	_C_LABEL(ufetch_uint32)
+	jal	_C_LABEL(mips_ufetch32)
 
 	move	a0, v0
 	REG_L	a1, CALLFRAME_FRAME(sp)
