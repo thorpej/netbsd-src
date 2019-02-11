@@ -755,16 +755,17 @@ setregs(register struct lwp *l, struct exec_package *pack, vaddr_t stack)
 		 */
 
 		/* in0 = *cleanup */
-		suword((char *)tf->tf_special.bspstore - 32, 0);
+		ustore_ulong((char *)tf->tf_special.bspstore - 32, 0);
 
 		/* in1 == *obj */
-		suword((char *)tf->tf_special.bspstore -  24, 0);
+		ustore_ulong((char *)tf->tf_special.bspstore -  24, 0);
 
 		/* in2 == ps_strings */
-		suword((char *)tf->tf_special.bspstore -  16, l->l_proc->p_psstrp);
+		ustore_ptr((char *)tf->tf_special.bspstore -  16,
+		    l->l_proc->p_psstrp);
 
 		/* in3 = sp */
-		suword((char *)tf->tf_special.bspstore - 8,
+		ustore_ptr((char *)tf->tf_special.bspstore - 8,
 		    stack);
 
 	}

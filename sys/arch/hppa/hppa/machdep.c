@@ -1928,9 +1928,9 @@ setregs(struct lwp *l, struct exec_package *pack, vaddr_t stack)
 	/* setup terminal stack frame */
 	stack = (u_long)STACK_ALIGN(stack, 63);
 	tf->tf_r3 = stack;
-	suword((void *)(stack), 0);
+	ustore_ulong((void *)(stack), 0);
 	stack += HPPA_FRAME_SIZE;
-	suword((void *)(stack + HPPA_FRAME_PSP), 0);
+	ustore_ulong((void *)(stack + HPPA_FRAME_PSP), 0);
 	tf->tf_sp = stack;
 }
 
