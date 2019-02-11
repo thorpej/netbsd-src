@@ -275,7 +275,8 @@ addupc_intr(struct lwp *l, u_long pc)
 	struct proc *p;
 	void *addr;
 	u_int i;
-	int v;
+	int error;
+	unsigned short v;
 
 	p = l->l_proc;
 
@@ -288,7 +289,15 @@ addupc_intr(struct lwp *l, u_long pc)
 
 	addr = prof->pr_base + i;
 	mutex_spin_exit(&p->p_stmutex);
-	if ((v = fuswintr(addr)) == -1 || suswintr(addr, v + 1) == -1) {
+#ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
+	if ((error = ufetch_ushort(addr, &v)) == 0) {
+		error = ustore_ushort(addr, v + 1);
+	}
+#else
+	error = EFAULT;
+#endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
+
+	if (error) {
 		/* XXXSMP */
 		prof->pr_addr = pc;
 		prof->pr_ticks++;
