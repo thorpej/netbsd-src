@@ -160,10 +160,8 @@ get_insn(const void *pc)
 		db_error("Instruction address in P4 area\n");
 
 	if ((int)addr >= 0) {	/* p0: user-space */
-		retval = fusword(pc);
-		if (retval < 0)
+		if (ufetch_uint16((void *)pc, &insn))
 			db_error("Instruction fetch fault (user)\n");
-		insn = (uint16_t)retval;
 	}
 	else {			/* kernel p1/p2/p3 */
 		retval = kcopy(pc, &insn, sizeof(insn));
