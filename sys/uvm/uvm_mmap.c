@@ -190,7 +190,7 @@ sys_mincore(struct lwp *l, const struct sys_mincore_args *uap,
 			if (UVM_OBJ_IS_DEVICE(entry->object.uvm_obj)) {
 				for (/* nothing */; start < lim;
 				     start += PAGE_SIZE, vec++)
-					subyte(vec, 1);
+					ustore_uchar(vec, 1);
 				continue;
 			}
 		}
@@ -234,7 +234,7 @@ sys_mincore(struct lwp *l, const struct sys_mincore_args *uap,
 					pgi = 1;
 				}
 			}
-			(void) subyte(vec, pgi);
+			(void) ustore_uchar(vec, pgi);
 		}
 		if (uobj != NULL)
 			mutex_exit(uobj->vmobjlock);
