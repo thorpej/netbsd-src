@@ -329,14 +329,8 @@ int	ustore_uint(unsigned int *uaddr, unsigned int val);
 int	ustore_ulong(unsigned long *uaddr, unsigned long val);
 int	ustore_ptr(void **uaddr, void *val);
 
-int	subyte(void *, int);
-int	susword(void *, short);
-int	suswintr(void *, short);
 int	suword(void *, long);
 
-int	fubyte(const void *);
-int	fusword(const void *);
-int	fuswintr(const void *);
 long	fuword(const void *);
 
 void	hardclock(struct clockframe *);
