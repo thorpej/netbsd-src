@@ -183,8 +183,9 @@ again:
 		goto again;
 	}
 	if (!VMSPACE_IS_KERNEL_P(uio->uio_vmspace)) {
-		if (subyte(iov->iov_base, c) < 0)
-			return (EFAULT);
+		int error;
+		if ((error = ustore_uchar(iov->iov_base, c)) != 0)
+			return (error);
 	} else {
 		*(char *)iov->iov_base = c;
 	}
