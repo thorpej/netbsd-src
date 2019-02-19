@@ -88,7 +88,6 @@ uint64_t console_restart(struct trapframe *);
 void	do_sir(void);
 void	exception_return(void);					/* MAGIC */
 void	frametoreg(const struct trapframe *, struct reg *);
-long	fswintrberr(void);					/* MAGIC */
 void	init_bootstrap_console(void);
 void	init_prom_interface(struct rpb *);
 void	interrupt(unsigned long, unsigned long, unsigned long,

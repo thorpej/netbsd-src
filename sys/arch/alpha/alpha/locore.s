@@ -1,7 +1,7 @@
 /* $NetBSD: locore.s,v 1.122 2012/02/19 21:05:58 rmind Exp $ */
 
 /*-
- * Copyright (c) 1999, 2000 The NetBSD Foundation, Inc.
+ * Copyright (c) 1999, 2000, 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -975,213 +975,195 @@ END(copyerr)
 
 /**************************************************************************/
 
-/*
- * {fu,su},{byte,sword,word}, fetch or store a byte, short or word to
- * user space.
- */
-LEAF(fuword, 1)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	.set at
-	ldq	v0, 0(a0)
-	zap	v0, 0xf0, v0
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	RET
-	END(fuword)
+#define	_UFETCHSTORE_PROLOGUE(errlabel)					\
+	br	pv, 1f						;	\
+1:	LDGP(pv)						;	\
+	ldiq	t0, VM_MAX_ADDRESS	/* make sure that addr */;	\
+	cmpult	a0, t0, t1		/* is in user space. */	;	\
+	beq	t1, ufetchstoreerr_efault /* if it's not, error out. */;\
+	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */	;	\
+	GET_CURLWP						;	\
+	ldq	t1, 0(v0)					;	\
+	lda	t0, errlabel					;	\
+	.set noat						;	\
+	ldq	at_reg, L_PCB(t1)				;	\
+	stq	t0, PCB_ONFAULT(at_reg)				;	\
 
-LEAF(fusword, 1)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
+#define	UFETCHSTORE_PROLOGUE						\
+	_UFETCHSTORE_PROLOGUE(ufetchstoreerr)			;	\
 	.set at
-	/* XXX FETCH IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	RET
-	END(fusword)
 
-LEAF(fubyte, 1)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
+#define	UFETCHSTORE_INTRSAFE_PROLOGUE(mask)				\
+	_UFETCHSTORE_PROLOGUE(ufetchstoreerr_intrsafe)		;	\
+	zap	a0, mask, t0	/* t0 = addr & ~mask */		;	\
+	stq	t0, PCB_ACCESSADDR(at_reg)			;	\
 	.set at
-	/* XXX FETCH IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	RET
-	END(fubyte)
 
-LEAF(suword, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
+#define	UFETCHSTORE_EPILOGUE					;	\
+	.set noat						;	\
+	ldq	at_reg, L_PCB(t1)				;	\
+	stq	zero, PCB_ONFAULT(at_reg)			;	\
 	.set at
-	stq	a1, 0(a0)			/* do the store. */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
+
+/* N.B. T1 MUST BE PRESERVED -- IT CONTAINS THE PCB ADDRESS. */
+
+LEAF_NOPROFILE(ufetch_uint8_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ufetch_uint8_intrsafe)
+STRONG_ALIAS(ufetch_uchar_intrsafe,ufetch_uint8_intrsafe)
+
+LEAF_NOPROFILE(ufetch_uint8, 2)
+	UFETCHSTORE_PROLOGUE
+9:	ldq_u	t0, 0(a0)	/* load quad containing byte */
+	UFETCHSTORE_EPILOGUE
+	extbl	t0, a0, a0	/* a0 = extracted byte */
+	ldq_u	t0, 0(a1)	/* load dest quad */
+	insbl	a0, a1, a0	/* a0 = byte in target position */
+	mskbl	t0, a1, t0	/* clear target byte in destination */
+	or	a0, t0, a0	/* or in byte to destionation */
+	stq_u	a0, 0(a1)	/* *a1 = fetched byte! */
 	mov	zero, v0
 	RET
-	END(suword)
+	END(ufetch_uint8)
+STRONG_ALIAS(ufetch_uchar,ufetch_uint8)
 
-LEAF(susword, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	.set at
-	/* XXX STORE IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
+LEAF_NOPROFILE(ufetch_uint16_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ufetch_uint16_intrsafe)
+STRONG_ALIAS(ufetch_ushort_intrsafe,ufetch_uint16_intrsafe)
+
+LEAF_NOPROFILE(ufetch_uint16, 2)
+	UFETCHSTORE_PROLOGUE
+9:	ldq_u	t0, 0(a0)	/* load quad containing short */
+	UFETCHSTORE_EPILOGUE
+	extwl	t0, a0, a0	/* a0 = extracted short */
+	ldq_u	t0, 0(a1)	/* load dest quad */
+	inswl	a0, a1, a0	/* a0 = short in target position */
+	mskwl	t0, a1, t0	/* clear target short in destination */
+	or	a0, t0, a0	/* or in short to destionation */
+	stq_u	a0, 0(a1)	/* *a1 = fetched short! */
 	mov	zero, v0
 	RET
-	END(susword)
+	END(ufetch_uint16)
+STRONG_ALIAS(ufetch_ushort,ufetch_uint16)
 
-LEAF(subyte, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	.set at
-	zap	a1, 0xfe, a1			/* kill arg's high bytes */
-	insbl	a1, a0, a1			/* move it to the right byte */
-	ldq_u	t0, 0(a0)			/* load quad around byte */
-	mskbl	t0, a0, t0			/* kill the target byte */
-	or	t0, a1, a1			/* put the result together */
-	stq_u	a1, 0(a0)			/* and store it. */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
+LEAF_NOPROFILE(ufetch_uint32_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
+	br	9f
+	END(ufetch_uint32_intrsafe)
+STRONG_ALIAS(ufetch_uint_intrsafe,ufetch_uint32_intrsafe)
+
+LEAF_NOPROFILE(ufetch_uint32, 2)
+	UFETCHSTORE_PROLOGUE
+9:	ldl	v0, 0(a0)
+	UFETCHSTORE_EPILOGUE
+	stl	v0, 0(a1)
 	mov	zero, v0
 	RET
-	END(subyte)
+	END(ufetch_uint32)
+STRONG_ALIAS(ufetch_uint,ufetch_uint32)
 
-LEAF(fswberr, 0)
-	LDGP(pv)
-	ldiq	v0, -1
+LEAF_NOPROFILE(ufetch_uint64_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ufetch_uint64_intrsafe)
+STRONG_ALIAS(ufetch_ulong_intrsafe,ufetch_uint64_intrsafe)
+STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_uint64_intrsafe)
+
+LEAF_NOPROFILE(ufetch_uint64, 2)
+	UFETCHSTORE_PROLOGUE
+9:	ldq	v0, 0(a0)
+	UFETCHSTORE_EPILOGUE
+	stq	v0, 0(a1)
+	mov	zero, v0
 	RET
-	END(fswberr)
+	END(ufetch_uint64)
+STRONG_ALIAS(ufetch_ulong,ufetch_uint64)
+STRONG_ALIAS(ufetch_ptr,ufetch_uint64)
+
+LEAF_NOPROFILE(ustore_uint8_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ustore_uint8_intrsafe)
+STRONG_ALIAS(ustore_uchar_intrsafe,ustore_uint8_intrsafe)
+
+LEAF_NOPROFILE(ustore_uint8, 2)
+	UFETCHSTORE_PROLOGUE
+9:	zap	a1, 0xfe, a1	/* kill arg's high bytes */
+	insbl	a1, a0, a1	/* move it to the right spot */
+	ldq_u	t0, 0(a0)	/* load quad around byte */
+	mskbl	t0, a0, t0	/* kill the target byte */
+	or	t0, a1, a1	/* put the result together */
+	stq_u	a1, 0(a0)	/* and store it. */
+	UFETCHSTORE_EPILOGUE
+	mov	zero, v0
+	RET
+	END(ustore_uint8)
+STRONG_ALIAS(ustore_uchar,ustore_uint8)
+
+LEAF_NOPROFILE(ustore_uint16_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ustore_uint16_intrsafe)
+STRONG_ALIAS(ustore_ushort_intrsafe,ustore_uint16_intrsafe)
+
+LEAF_NOPROFILE(ustore_uint16, 2)
+	UFETCHSTORE_PROLOGUE
+9:	zap	a1, 0xfc, a1	/* kill arg's high bytes */
+	inswl	a1, a0, a1	/* move it to the right spot */
+	ldq_u	t0, 0(a0)	/* load quad around short */
+	mskwl	t0, a0, t0	/* kill the target short */
+	or	t0, a1, a1	/* put the result together */
+	stq_u	a1, 0(a0)	/* and store it. */
+	UFETCHSTORE_EPILOGUE
+	mov	zero, v0
+	RET
+	END(ustore_uint16)
+STRONG_ALIAS(ustore_ushort,ustore_uint16)
+
+LEAF_NOPROFILE(ustore_uint32_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
+	br	9f
+	END(ustore_uint32_intrsafe)
+STRONG_ALIAS(ustore_uint_intrsafe,ustore_uint32_intrsafe)
+
+LEAF_NOPROFILE(ustore_uint32, 2)
+	UFETCHSTORE_PROLOGUE
+9:	stl	a1, 0(a0)
+	UFETCHSTORE_EPILOGUE
+	mov	zero, v0
+	RET
+	END(ustore_uint32)
+STRONG_ALIAS(ustore_uint,ustore_uint32)
+
+LEAF_NOPROFILE(ustore_uint64_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9f
+	END(ustore_uint64_intrsafe)
+STRONG_ALIAS(ustore_ulong_intrsafe,ustore_uint64_intrsafe)
+STRONG_ALIAS(ustore_ptr_intrsafe,ustore_uint64_intrsafe)
+
+LEAF_NOPROFILE(ustore_uint64, 2)
+	UFETCHSTORE_PROLOGUE
+9:	stq	a1, 0(a0)
+	UFETCHSTORE_EPILOGUE
+	mov	zero, v0
+	RET
+	END(ustore_uint64)
+STRONG_ALIAS(ustore_ulong,ustore_uint64)
+STRONG_ALIAS(ustore_ptr,ustore_uint64)
+
+LEAF_NOPROFILE(ufetchstoreerr_efault, 0)
+XLEAF(ufetchstoreerr_intrsafe, 0)
+	ldiq	v0, EFAULT	/* return EFAULT. */
+XLEAF(ufetchstoreerr, 0)
+	LDGP(pv)
+	RET
+	END(ufetchstoreerr_efault)
 
 /**************************************************************************/
-
-#ifdef notdef
-/*
- * fuswintr and suswintr are just like fusword and susword except that if
- * the page is not in memory or would cause a trap, then we return an error.
- * The important thing is to prevent sleep() and switch().
- */
-
-LEAF(fuswintr, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswintrberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswintrberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	stq	a0, PCB_ACCESSADDR(at_reg)
-	.set at
-	/* XXX FETCH IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	RET
-	END(fuswintr)
-
-LEAF(suswintr, 2)
-	LDGP(pv)
-	ldiq	t0, VM_MAX_ADDRESS		/* make sure that addr */
-	cmpult	a0, t0, t1			/* is in user space. */
-	beq	t1, fswintrberr			/* if it's not, error out. */
-	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */
-	GET_CURLWP
-	ldq	t1, 0(v0)
-	lda	t0, fswintrberr
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	t0, PCB_ONFAULT(at_reg)
-	stq	a0, PCB_ACCESSADDR(at_reg)
-	.set at
-	/* XXX STORE IT */
-	.set noat
-	ldq	at_reg, L_PCB(t1)
-	stq	zero, PCB_ONFAULT(at_reg)
-	.set at
-	mov	zero, v0
-	RET
-	END(suswintr)
-#endif
-
-LEAF(fswintrberr, 0)
-XLEAF(fuswintr, 2)				/* XXX what is a 'word'? */
-XLEAF(suswintr, 2)				/* XXX what is a 'word'? */
-	LDGP(pv)
-	ldiq	v0, -1
-	RET
-	END(fswberr)
 
 /*
  * int ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
