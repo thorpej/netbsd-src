@@ -273,10 +273,13 @@ addupc_intr(struct lwp *l, u_long pc)
 {
 	struct uprof *prof;
 	struct proc *p;
-	void *addr;
 	u_int i;
 	int error;
+
+#ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
+	void *addr;
 	unsigned short v;
+#endif
 
 	p = l->l_proc;
 
@@ -287,15 +290,18 @@ addupc_intr(struct lwp *l, u_long pc)
 	    (i = PC_TO_INDEX(pc, prof)) >= prof->pr_size)
 		return;			/* out of range; ignore */
 
-	addr = prof->pr_base + i;
-	mutex_spin_exit(&p->p_stmutex);
 #ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
-	if ((error = ufetch_ushort(addr, &v)) == 0) {
-		error = ustore_ushort(addr, v + 1);
+	addr = prof->pr_base + i;
+#endif
+	mutex_spin_exit(&p->p_stmutex);
+
+#ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
+	if ((error = ufetch_ushort_intrsafe(addr, &v)) == 0) {
+		error = ustore_ushort_intrsafe(addr, v + 1);
 	}
 #else
 	error = EFAULT;
-#endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
+#endif
 
 	if (error) {
 		/* XXXSMP */
