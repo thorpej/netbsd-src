@@ -121,6 +121,8 @@ static int unaligned_fixup(u_long, u_long, u_long, struct lwp *);
 static int handle_opdec(struct lwp *l, u_long *ucodep);
 static int alpha_ucode_to_ksiginfo(u_long ucode);
 
+extern int ufetchstoreerr_intrsafe(void);		/* MAGIC */
+
 /*
  * Initialize the trap vectors for the current processor.
  */
@@ -419,15 +421,11 @@ trap(const u_long a0, const u_long a1, const u_long a2, const u_long entry,
 				}
 
 				/*
-				 * If it was caused by fuswintr or suswintr,
-				 * just punt.  Note that we check the faulting
-				 * address against the address accessed by
-				 * [fs]uswintr, in case another fault happens
-				 * when they are running.
+				 * If this was an access caused by an
+				 * intrsafe ufetch/ustore, bail out now.
 				 */
-
-				if (onfault == (vaddr_t)fswintrberr &&
-				    pcb->pcb_accessaddr == a0) {
+				if (onfault == (vaddr_t)ufetchstoreerr_intrsafe
+				    && pcb->pcb_accessaddr == a0) {
 					framep->tf_regs[FRAME_PC] = onfault;
 					pcb->pcb_onfault = 0;
 					goto out;
