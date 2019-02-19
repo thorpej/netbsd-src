@@ -316,6 +316,22 @@ int	ufetch_uint(const unsigned int *uaddr, unsigned int *valp);
 int	ufetch_ulong(const unsigned long *uaddr, unsigned long *valp);
 int	ufetch_ptr(const void **uaddr, void **valp);
 
+#ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
+int	ufetch_uint8_intrsafe(const uint8_t *uaddr, uint8_t *valp);
+int	ufetch_uint16_intrsafe(const uint16_t *uaddr, uint16_t *valp);
+int	ufetch_uint32_intrsafe(const uint32_t *uaddr, uint32_t *valp);
+#ifdef _LP64
+int	ufetch_uint64_intrsafe(const uint64_t *uaddr, uint64_t *valp);
+#endif
+
+int	ufetch_uchar_intrsafe(const unsigned char *uaddr, unsigned char *valp);
+int	ufetch_ushort_intrsafe(const unsigned short *uaddr,
+	    unsigned short *valp);
+int	ufetch_uint_intrsafe(const unsigned int *uaddr, unsigned int *valp);
+int	ufetch_ulong_intrsafe(const unsigned long *uaddr, unsigned long *valp);
+int	ufetch_ptr_intrsafe(const void **uaddr, void **valp);
+#endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
+
 int	ustore_uint8(uint8_t *uaddr, uint8_t val);
 int	ustore_uint16(uint16_t *uaddr, uint16_t val);
 int	ustore_uint32(uint32_t *uaddr, uint32_t val);
@@ -329,7 +345,20 @@ int	ustore_uint(unsigned int *uaddr, unsigned int val);
 int	ustore_ulong(unsigned long *uaddr, unsigned long val);
 int	ustore_ptr(void **uaddr, void *val);
 
-int	suword(void *, long);
+#ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
+int	ustore_uint8_intrsafe(uint8_t *uaddr, uint8_t val);
+int	ustore_uint16_intrsafe(uint16_t *uaddr, uint16_t val);
+int	ustore_uint32_intrsafe(uint32_t *uaddr, uint32_t val);
+#ifdef _LP64
+int	ustore_uint64_intrsafe(uint64_t *uaddr, uint64_t val);
+#endif
+
+int	ustore_uchar_intrsafe(unsigned char *uaddr, unsigned char val);
+int	ustore_ushort_intrsafe(unsigned short *uaddr, unsigned short val);
+int	ustore_uint_intrsafe(unsigned int *uaddr, unsigned int val);
+int	ustore_ulong_intrsafe(unsigned long *uaddr, unsigned long val);
+int	ustore_ptr_intrsafe(void **uaddr, void *val);
+#endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
 
 long	fuword(const void *);
 
