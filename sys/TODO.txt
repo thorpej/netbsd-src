@@ -1,0 +1,21 @@
+ARCH:
+	aarch64
+	alpha		-- changes done, NOT TESTED
+	amd64
+	arm
+	hppa
+	i386
+	ia64
+	m68k
+	mips
+	or1k
+	powerpc
+	riscv
+	sh3
+	sparc
+	sparc64
+	usermode
+	vax
+	x86
+	xen
+
