@@ -384,103 +384,204 @@ ENTRY(copystr)
 7:	ret
 END(copystr)
 
-ENTRY(fuswintr)
-	cmpl	$TLBSTATE_VALID,CPUVAR(TLBSTATE)
-	jnz	_C_LABEL(fusuaddrfault)
-	movq	$VM_MAXUSER_ADDRESS-2,%r11
-	cmpq	%r11,%rdi
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%rcx)
-	leaq	_C_LABEL(fusuintrfailure)(%rip),%r11
+/**************************************************************************/
+
+#define	UFETCHSTORE_PROLOGUE						\
+	movq	$VM_MAXUSER_ADDRESS-1,%r11			;	\
+	cmpq	%r11,%rdi					;	\
+	ja	_C_LABEL(copy_efault)				;	\
+	GET_CURPCB(%rcx)					;	\
+	leaq	_C_LABEL(copy_fault)(%rip),%r11			;	\
 	movq	%r11,PCB_ONFAULT(%rcx)
 
-	SMAP_DISABLE
-	movzwl	(%rdi),%eax
-	SMAP_ENABLE
+#define	UFETCHSTORE_PROLOGUE_INTRSAFE					\
+	movq	$VM_MAXUSER_ADDRESS-1,%r11			;	\
+	cmpq	%r11,%rdi					;	\
+	ja	_C_LABEL(copy_efault)				;	\
+	GET_CURPCB(%rcx)					;	\
+	leaq	_C_LABEL(ufetchstoreerr_intrsafe)(%rip),%r11	;	\
+	movq	%r11,PCB_ONFAULT(%rcx)
 
+#define	UFETCHSTORE_EPILOGUE						\
 	movq	$0,PCB_ONFAULT(%rcx)
-	ret
-END(fuswintr)
 
-ENTRY(fubyte)
+ENTRY(ufetch_uint8)
 	DEFERRED_SWITCH_CHECK
-	movq	$VM_MAXUSER_ADDRESS-1,%r11
-	cmpq	%r11,%rdi
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%rcx)
-	leaq	_C_LABEL(fusufailure)(%rip),%r11
-	movq	%r11,PCB_ONFAULT(%rcx)
+	UFETCHSTORE_PROLOGUE
 
-	SMAP_DISABLE
-	movzbl	(%rdi),%eax
+9:	SMAP_DISABLE
+	movb	(%rdi),%al
 	SMAP_ENABLE
 
-	movq	$0,PCB_ONFAULT(%rcx)
+	UFETCHSTORE_EPILOGUE
+	movb	%al,(%rsi)
+	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(fubyte)
+END(ufetch_uint8)
+STRONG_ALIAS(ufetch_uchar,ufetch_uint8)
 
-ENTRY(suswintr)
-	cmpl	$TLBSTATE_VALID,CPUVAR(TLBSTATE)
-	jnz	_C_LABEL(fusuaddrfault)
-	movq	$VM_MAXUSER_ADDRESS-2,%r11
-	cmpq	%r11,%rdi
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%rcx)
-	leaq	_C_LABEL(fusuintrfailure)(%rip),%r11
-	movq	%r11,PCB_ONFAULT(%rcx)
+ENTRY(ufetch_uint8_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ufetch_uint8_intrsafe)
+STRONG_ALIAS(ufetch_uchar_intrsafe,ufetch_uint8_intrsafe)
 
-	SMAP_DISABLE
-	movw	%si,(%rdi)
+ENTRY(ufetch_uint16)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
+	movw	(%rdi),%ax
 	SMAP_ENABLE
 
+	UFETCHSTORE_EPILOGUE
+	movw	%ax,(%rsi)
 	xorq	%rax,%rax
-	movq	%rax,PCB_ONFAULT(%rcx)
 	ret
-END(suswintr)
+	DEFERRED_SWITCH_CALL
+END(ufetch_uint16)
+STRONG_ALIAS(ufetch_ushort,ufetch_uint16)
 
-ENTRY(subyte)
+ENTRY(ufetch_uint16_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ufetch_uint16_intrsafe)
+STRONG_ALIAS(ufetch_ushort_intrsafe,ufetch_uint16_intrsafe)
+
+ENTRY(ufetch_uint32)
 	DEFERRED_SWITCH_CHECK
-	movq	$VM_MAXUSER_ADDRESS-1,%r11
-	cmpq	%r11,%rdi
-	ja	_C_LABEL(fusuaddrfault)
+	UFETCHSTORE_PROLOGUE
 
-	GET_CURPCB(%rcx)
-	leaq	_C_LABEL(fusufailure)(%rip),%r11
-	movq	%r11,PCB_ONFAULT(%rcx)
+9:	SMAP_DISABLE
+	movl	(%rdi),%eax
+	SMAP_ENABLE
 
-	SMAP_DISABLE
+	UFETCHSTORE_EPILOGUE
+	movl	%eax,(%rsi)
+	xorq	%rax,%rax
+	ret
+	DEFERRED_SWITCH_CALL
+END(ufetch_uint32)
+STRONG_ALIAS(ufetch_uint,ufetch_uint32)
+
+ENTRY(ufetch_uint32_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ufetch_uint32_intrsafe)
+STRONG_ALIAS(ufetch_uint_intrsafe,ufetch_uint32_intrsafe)
+
+ENTRY(ufetch_uint64)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
+	movq	(%rdi),%rax
+	SMAP_ENABLE
+
+	UFETCHSTORE_EPILOGUE
+	movq	%rax,(%rsi)
+	xorq	%rax,%rax
+	req
+	DEFERRED_SWITCH_CALL
+END(ufetch_uint64)
+STRONG_ALIAS(ufetch_ulong,ufetch_uint64)
+STRONG_ALIAS(ufetch_ptr,ufetch_uint64)
+
+ENTRY(ufetch_uint64_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ufetch_uint64_intrsafe)
+STRONG_ALIAS(ufetch_ulong_intrsafe,ufetch_uint64_intrsafe)
+STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_uint64_intrsafe)
+
+ENTRY(ustore_uint8)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
 	movb	%sil,(%rdi)
 	SMAP_ENABLE
 
+	UFETCHSTORE_EPILOGUE
 	xorq	%rax,%rax
-	movq	%rax,PCB_ONFAULT(%rcx)
 	ret
 	DEFERRED_SWITCH_CALL
-END(subyte)
+END(ustore_uint8)
+STRONG_ALIAS(ustore_uchar,ustore_uint8)
 
-/*
- * These are the same, but must reside at different addresses,
- * because trap.c checks for them.
- */
-ENTRY(fusuintrfailure)
+ENTRY(ustore_uint8_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ustore_uint8_intrsafe)
+STRONG_ALIAS(ustore_uchar_intrsafe,ustore_uint8_intrsafe)
+
+ENTRY(ustore_uint16)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
+	movw	%si,(%rdi)
 	SMAP_ENABLE
-	movq	$0,PCB_ONFAULT(%rcx)
-	movl	$-1,%eax
-	ret
-END(fusuintrfailure)
 
-ENTRY(fusufailure)
+	UFETCHSTORE_EPILOGUE
+	xorq	%rax,%rax
+	ret
+	DEFERRED_SWITCH_CALL
+END(ustore_uint16)
+STRONG_ALIAS(ustore_ushort,ustore_uint16)
+
+ENTRY(ustore_uint16_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ustore_uint16_intrsafe)
+STRONG_ALIAS(ustore_ushort_intrsafe,ustore_uint16_intrsafe)
+
+ENTRY(ustore_uint32)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
+	movl	%esi,(%rdi)
 	SMAP_ENABLE
-	movq	$0,PCB_ONFAULT(%rcx)
-	movl	$-1,%eax
-	ret
-END(fusufailure)
 
-ENTRY(fusuaddrfault)
-	movl	$-1,%eax
+	UFETCHSTORE_EPILOGUE
+	xorq	%rax,%rax
 	ret
-END(fusuaddrfault)
+	DEFERRED_SWITCH_CALL
+END(ustore_uint32)
+STRONG_ALIAS(ustore_uint,ustore_uint32)
+
+ENTRY(ustore_uint32_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ustore_uint32_intrsafe)
+STRONG_ALIAS(ustore_uint_intrsafe,ustore_uint32_intrsafe)
+
+ENTRY(ustore_uint64)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+9:	SMAP_DISABLE
+	movq	%rsi,(%rdi)
+	SMAP_ENABLE
+
+	UFETCHSTORE_EPILOGUE
+	xorq	%rax,%rax
+	ret
+	DEFERRED_SWITCH_CALL
+END(ustore_uint64)
+STRONG_ALIAS(ustore_ulong,ustore_uint64)
+STRONG_ALIAS(ustore_ptr,ustore_uint64)
+
+ENTRY(ustore_uint64_intrsafe)
+	UFETCHSTORE_PROLOGUE_INTRSAFE
+	jmp	9b
+END(ustore_uint64_intrsafe)
+STRONG_ALIAS(ustore_ulong_intrsafe,ustore_uint64_intrsafe)
+STRONG_ALIAS(ustore_ptr_intrsafe,ustore_uint64_intrsafe)
+
+/**************************************************************************/
 
 /*
  * Compare-and-swap the 64-bit integer in the user-space.
