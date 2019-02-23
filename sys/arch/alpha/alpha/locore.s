@@ -984,17 +984,22 @@ END(copyerr)
 	/* Note: GET_CURLWP clobbers v0, t0, t8...t11. */	;	\
 	GET_CURLWP						;	\
 	ldq	t1, 0(v0)					;	\
-	lda	t0, errlabel					;	\
-	.set noat						;	\
-	ldq	at_reg, L_PCB(t1)				;	\
-	stq	t0, PCB_ONFAULT(at_reg)				;	\
+	lda	t0, errlabel
 
 #define	UFETCHSTORE_PROLOGUE						\
 	_UFETCHSTORE_PROLOGUE(ufetchstoreerr)			;	\
+	.set noat						;	\
+	ldq	at_reg, L_PCB(t1)				;	\
+	mov	zero, t10					;	\
+	stq	t0, PCB_ONFAULT(at_reg)				;	\
 	.set at
 
 #define	UFETCHSTORE_INTRSAFE_PROLOGUE(mask)				\
 	_UFETCHSTORE_PROLOGUE(ufetchstoreerr_intrsafe)		;	\
+	.set noat						;	\
+	ldq	at_reg, L_PCB(t1)				;	\
+	ldq	t10, PCB_ONFAULT(at_reg)			;	\
+	stq	t0, PCB_ONFAULT(at_reg)				;	\
 	zap	a0, mask, t0	/* t0 = addr & ~mask */		;	\
 	stq	t0, PCB_ACCESSADDR(at_reg)			;	\
 	.set at
@@ -1002,10 +1007,11 @@ END(copyerr)
 #define	UFETCHSTORE_EPILOGUE					;	\
 	.set noat						;	\
 	ldq	at_reg, L_PCB(t1)				;	\
-	stq	zero, PCB_ONFAULT(at_reg)			;	\
+	stq	t10, PCB_ONFAULT(at_reg)			;	\
 	.set at
 
 /* N.B. T1 MUST BE PRESERVED -- IT CONTAINS THE PCB ADDRESS. */
+/*     T10 MUST BE PRESERVED -- IT CONTAINS THE pcb_onfault VALUE TO RESTORE */
 
 LEAF_NOPROFILE(ufetch_uint8_intrsafe, 2)
 	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
