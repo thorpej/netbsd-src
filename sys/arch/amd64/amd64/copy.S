@@ -484,7 +484,7 @@ ENTRY(ufetch_uint64)
 	UFETCHSTORE_EPILOGUE
 	movq	%rax,(%rsi)
 	xorq	%rax,%rax
-	req
+	ret
 	DEFERRED_SWITCH_CALL
 END(ufetch_uint64)
 STRONG_ALIAS(ufetch_ulong,ufetch_uint64)
