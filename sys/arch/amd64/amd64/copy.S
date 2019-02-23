@@ -392,7 +392,7 @@ END(copystr)
 	ja	_C_LABEL(copy_efault)				;	\
 	GET_CURPCB(%rcx)					;	\
 	xorq	%r10,%r10					;	\
-	leaq	_C_LABEL(copy_fault)(%rip),%r11			;	\
+	leaq	_C_LABEL(ufetchstoreerr)(%rip),%r11		;	\
 	movq	%r11,PCB_ONFAULT(%rcx)
 
 #define	UFETCHSTORE_PROLOGUE_INTRSAFE					\
@@ -582,6 +582,16 @@ ENTRY(ustore_uint64_intrsafe)
 END(ustore_uint64_intrsafe)
 STRONG_ALIAS(ustore_ulong_intrsafe,ustore_uint64_intrsafe)
 STRONG_ALIAS(ustore_ptr_intrsafe,ustore_uint64_intrsafe)
+
+NENTRY(ufetchstoreerr)
+9:	SMAP_ENABLE
+	UFETCHSTORE_EPILOGUE
+	ret
+END(ufetchstoreerr)
+
+NENTRY(ufetchstoreerr_intrsafe)
+	jmp	9b
+END(ufetchstoreerr_intrsafe)
 
 /**************************************************************************/
 
