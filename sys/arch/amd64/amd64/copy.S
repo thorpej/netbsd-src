@@ -391,6 +391,7 @@ END(copystr)
 	cmpq	%r11,%rdi					;	\
 	ja	_C_LABEL(copy_efault)				;	\
 	GET_CURPCB(%rcx)					;	\
+	xorq	%r10,%r10					;	\
 	leaq	_C_LABEL(copy_fault)(%rip),%r11			;	\
 	movq	%r11,PCB_ONFAULT(%rcx)
 
@@ -400,10 +401,11 @@ END(copystr)
 	ja	_C_LABEL(copy_efault)				;	\
 	GET_CURPCB(%rcx)					;	\
 	leaq	_C_LABEL(ufetchstoreerr_intrsafe)(%rip),%r11	;	\
+	movq	PCB_ONFAULT(%rcx),%r10				;	\
 	movq	%r11,PCB_ONFAULT(%rcx)
 
 #define	UFETCHSTORE_EPILOGUE						\
-	movq	$0,PCB_ONFAULT(%rcx)
+	movq	%r10,PCB_ONFAULT(%rcx)
 
 ENTRY(ufetch_uint8)
 	DEFERRED_SWITCH_CHECK
