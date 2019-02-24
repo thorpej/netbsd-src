@@ -1003,7 +1003,7 @@ END(copyerr)
 /* N.B. T1 MUST BE PRESERVED -- IT CONTAINS THE PCB ADDRESS. */
 /*     T10 MUST BE PRESERVED -- IT CONTAINS THE pcb_onfault VALUE TO RESTORE */
 
-LEAF_NOPROFILE(ufetch_8, 2)
+LEAF_NOPROFILE(_ufetch_8, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq_u	t0, 0(a0)	/* load quad containing byte */
 	UFETCHSTORE_EPILOGUE
@@ -1015,10 +1015,9 @@ LEAF_NOPROFILE(ufetch_8, 2)
 	stq_u	a0, 0(a1)	/* *a1 = fetched byte! */
 	mov	zero, v0
 	RET
-	END(ufetch_8)
-STRONG_ALIAS(ufetch_uchar,ufetch_uint8)
+	END(_ufetch_8)
 
-LEAF_NOPROFILE(ufetch_16, 2)
+LEAF_NOPROFILE(_ufetch_16, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq_u	t0, 0(a0)	/* load quad containing short */
 	UFETCHSTORE_EPILOGUE
@@ -1030,31 +1029,27 @@ LEAF_NOPROFILE(ufetch_16, 2)
 	stq_u	a0, 0(a1)	/* *a1 = fetched short! */
 	mov	zero, v0
 	RET
-	END(ufetch_16)
-STRONG_ALIAS(ufetch_short,ufetch_16)
+	END(_ufetch_16)
 
-LEAF_NOPROFILE(ufetch_32, 2)
+LEAF_NOPROFILE(_ufetch_32, 2)
 	UFETCHSTORE_PROLOGUE
 	ldl	v0, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	stl	v0, 0(a1)
 	mov	zero, v0
 	RET
-	END(ufetch_32)
-STRONG_ALIAS(ufetch_int,ufetch_32)
+	END(_ufetch_32)
 
-LEAF_NOPROFILE(ufetch_64, 2)
+LEAF_NOPROFILE(_ufetch_64, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq	v0, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	stq	v0, 0(a1)
 	mov	zero, v0
 	RET
-	END(ufetch_64)
-STRONG_ALIAS(ufetch_long,ufetch_64)
-STRONG_ALIAS(ufetch_ptr,ufetch_64)
+	END(_ufetch_64)
 
-LEAF_NOPROFILE(ustore_8, 2)
+LEAF_NOPROFILE(_ustore_8, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfe, a1	/* kill arg's high bytes */
 	insbl	a1, a0, a1	/* move it to the right spot */
@@ -1065,10 +1060,9 @@ LEAF_NOPROFILE(ustore_8, 2)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_8)
-STRONG_ALIAS(ustore_char,ustore_8)
+	END(_ustore_8)
 
-LEAF_NOPROFILE(ustore_16, 2)
+LEAF_NOPROFILE(_ustore_16, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfc, a1	/* kill arg's high bytes */
 	inswl	a1, a0, a1	/* move it to the right spot */
@@ -1079,27 +1073,23 @@ LEAF_NOPROFILE(ustore_16, 2)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_16)
-STRONG_ALIAS(ustore_short,ustore_16)
+	END(_ustore_16)
 
-LEAF_NOPROFILE(ustore_32, 2)
+LEAF_NOPROFILE(_ustore_32, 2)
 	UFETCHSTORE_PROLOGUE
 	stl	a1, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_32)
-STRONG_ALIAS(ustore_int,ustore_32)
+	END(_ustore_32)
 
-LEAF_NOPROFILE(ustore_64, 2)
+LEAF_NOPROFILE(_ustore_64, 2)
 	UFETCHSTORE_PROLOGUE
 	stq	a1, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_64)
-STRONG_ALIAS(ustore_long,ustore_64)
-STRONG_ALIAS(ustore_ptr,ustore_64)
+	END(_ustore_64)
 
 LEAF_NOPROFILE(ufetchstoreerr_efault, 0)
 	ldiq	v0, EFAULT	/* return EFAULT. */

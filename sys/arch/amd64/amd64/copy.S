@@ -398,7 +398,7 @@ END(copystr)
 #define	UFETCHSTORE_EPILOGUE						\
 	movq	%r10,PCB_ONFAULT(%rcx)
 
-ENTRY(ufetch_8)
+ENTRY(_ufetch_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -411,10 +411,9 @@ ENTRY(ufetch_8)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_8)
-STRONG_ALIAS(ufetch_char,ufetch_8)
+END(_ufetch_8)
 
-ENTRY(ufetch_16)
+ENTRY(_ufetch_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -427,10 +426,9 @@ ENTRY(ufetch_16)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_16)
-STRONG_ALIAS(ufetch_short,ufetch_16)
+END(_ufetch_16)
 
-ENTRY(ufetch_32)
+ENTRY(_ufetch_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -443,10 +441,9 @@ ENTRY(ufetch_32)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_32)
-STRONG_ALIAS(ufetch_int,ufetch_32)
+END(_ufetch_32)
 
-ENTRY(ufetch_64)
+ENTRY(_ufetch_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -459,11 +456,9 @@ ENTRY(ufetch_64)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_64)
-STRONG_ALIAS(ufetch_long,ufetch_64)
-STRONG_ALIAS(ufetch_ptr,ufetch_64)
+END(_ufetch_64)
 
-ENTRY(ustore_8)
+ENTRY(_ustore_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -475,10 +470,9 @@ ENTRY(ustore_8)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_8)
-STRONG_ALIAS(ustore_char,ustore_8)
+END(_ustore_8)
 
-ENTRY(ustore_16)
+ENTRY(_ustore_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -490,10 +484,9 @@ ENTRY(ustore_16)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_16)
-STRONG_ALIAS(ustore_short,ustore_16)
+END(_ustore_16)
 
-ENTRY(ustore_32)
+ENTRY(_ustore_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -505,10 +498,9 @@ ENTRY(ustore_32)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_32)
-STRONG_ALIAS(ustore_int,ustore_32)
+END(_ustore_32)
 
-ENTRY(ustore_64)
+ENTRY(_ustore_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -520,9 +512,7 @@ ENTRY(ustore_64)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_64)
-STRONG_ALIAS(ustore_long,ustore_64)
-STRONG_ALIAS(ustore_ptr,ustore_64)
+END(_ustore_64)
 
 NENTRY(ufetchstoreerr)
 9:	SMAP_ENABLE
