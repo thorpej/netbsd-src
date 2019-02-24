@@ -274,7 +274,6 @@ addupc_intr(struct lwp *l, u_long pc)
 	struct uprof *prof;
 	struct proc *p;
 	u_int i;
-	int error;
 
 	p = l->l_proc;
 
