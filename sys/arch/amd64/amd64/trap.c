@@ -264,7 +264,7 @@ trap(struct trapframe *frame)
 	struct lwp *l = curlwp;
 	struct proc *p;
 	struct pcb *pcb;
-	extern char ufetchstoreerr_intrsafe[], kcopy_fault[];
+	extern char kcopy_fault[];
 	extern char IDTVEC(osyscall)[];
 	extern char IDTVEC(syscall32)[];
 	ksiginfo_t ksi;
@@ -470,15 +470,8 @@ trap(struct trapframe *frame)
 		if (__predict_false(l == NULL))
 			goto we_re_toast;
 
-		/*
-		 * ufetchstoreerr_intrsafe is used by u{fetch,store}*_intrsafe
-		 * to prevent page faulting from inside the profiling interrupt.
-		 */
 		onfault = pcb->pcb_onfault;
-		if (onfault == ufetchstoreerr_intrsafe) {
-			onfault_restore(frame, ufetchstoreerr_intrsafe, EFAULT);
-			return;
-		}
+
 		if (cpu_intr_p() || (l->l_pflag & LP_INTR) != 0) {
 			goto we_re_toast;
 		}

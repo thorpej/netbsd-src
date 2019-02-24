@@ -395,15 +395,6 @@ END(copystr)
 	leaq	_C_LABEL(ufetchstoreerr)(%rip),%r11		;	\
 	movq	%r11,PCB_ONFAULT(%rcx)
 
-#define	UFETCHSTORE_PROLOGUE_INTRSAFE					\
-	movq	$VM_MAXUSER_ADDRESS-1,%r11			;	\
-	cmpq	%r11,%rdi					;	\
-	ja	_C_LABEL(copy_efault)				;	\
-	GET_CURPCB(%rcx)					;	\
-	leaq	_C_LABEL(ufetchstoreerr_intrsafe)(%rip),%r11	;	\
-	movq	PCB_ONFAULT(%rcx),%r10				;	\
-	movq	%r11,PCB_ONFAULT(%rcx)
-
 #define	UFETCHSTORE_EPILOGUE						\
 	movq	%r10,PCB_ONFAULT(%rcx)
 
@@ -411,7 +402,7 @@ ENTRY(ufetch_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movb	(%rdi),%al
 	SMAP_ENABLE
 
@@ -423,17 +414,11 @@ ENTRY(ufetch_8)
 END(ufetch_8)
 STRONG_ALIAS(ufetch_char,ufetch_8)
 
-ENTRY(ufetch_8_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ufetch_8_intrsafe)
-STRONG_ALIAS(ufetch_char_intrsafe,ufetch_8_intrsafe)
-
 ENTRY(ufetch_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movw	(%rdi),%ax
 	SMAP_ENABLE
 
@@ -445,17 +430,11 @@ ENTRY(ufetch_16)
 END(ufetch_16)
 STRONG_ALIAS(ufetch_short,ufetch_16)
 
-ENTRY(ufetch_16_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ufetch_16_intrsafe)
-STRONG_ALIAS(ufetch_short_intrsafe,ufetch_16_intrsafe)
-
 ENTRY(ufetch_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movl	(%rdi),%eax
 	SMAP_ENABLE
 
@@ -467,17 +446,11 @@ ENTRY(ufetch_32)
 END(ufetch_32)
 STRONG_ALIAS(ufetch_int,ufetch_32)
 
-ENTRY(ufetch_32_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ufetch_32_intrsafe)
-STRONG_ALIAS(ufetch_int_intrsafe,ufetch_32_intrsafe)
-
 ENTRY(ufetch_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movq	(%rdi),%rax
 	SMAP_ENABLE
 
@@ -490,18 +463,11 @@ END(ufetch_64)
 STRONG_ALIAS(ufetch_long,ufetch_64)
 STRONG_ALIAS(ufetch_ptr,ufetch_64)
 
-ENTRY(ufetch_64_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ufetch_64_intrsafe)
-STRONG_ALIAS(ufetch_long_intrsafe,ufetch_64_intrsafe)
-STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_64_intrsafe)
-
 ENTRY(ustore_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movb	%sil,(%rdi)
 	SMAP_ENABLE
 
@@ -512,17 +478,11 @@ ENTRY(ustore_8)
 END(ustore_8)
 STRONG_ALIAS(ustore_char,ustore_8)
 
-ENTRY(ustore_8_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ustore_8_intrsafe)
-STRONG_ALIAS(ustore_char_intrsafe,ustore_8_intrsafe)
-
 ENTRY(ustore_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movw	%si,(%rdi)
 	SMAP_ENABLE
 
@@ -533,17 +493,11 @@ ENTRY(ustore_16)
 END(ustore_16)
 STRONG_ALIAS(ustore_short,ustore_16)
 
-ENTRY(ustore_16_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ustore_16_intrsafe)
-STRONG_ALIAS(ustore_short_intrsafe,ustore_16_intrsafe)
-
 ENTRY(ustore_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movl	%esi,(%rdi)
 	SMAP_ENABLE
 
@@ -554,17 +508,11 @@ ENTRY(ustore_32)
 END(ustore_32)
 STRONG_ALIAS(ustore_int,ustore_32)
 
-ENTRY(ustore_32_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ustore_32_intrsafe)
-STRONG_ALIAS(ustore_int_intrsafe,ustore_32_intrsafe)
-
 ENTRY(ustore_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
-9:	SMAP_DISABLE
+	SMAP_DISABLE
 	movq	%rsi,(%rdi)
 	SMAP_ENABLE
 
@@ -576,22 +524,11 @@ END(ustore_64)
 STRONG_ALIAS(ustore_long,ustore_64)
 STRONG_ALIAS(ustore_ptr,ustore_64)
 
-ENTRY(ustore_64_intrsafe)
-	UFETCHSTORE_PROLOGUE_INTRSAFE
-	jmp	9b
-END(ustore_64_intrsafe)
-STRONG_ALIAS(ustore_long_intrsafe,ustore_64_intrsafe)
-STRONG_ALIAS(ustore_ptr_intrsafe,ustore_64_intrsafe)
-
 NENTRY(ufetchstoreerr)
 9:	SMAP_ENABLE
 	UFETCHSTORE_EPILOGUE
 	ret
 END(ufetchstoreerr)
-
-NENTRY(ufetchstoreerr_intrsafe)
-	jmp	9b
-END(ufetchstoreerr_intrsafe)
 
 /**************************************************************************/
 
