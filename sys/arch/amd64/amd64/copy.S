@@ -407,7 +407,7 @@ END(copystr)
 #define	UFETCHSTORE_EPILOGUE						\
 	movq	%r10,PCB_ONFAULT(%rcx)
 
-ENTRY(ufetch_uint8)
+ENTRY(ufetch_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -420,16 +420,16 @@ ENTRY(ufetch_uint8)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_uint8)
-STRONG_ALIAS(ufetch_uchar,ufetch_uint8)
+END(ufetch_8)
+STRONG_ALIAS(ufetch_char,ufetch_8)
 
-ENTRY(ufetch_uint8_intrsafe)
+ENTRY(ufetch_8_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ufetch_uint8_intrsafe)
-STRONG_ALIAS(ufetch_uchar_intrsafe,ufetch_uint8_intrsafe)
+END(ufetch_8_intrsafe)
+STRONG_ALIAS(ufetch_char_intrsafe,ufetch_8_intrsafe)
 
-ENTRY(ufetch_uint16)
+ENTRY(ufetch_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -442,16 +442,16 @@ ENTRY(ufetch_uint16)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_uint16)
-STRONG_ALIAS(ufetch_ushort,ufetch_uint16)
+END(ufetch_16)
+STRONG_ALIAS(ufetch_short,ufetch_16)
 
-ENTRY(ufetch_uint16_intrsafe)
+ENTRY(ufetch_16_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ufetch_uint16_intrsafe)
-STRONG_ALIAS(ufetch_ushort_intrsafe,ufetch_uint16_intrsafe)
+END(ufetch_16_intrsafe)
+STRONG_ALIAS(ufetch_short_intrsafe,ufetch_16_intrsafe)
 
-ENTRY(ufetch_uint32)
+ENTRY(ufetch_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -464,16 +464,16 @@ ENTRY(ufetch_uint32)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_uint32)
-STRONG_ALIAS(ufetch_uint,ufetch_uint32)
+END(ufetch_32)
+STRONG_ALIAS(ufetch_int,ufetch_32)
 
-ENTRY(ufetch_uint32_intrsafe)
+ENTRY(ufetch_32_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ufetch_uint32_intrsafe)
-STRONG_ALIAS(ufetch_uint_intrsafe,ufetch_uint32_intrsafe)
+END(ufetch_32_intrsafe)
+STRONG_ALIAS(ufetch_int_intrsafe,ufetch_32_intrsafe)
 
-ENTRY(ufetch_uint64)
+ENTRY(ufetch_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -486,18 +486,18 @@ ENTRY(ufetch_uint64)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ufetch_uint64)
-STRONG_ALIAS(ufetch_ulong,ufetch_uint64)
-STRONG_ALIAS(ufetch_ptr,ufetch_uint64)
+END(ufetch_64)
+STRONG_ALIAS(ufetch_long,ufetch_64)
+STRONG_ALIAS(ufetch_ptr,ufetch_64)
 
-ENTRY(ufetch_uint64_intrsafe)
+ENTRY(ufetch_64_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ufetch_uint64_intrsafe)
-STRONG_ALIAS(ufetch_ulong_intrsafe,ufetch_uint64_intrsafe)
-STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_uint64_intrsafe)
+END(ufetch_64_intrsafe)
+STRONG_ALIAS(ufetch_long_intrsafe,ufetch_64_intrsafe)
+STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_64_intrsafe)
 
-ENTRY(ustore_uint8)
+ENTRY(ustore_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -509,16 +509,16 @@ ENTRY(ustore_uint8)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_uint8)
-STRONG_ALIAS(ustore_uchar,ustore_uint8)
+END(ustore_8)
+STRONG_ALIAS(ustore_char,ustore_8)
 
-ENTRY(ustore_uint8_intrsafe)
+ENTRY(ustore_8_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ustore_uint8_intrsafe)
-STRONG_ALIAS(ustore_uchar_intrsafe,ustore_uint8_intrsafe)
+END(ustore_8_intrsafe)
+STRONG_ALIAS(ustore_char_intrsafe,ustore_8_intrsafe)
 
-ENTRY(ustore_uint16)
+ENTRY(ustore_16)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -530,16 +530,16 @@ ENTRY(ustore_uint16)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_uint16)
-STRONG_ALIAS(ustore_ushort,ustore_uint16)
+END(ustore_16)
+STRONG_ALIAS(ustore_short,ustore_16)
 
-ENTRY(ustore_uint16_intrsafe)
+ENTRY(ustore_16_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ustore_uint16_intrsafe)
-STRONG_ALIAS(ustore_ushort_intrsafe,ustore_uint16_intrsafe)
+END(ustore_16_intrsafe)
+STRONG_ALIAS(ustore_short_intrsafe,ustore_16_intrsafe)
 
-ENTRY(ustore_uint32)
+ENTRY(ustore_32)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -551,16 +551,16 @@ ENTRY(ustore_uint32)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_uint32)
-STRONG_ALIAS(ustore_uint,ustore_uint32)
+END(ustore_32)
+STRONG_ALIAS(ustore_int,ustore_32)
 
-ENTRY(ustore_uint32_intrsafe)
+ENTRY(ustore_32_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ustore_uint32_intrsafe)
-STRONG_ALIAS(ustore_uint_intrsafe,ustore_uint32_intrsafe)
+END(ustore_32_intrsafe)
+STRONG_ALIAS(ustore_int_intrsafe,ustore_32_intrsafe)
 
-ENTRY(ustore_uint64)
+ENTRY(ustore_64)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
@@ -572,16 +572,16 @@ ENTRY(ustore_uint64)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ustore_uint64)
-STRONG_ALIAS(ustore_ulong,ustore_uint64)
-STRONG_ALIAS(ustore_ptr,ustore_uint64)
+END(ustore_64)
+STRONG_ALIAS(ustore_long,ustore_64)
+STRONG_ALIAS(ustore_ptr,ustore_64)
 
-ENTRY(ustore_uint64_intrsafe)
+ENTRY(ustore_64_intrsafe)
 	UFETCHSTORE_PROLOGUE_INTRSAFE
 	jmp	9b
-END(ustore_uint64_intrsafe)
-STRONG_ALIAS(ustore_ulong_intrsafe,ustore_uint64_intrsafe)
-STRONG_ALIAS(ustore_ptr_intrsafe,ustore_uint64_intrsafe)
+END(ustore_64_intrsafe)
+STRONG_ALIAS(ustore_long_intrsafe,ustore_64_intrsafe)
+STRONG_ALIAS(ustore_ptr_intrsafe,ustore_64_intrsafe)
 
 NENTRY(ufetchstoreerr)
 9:	SMAP_ENABLE
