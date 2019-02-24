@@ -1,7 +1,8 @@
 /*	$NetBSD: subr_copy.c,v 1.8 2018/05/28 21:04:41 chs Exp $	*/
 
 /*-
- * Copyright (c) 1997, 1998, 1999, 2002, 2007, 2008 The NetBSD Foundation, Inc.
+ * Copyright (c) 1997, 1998, 1999, 2002, 2007, 2008, 2019
+ *	The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -350,6 +351,134 @@ ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len)
 		return kcopy(src, dst, len);
 	return copyout(src, dst, len);
 }
+
+/*
+ * User-space fetch / store
+ */
+
+static bool
+ufetchstore_aligned(uintptr_t uaddr, size_t size)
+{
+	return (uaddr & (size - 1)) == 0;
+}
+
+#define	CHECK_ALIGNMENT(x)						\
+do {									\
+	if (!ufetchstore_aligned((uintptr_t)uaddr, sizeof(x)))		\
+		return EFAULT;						\
+} while (/*CONSTCOND*/0)
+
+extern int	_ufetch_8(const uint8_t *, uint8_t *);
+extern int	_ufetch_16(const uint16_t *, uint16_t *);
+extern int	_ufetch_32(const uint32_t *, uint32_t *);
+#ifdef _LP64
+extern int	_ufetch_64(const uint64_t *, uint64_t *);
+#endif
+
+int
+ufetch_8(const uint8_t *uaddr, uint8_t *valp)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*valp);
+	return _ufetch_8(uaddr, valp);
+}
+
+int
+ufetch_16(const uint16_t *uaddr, uint16_t *valp)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*valp);
+	return _ufetch_16(uaddr, valp);
+}
+
+int
+ufetch_32(const uint32_t *uaddr, uint32_t *valp)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*valp);
+	return _ufetch_32(uaddr, valp);
+}
+
+#ifdef _LP64
+int
+ufetch_64(const uint64_t *uaddr, uint64_t *valp)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*valp);
+	return _ufetch_64(uaddr, valp);
+}
+#endif /* _LP64 */
+
+__strong_alias(ufetch_char,ufetch_8);
+__strong_alias(ufetch_short,ufetch_16);
+__strong_alias(ufetch_int,ufetch_32);
+#ifdef _LP64
+__strong_alias(ufetch_long,ufetch_64);
+__strong_alias(ufetch_ptr,ufetch_64);
+#else
+__strong_alias(ufetch_long,ufetch_32);
+__strong_alias(ufetch_ptr,ufetch_32);
+#endif /* _LP64 */
+
+extern int	_ustore_8(uint8_t *, uint8_t);
+extern int	_ustore_16(uint16_t *, uint16_t);
+extern int	_ustore_32(uint32_t *, uint32_t);
+#ifdef _LP64
+extern int	_ustore_64(uint64_t *, uint64_t);
+#endif
+
+int
+ustore_8(uint8_t *uaddr, uint8_t val)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(val);
+	return _ustore_8(uaddr, val);
+}
+
+int
+ustore_16(uint16_t *uaddr, uint16_t val)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(val);
+	return _ustore_16(uaddr, val);
+}
+
+int
+ustore_32(uint32_t *uaddr, uint32_t val)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(val);
+	return _ustore_32(uaddr, val);
+}
+
+#ifdef _LP64
+int
+ustore_64(uint64_t *uaddr, uint64_t val)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(val);
+	return _ustore_64(uaddr, val);
+}
+#endif /* _LP64 */
+
+__strong_alias(ustore_char,ustore_8);
+__strong_alias(ustore_short,ustore_16);
+__strong_alias(ustore_int,ustore_32);
+#ifdef _LP64
+__strong_alias(ustore_long,ustore_64);
+__strong_alias(ustore_ptr,ustore_64);
+#else
+__strong_alias(ustore_long,ustore_32);
+__strong_alias(ustore_ptr,ustore_32);
+#endif /* _LP64 */
 
 #define UFETCHSTORE_TEST
 
