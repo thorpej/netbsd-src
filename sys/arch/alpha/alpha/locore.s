@@ -1013,13 +1013,7 @@ END(copyerr)
 /* N.B. T1 MUST BE PRESERVED -- IT CONTAINS THE PCB ADDRESS. */
 /*     T10 MUST BE PRESERVED -- IT CONTAINS THE pcb_onfault VALUE TO RESTORE */
 
-LEAF_NOPROFILE(ufetch_uint8_intrsafe, 2)
-	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ufetch_uint8_intrsafe)
-STRONG_ALIAS(ufetch_uchar_intrsafe,ufetch_uint8_intrsafe)
-
-LEAF_NOPROFILE(ufetch_uint8, 2)
+LEAF_NOPROFILE(ufetch_8, 2)
 	UFETCHSTORE_PROLOGUE
 9:	ldq_u	t0, 0(a0)	/* load quad containing byte */
 	UFETCHSTORE_EPILOGUE
@@ -1031,16 +1025,16 @@ LEAF_NOPROFILE(ufetch_uint8, 2)
 	stq_u	a0, 0(a1)	/* *a1 = fetched byte! */
 	mov	zero, v0
 	RET
-	END(ufetch_uint8)
+	END(ufetch_8)
 STRONG_ALIAS(ufetch_uchar,ufetch_uint8)
 
-LEAF_NOPROFILE(ufetch_uint16_intrsafe, 2)
+LEAF_NOPROFILE(ufetch_8_intrsafe, 2)
 	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ufetch_uint16_intrsafe)
-STRONG_ALIAS(ufetch_ushort_intrsafe,ufetch_uint16_intrsafe)
+	br	9b
+	END(ufetch_8_intrsafe)
+STRONG_ALIAS(ufetch_char_intrsafe,ufetch_8_intrsafe)
 
-LEAF_NOPROFILE(ufetch_uint16, 2)
+LEAF_NOPROFILE(ufetch_16, 2)
 	UFETCHSTORE_PROLOGUE
 9:	ldq_u	t0, 0(a0)	/* load quad containing short */
 	UFETCHSTORE_EPILOGUE
@@ -1052,50 +1046,50 @@ LEAF_NOPROFILE(ufetch_uint16, 2)
 	stq_u	a0, 0(a1)	/* *a1 = fetched short! */
 	mov	zero, v0
 	RET
-	END(ufetch_uint16)
-STRONG_ALIAS(ufetch_ushort,ufetch_uint16)
+	END(ufetch_16)
+STRONG_ALIAS(ufetch_short,ufetch_16)
 
-LEAF_NOPROFILE(ufetch_uint32_intrsafe, 2)
-	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
-	br	9f
-	END(ufetch_uint32_intrsafe)
-STRONG_ALIAS(ufetch_uint_intrsafe,ufetch_uint32_intrsafe)
+LEAF_NOPROFILE(ufetch_16_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9b
+	END(ufetch_16_intrsafe)
+STRONG_ALIAS(ufetch_short_intrsafe,ufetch_16_intrsafe)
 
-LEAF_NOPROFILE(ufetch_uint32, 2)
+LEAF_NOPROFILE(ufetch_32, 2)
 	UFETCHSTORE_PROLOGUE
 9:	ldl	v0, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	stl	v0, 0(a1)
 	mov	zero, v0
 	RET
-	END(ufetch_uint32)
-STRONG_ALIAS(ufetch_uint,ufetch_uint32)
+	END(ufetch_32)
+STRONG_ALIAS(ufetch_int,ufetch_32)
 
-LEAF_NOPROFILE(ufetch_uint64_intrsafe, 2)
-	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ufetch_uint64_intrsafe)
-STRONG_ALIAS(ufetch_ulong_intrsafe,ufetch_uint64_intrsafe)
-STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_uint64_intrsafe)
+LEAF_NOPROFILE(ufetch_32_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
+	br	9b
+	END(ufetch_32_intrsafe)
+STRONG_ALIAS(ufetch_int_intrsafe,ufetch_32_intrsafe)
 
-LEAF_NOPROFILE(ufetch_uint64, 2)
+LEAF_NOPROFILE(ufetch_64, 2)
 	UFETCHSTORE_PROLOGUE
 9:	ldq	v0, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	stq	v0, 0(a1)
 	mov	zero, v0
 	RET
-	END(ufetch_uint64)
-STRONG_ALIAS(ufetch_ulong,ufetch_uint64)
-STRONG_ALIAS(ufetch_ptr,ufetch_uint64)
+	END(ufetch_64)
+STRONG_ALIAS(ufetch_long,ufetch_64)
+STRONG_ALIAS(ufetch_ptr,ufetch_64)
 
-LEAF_NOPROFILE(ustore_uint8_intrsafe, 2)
+LEAF_NOPROFILE(ufetch_64_intrsafe, 2)
 	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ustore_uint8_intrsafe)
-STRONG_ALIAS(ustore_uchar_intrsafe,ustore_uint8_intrsafe)
+	br	9b
+	END(ufetch_uint64_intrsafe)
+STRONG_ALIAS(ufetch_long_intrsafe,ufetch_64_intrsafe)
+STRONG_ALIAS(ufetch_ptr_intrsafe,ufetch_64_intrsafe)
 
-LEAF_NOPROFILE(ustore_uint8, 2)
+LEAF_NOPROFILE(ustore_8, 2)
 	UFETCHSTORE_PROLOGUE
 9:	zap	a1, 0xfe, a1	/* kill arg's high bytes */
 	insbl	a1, a0, a1	/* move it to the right spot */
@@ -1106,16 +1100,16 @@ LEAF_NOPROFILE(ustore_uint8, 2)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_uint8)
-STRONG_ALIAS(ustore_uchar,ustore_uint8)
+	END(ustore_8)
+STRONG_ALIAS(ustore_char,ustore_8)
 
-LEAF_NOPROFILE(ustore_uint16_intrsafe, 2)
+LEAF_NOPROFILE(ustore_8_intrsafe, 2)
 	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ustore_uint16_intrsafe)
-STRONG_ALIAS(ustore_ushort_intrsafe,ustore_uint16_intrsafe)
+	br	9b
+	END(ustore_8_intrsafe)
+STRONG_ALIAS(ustore_char_intrsafe,ustore_8_intrsafe)
 
-LEAF_NOPROFILE(ustore_uint16, 2)
+LEAF_NOPROFILE(ustore_16, 2)
 	UFETCHSTORE_PROLOGUE
 9:	zap	a1, 0xfc, a1	/* kill arg's high bytes */
 	inswl	a1, a0, a1	/* move it to the right spot */
@@ -1126,40 +1120,46 @@ LEAF_NOPROFILE(ustore_uint16, 2)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_uint16)
-STRONG_ALIAS(ustore_ushort,ustore_uint16)
+	END(ustore_16)
+STRONG_ALIAS(ustore_short,ustore_16)
 
-LEAF_NOPROFILE(ustore_uint32_intrsafe, 2)
-	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
-	br	9f
-	END(ustore_uint32_intrsafe)
-STRONG_ALIAS(ustore_uint_intrsafe,ustore_uint32_intrsafe)
+LEAF_NOPROFILE(ustore_16_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9b
+	END(ustore_16_intrsafe)
+STRONG_ALIAS(ustore_short_intrsafe,ustore_16_intrsafe)
 
-LEAF_NOPROFILE(ustore_uint32, 2)
+LEAF_NOPROFILE(ustore_32, 2)
 	UFETCHSTORE_PROLOGUE
 9:	stl	a1, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_uint32)
-STRONG_ALIAS(ustore_uint,ustore_uint32)
+	END(ustore_32)
+STRONG_ALIAS(ustore_int,ustore_32)
 
-LEAF_NOPROFILE(ustore_uint64_intrsafe, 2)
-	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
-	br	9f
-	END(ustore_uint64_intrsafe)
-STRONG_ALIAS(ustore_ulong_intrsafe,ustore_uint64_intrsafe)
-STRONG_ALIAS(ustore_ptr_intrsafe,ustore_uint64_intrsafe)
+LEAF_NOPROFILE(ustore_32_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x3)
+	br	9b
+	END(ustore_32_intrsafe)
+STRONG_ALIAS(ustore_int_intrsafe,ustore_32_intrsafe)
 
-LEAF_NOPROFILE(ustore_uint64, 2)
+LEAF_NOPROFILE(ustore_64, 2)
 	UFETCHSTORE_PROLOGUE
 9:	stq	a1, 0(a0)
 	UFETCHSTORE_EPILOGUE
 	mov	zero, v0
 	RET
-	END(ustore_uint64)
-STRONG_ALIAS(ustore_ulong,ustore_uint64)
-STRONG_ALIAS(ustore_ptr,ustore_uint64)
+	END(ustore_64)
+STRONG_ALIAS(ustore_long,ustore_64)
+STRONG_ALIAS(ustore_ptr,ustore_64)
+
+LEAF_NOPROFILE(ustore_64_intrsafe, 2)
+	UFETCHSTORE_INTRSAFE_PROLOGUE(0x7)
+	br	9b
+	END(ustore_64_intrsafe)
+STRONG_ALIAS(ustore_long_intrsafe,ustore_64_intrsafe)
+STRONG_ALIAS(ustore_ptr_intrsafe,ustore_64_intrsafe)
 
 LEAF_NOPROFILE(ufetchstoreerr_efault, 0)
 XLEAF(ufetchstoreerr_intrsafe, 0)
