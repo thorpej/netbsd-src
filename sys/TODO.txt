@@ -1,13 +1,13 @@
 ARCH:
 	aarch64
 	alpha		-- changes done, NOT TESTED
-	amd64
+	amd64		-- changes done, tested-except-intrsafe
 	arm
 	hppa
 	i386
 	ia64
 	m68k
-	mips
+	mips		-- AUDIT MIPS ufetch_* / ustore_* usage!!
 	or1k
 	powerpc
 	riscv
