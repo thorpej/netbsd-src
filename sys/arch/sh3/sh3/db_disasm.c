@@ -160,7 +160,7 @@ get_insn(const void *pc)
 		db_error("Instruction address in P4 area\n");
 
 	if ((int)addr >= 0) {	/* p0: user-space */
-		if (ufetch_uint16((void *)pc, &insn))
+		if (ufetch_16((void *)pc, &insn))
 			db_error("Instruction fetch fault (user)\n");
 	}
 	else {			/* kernel p1/p2/p3 */

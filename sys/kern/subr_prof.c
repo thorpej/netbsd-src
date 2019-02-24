@@ -296,8 +296,8 @@ addupc_intr(struct lwp *l, u_long pc)
 	mutex_spin_exit(&p->p_stmutex);
 
 #ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
-	if ((error = ufetch_ushort_intrsafe(addr, &v)) == 0) {
-		error = ustore_ushort_intrsafe(addr, v + 1);
+	if ((error = ufetch_short_intrsafe(addr, &v)) == 0) {
+		error = ustore_short_intrsafe(addr, v + 1);
 	}
 #else
 	error = EFAULT;

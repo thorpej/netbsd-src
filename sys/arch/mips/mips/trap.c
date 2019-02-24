@@ -535,7 +535,7 @@ trap(uint32_t status, uint32_t cause, vaddr_t vaddr, vaddr_t pc,
 		vaddr_t va = pc + (cause & MIPS_CR_BR_DELAY ? sizeof(int) : 0);
 
 		/* read break instruction */
-		instr = ufetch_uint32((void *)va);
+		instr = ufetch_32((void *)va);
 
 		if (l->l_md.md_ss_addr != va || instr != MIPS_BREAK_SSTEP) {
 			ksi.ksi_trap = type & ~T_USER;
@@ -704,7 +704,7 @@ mips_singlestep(struct lwp *l)
 		return EFAULT;
 	}
 	pc = (vaddr_t)tf->tf_regs[_R_PC];
-	if (ufetch_uint32((void *)pc) != 0) { /* not a NOP instruction */
+	if (ufetch_32((void *)pc) != 0) { /* not a NOP instruction */
 		struct pcb * const pcb = lwp_getpcb(l);
 		va = mips_emul_branch(tf, pc, PCB_FSR(pcb), true);
 	} else {
@@ -721,7 +721,7 @@ mips_singlestep(struct lwp *l)
 	}
 
 	l->l_md.md_ss_addr = va;
-	l->l_md.md_ss_instr = ufetch_uint32((void *)va);
+	l->l_md.md_ss_instr = ufetch_32((void *)va);
 	rv = mips_ustore_uint32_isync((void *)va, MIPS_BREAK_SSTEP);
 	if (rv != 0) {
 		vaddr_t sa, ea;
@@ -739,7 +739,7 @@ mips_singlestep(struct lwp *l)
 #if 0
 	printf("SS %s (%d): breakpoint set at %x: %x (pc %x) br %x\n",
 		p->p_comm, p->p_pid, p->p_md.md_ss_addr,
-		p->p_md.md_ss_instr, pc, ufetch_uint32((void *)va)); /* XXX */
+		p->p_md.md_ss_instr, pc, ufetch_32((void *)va)); /* XXX */
 #endif
 	return 0;
 }

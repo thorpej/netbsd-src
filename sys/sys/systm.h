@@ -303,60 +303,60 @@ int	ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len);
 int	ucas_ptr(volatile void *, void *, void *, void *);
 int	ucas_int(volatile int *, int, int, int *);
 
-int	ufetch_uint8(const uint8_t *uaddr, uint8_t *valp);
-int	ufetch_uint16(const uint16_t *uaddr, uint16_t *valp);
-int	ufetch_uint32(const uint32_t *uaddr, uint32_t *valp);
+int	ufetch_8(const uint8_t *uaddr, uint8_t *valp);
+int	ufetch_16(const uint16_t *uaddr, uint16_t *valp);
+int	ufetch_32(const uint32_t *uaddr, uint32_t *valp);
 #ifdef _LP64
-int	ufetch_uint64(const uint64_t *uaddr, uint64_t *valp);
+int	ufetch_64(const uint64_t *uaddr, uint64_t *valp);
 #endif
 
-int	ufetch_uchar(const unsigned char *uaddr, unsigned char *valp);
-int	ufetch_ushort(const unsigned short *uaddr, unsigned short *valp);
-int	ufetch_uint(const unsigned int *uaddr, unsigned int *valp);
-int	ufetch_ulong(const unsigned long *uaddr, unsigned long *valp);
+int	ufetch_char(const unsigned char *uaddr, unsigned char *valp);
+int	ufetch_short(const unsigned short *uaddr, unsigned short *valp);
+int	ufetch_int(const unsigned int *uaddr, unsigned int *valp);
+int	ufetch_long(const unsigned long *uaddr, unsigned long *valp);
 int	ufetch_ptr(const void **uaddr, void **valp);
 
 #ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
-int	ufetch_uint8_intrsafe(const uint8_t *uaddr, uint8_t *valp);
-int	ufetch_uint16_intrsafe(const uint16_t *uaddr, uint16_t *valp);
-int	ufetch_uint32_intrsafe(const uint32_t *uaddr, uint32_t *valp);
+int	ufetch_8_intrsafe(const uint8_t *uaddr, uint8_t *valp);
+int	ufetch_16_intrsafe(const uint16_t *uaddr, uint16_t *valp);
+int	ufetch_32_intrsafe(const uint32_t *uaddr, uint32_t *valp);
 #ifdef _LP64
-int	ufetch_uint64_intrsafe(const uint64_t *uaddr, uint64_t *valp);
+int	ufetch_64_intrsafe(const uint64_t *uaddr, uint64_t *valp);
 #endif
 
-int	ufetch_uchar_intrsafe(const unsigned char *uaddr, unsigned char *valp);
-int	ufetch_ushort_intrsafe(const unsigned short *uaddr,
+int	ufetch_char_intrsafe(const unsigned char *uaddr, unsigned char *valp);
+int	ufetch_short_intrsafe(const unsigned short *uaddr,
 	    unsigned short *valp);
-int	ufetch_uint_intrsafe(const unsigned int *uaddr, unsigned int *valp);
-int	ufetch_ulong_intrsafe(const unsigned long *uaddr, unsigned long *valp);
+int	ufetch_int_intrsafe(const unsigned int *uaddr, unsigned int *valp);
+int	ufetch_long_intrsafe(const unsigned long *uaddr, unsigned long *valp);
 int	ufetch_ptr_intrsafe(const void **uaddr, void **valp);
 #endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
 
-int	ustore_uint8(uint8_t *uaddr, uint8_t val);
-int	ustore_uint16(uint16_t *uaddr, uint16_t val);
-int	ustore_uint32(uint32_t *uaddr, uint32_t val);
+int	ustore_8(uint8_t *uaddr, uint8_t val);
+int	ustore_16(uint16_t *uaddr, uint16_t val);
+int	ustore_32(uint32_t *uaddr, uint32_t val);
 #ifdef _LP64
-int	ustore_uint64(uint64_t *uaddr, uint64_t val);
+int	ustore_64(uint64_t *uaddr, uint64_t val);
 #endif
 
-int	ustore_uchar(unsigned char *uaddr, unsigned char val);
-int	ustore_ushort(unsigned short *uaddr, unsigned short val);
-int	ustore_uint(unsigned int *uaddr, unsigned int val);
-int	ustore_ulong(unsigned long *uaddr, unsigned long val);
+int	ustore_char(unsigned char *uaddr, unsigned char val);
+int	ustore_short(unsigned short *uaddr, unsigned short val);
+int	ustore_int(unsigned int *uaddr, unsigned int val);
+int	ustore_long(unsigned long *uaddr, unsigned long val);
 int	ustore_ptr(void **uaddr, void *val);
 
 #ifdef __HAVE_INTRSAFE_USER_FETCH_STORE
-int	ustore_uint8_intrsafe(uint8_t *uaddr, uint8_t val);
-int	ustore_uint16_intrsafe(uint16_t *uaddr, uint16_t val);
-int	ustore_uint32_intrsafe(uint32_t *uaddr, uint32_t val);
+int	ustore_8_intrsafe(uint8_t *uaddr, uint8_t val);
+int	ustore_16_intrsafe(uint16_t *uaddr, uint16_t val);
+int	ustore_32_intrsafe(uint32_t *uaddr, uint32_t val);
 #ifdef _LP64
-int	ustore_uint64_intrsafe(uint64_t *uaddr, uint64_t val);
+int	ustore_64_intrsafe(uint64_t *uaddr, uint64_t val);
 #endif
 
-int	ustore_uchar_intrsafe(unsigned char *uaddr, unsigned char val);
-int	ustore_ushort_intrsafe(unsigned short *uaddr, unsigned short val);
-int	ustore_uint_intrsafe(unsigned int *uaddr, unsigned int val);
-int	ustore_ulong_intrsafe(unsigned long *uaddr, unsigned long val);
+int	ustore_char_intrsafe(unsigned char *uaddr, unsigned char val);
+int	ustore_short_intrsafe(unsigned short *uaddr, unsigned short val);
+int	ustore_int_intrsafe(unsigned int *uaddr, unsigned int val);
+int	ustore_long_intrsafe(unsigned long *uaddr, unsigned long val);
 int	ustore_ptr_intrsafe(void **uaddr, void *val);
 #endif /* __HAVE_INTRSAFE_USER_FETCH_STORE */
 

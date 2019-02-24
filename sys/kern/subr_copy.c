@@ -184,7 +184,7 @@ again:
 	}
 	if (!VMSPACE_IS_KERNEL_P(uio->uio_vmspace)) {
 		int error;
-		if ((error = ustore_uchar(iov->iov_base, c)) != 0)
+		if ((error = ustore_char(iov->iov_base, c)) != 0)
 			return (error);
 	} else {
 		*(char *)iov->iov_base = c;
@@ -405,17 +405,17 @@ do_ufetchstore_test(SYSCTLFN_ARGS)
 
 	switch (args.size) {
 	case 8:
-		args.fetchstore_error = ufetch_uint8(args.uaddr, &args.val8);
+		args.fetchstore_error = ufetch_8(args.uaddr, &args.val8);
 		break;
 	case 16:
-		args.fetchstore_error = ufetch_uint16(args.uaddr, &args.val16);
+		args.fetchstore_error = ufetch_16(args.uaddr, &args.val16);
 		break;
 	case 32:
-		args.fetchstore_error = ufetch_uint32(args.uaddr, &args.val32);
+		args.fetchstore_error = ufetch_32(args.uaddr, &args.val32);
 		break;
 #ifdef _LP64
 	case 64:
-		args.fetchstore_error = ufetch_uint64(args.uaddr, &args.val64);
+		args.fetchstore_error = ufetch_64(args.uaddr, &args.val64);
 		break;
 #endif /* _LP64 */
 	default:
@@ -427,17 +427,17 @@ do_ufetchstore_test(SYSCTLFN_ARGS)
  do_store:
 	switch (args.size) {
 	case 8:
-		args.fetchstore_error = ustore_uint8(args.uaddr, args.val8);
+		args.fetchstore_error = ustore_8(args.uaddr, args.val8);
 		break;
 	case 16:
-		args.fetchstore_error = ustore_uint16(args.uaddr, args.val16);
+		args.fetchstore_error = ustore_16(args.uaddr, args.val16);
 		break;
 	case 32:
-		args.fetchstore_error = ustore_uint32(args.uaddr, args.val32);
+		args.fetchstore_error = ustore_32(args.uaddr, args.val32);
 		break;
 #ifdef _LP64
 	case 64:
-		args.fetchstore_error = ustore_uint64(args.uaddr, args.val64);
+		args.fetchstore_error = ustore_64(args.uaddr, args.val64);
 		break;
 #endif /* _LP64 */
 	default:
