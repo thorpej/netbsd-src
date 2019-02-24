@@ -68,7 +68,7 @@ mips_emul_branch(struct trapframe *tf, vaddr_t instpc, uint32_t fpuCSR,
 	vaddr_t nextpc;
 
 	if (instpc < MIPS_KSEG0_START)
-		inst.word = ufetch_uint32((void *)instpc);
+		inst.word = ufetch_32((void *)instpc);
 	else
 		inst.word = *(uint32_t *)instpc;
 
@@ -192,9 +192,9 @@ mips_emul_inst(uint32_t status, uint32_t cause, vaddr_t opc,
 	 *  Fetch the instruction.
 	 */
 	if (cause & MIPS_CR_BR_DELAY)
-		inst = ufetch_uint32((uint32_t *)opc+1);
+		inst = ufetch_32((uint32_t *)opc+1);
 	else
-		inst = ufetch_uint32((uint32_t *)opc);
+		inst = ufetch_32((uint32_t *)opc);
 
 	switch (((InstFmt)inst).FRType.op) {
 	case OP_LWC0:
@@ -517,7 +517,7 @@ mips_emul_lwc1(uint32_t inst, struct trapframe *tf, uint32_t cause)
 			return;
 
 		vaddr = tf->tf_regs[_R_PC];	/* XXX truncates to 32 bits */
-		inst = ufetch_uint32((uint32_t *)vaddr);
+		inst = ufetch_32((uint32_t *)vaddr);
 		if (((InstFmt)inst).FRType.op != OP_LWC1)
 			return;
 
@@ -607,7 +607,7 @@ mips_emul_swc1(uint32_t inst, struct trapframe *tf, uint32_t cause)
 			return;
 
 		vaddr = tf->tf_regs[_R_PC];	/* XXX truncates to 32 bits */
-		inst = ufetch_uint32((uint32_t *)vaddr);
+		inst = ufetch_32((uint32_t *)vaddr);
 		if (((InstFmt)inst).FRType.op != OP_SWC1)
 			return;
 
@@ -990,7 +990,7 @@ mips_emul_sb(uint32_t inst, struct trapframe *tf, uint32_t cause)
 		return;
 	}
 
-	if (ustore_uint8((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
+	if (ustore_8((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
 		send_sigsegv(vaddr, T_TLB_ST_MISS, tf, cause);
 		return;
 	}
@@ -1013,7 +1013,7 @@ mips_emul_sh(uint32_t inst, struct trapframe *tf, uint32_t cause)
 		return;
 	}
 
-	if (ustore_uint16((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
+	if (ustore_16((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
 		send_sigsegv(vaddr, T_TLB_ST_MISS, tf, cause);
 		return;
 	}
@@ -1036,7 +1036,7 @@ mips_emul_sw(uint32_t inst, struct trapframe *tf, uint32_t cause)
 		return;
 	}
 
-	if (ustore_uint32((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
+	if (ustore_32((void *)vaddr, tf->tf_regs[(inst>>16)&0x1F]) < 0) {
 		send_sigsegv(vaddr, T_TLB_ST_MISS, tf, cause);
 		return;
 	}
@@ -1072,7 +1072,7 @@ mips_emul_swl(uint32_t inst, struct trapframe *tf, uint32_t cause)
 	a &= ~(0xFFFFFFFFUL >> shift);
 	a |= x;
 
-	if (ustore_uint32((void *)vaddr, a) < 0) {
+	if (ustore_32((void *)vaddr, a) < 0) {
 		send_sigsegv(vaddr, T_TLB_ST_MISS, tf, cause);
 		return;
 	}
@@ -1108,7 +1108,7 @@ mips_emul_swr(uint32_t inst, struct trapframe *tf, uint32_t cause)
 	a &= ~(0xFFFFFFFFUL << shift);
 	a |= x;
 
-	if (ustore_uint32((void *)vaddr, a) < 0) {
+	if (ustore_32((void *)vaddr, a) < 0) {
 		send_sigsegv(vaddr, T_TLB_ST_MISS, tf, cause);
 		return;
 	}

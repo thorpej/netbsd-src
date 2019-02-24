@@ -323,7 +323,7 @@ dont_care:
 		error = copyout(string, SCARG(uap, buf),
 				uimin(slen, SCARG(uap, len)));
 		if (!error && (SCARG(uap, len) > 0) && (SCARG(uap, len) < slen))
-			ustore_uchar(SCARG(uap, buf) + SCARG(uap, len) - 1, 0);
+			ustore_char(SCARG(uap, buf) + SCARG(uap, len) - 1, 0);
 	}
 	if (!error)
 		retval[0] = slen;

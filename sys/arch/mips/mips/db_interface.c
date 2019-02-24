@@ -986,7 +986,7 @@ next_instr_address(db_addr_t pc, bool bd)
 		return (pc + 4);
 	
 	if (pc < MIPS_KSEG0_START)
-		ins = ufetch_uint32((void *)pc);
+		ins = ufetch_32((void *)pc);
 	else
 		ins = *(unsigned *)pc;
 
