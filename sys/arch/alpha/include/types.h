@@ -83,7 +83,6 @@ typedef __register_t	register_t;
 #define	__HAVE___LWP_GETPRIVATE_FAST
 #define	__HAVE_COMMON___TLS_GET_ADDR
 #define	__HAVE_TLS_VARIANT_I
-#define	__HAVE_INTRSAFE_USER_FETCH_STORE
 
 #if defined(_KERNEL)
 #define	__HAVE_RAS
