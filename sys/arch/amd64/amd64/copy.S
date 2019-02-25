@@ -389,24 +389,18 @@ END(copystr)
 #define	UFETCHSTORE_PROLOGUE						\
 	movq	$VM_MAXUSER_ADDRESS-1,%r11			;	\
 	cmpq	%r11,%rdi					;	\
-	ja	_C_LABEL(copy_efault)				;	\
-	GET_CURPCB(%rcx)					;	\
-	xorq	%r10,%r10					;	\
-	leaq	_C_LABEL(ufetchstoreerr)(%rip),%r11		;	\
-	movq	%r11,PCB_ONFAULT(%rcx)
-
-#define	UFETCHSTORE_EPILOGUE						\
-	movq	%r10,PCB_ONFAULT(%rcx)
+	ja	_C_LABEL(copy_efault)
 
 ENTRY(_ufetch_8)
 	DEFERRED_SWITCH_CHECK
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ufetch_8_start:
 	movb	(%rdi),%al
+.L_ufetch_8_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	movb	%al,(%rsi)
 	xorq	%rax,%rax
 	ret
@@ -418,10 +412,11 @@ ENTRY(_ufetch_16)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ufetch_16_start:
 	movw	(%rdi),%ax
+.L_ufetch_16_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	movw	%ax,(%rsi)
 	xorq	%rax,%rax
 	ret
@@ -433,10 +428,11 @@ ENTRY(_ufetch_32)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ufetch_32_start:
 	movl	(%rdi),%eax
+.L_ufetch_32_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	movl	%eax,(%rsi)
 	xorq	%rax,%rax
 	ret
@@ -448,10 +444,11 @@ ENTRY(_ufetch_64)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ufetch_64_start:
 	movq	(%rdi),%rax
+.L_ufetch_64_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	movq	%rax,(%rsi)
 	xorq	%rax,%rax
 	ret
@@ -463,10 +460,11 @@ ENTRY(_ustore_8)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ustore_8_start:
 	movb	%sil,(%rdi)
+.L_ustore_8_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
@@ -477,10 +475,11 @@ ENTRY(_ustore_16)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ustore_16_start:
 	movw	%si,(%rdi)
+.L_ustore_16_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
@@ -491,10 +490,11 @@ ENTRY(_ustore_32)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ustore_32_start:
 	movl	%esi,(%rdi)
+.L_ustore_32_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
@@ -505,20 +505,15 @@ ENTRY(_ustore_64)
 	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
+.L_ustore_64_start:
 	movq	%rsi,(%rdi)
+.L_ustore_64_end:
 	SMAP_ENABLE
 
-	UFETCHSTORE_EPILOGUE
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
 END(_ustore_64)
-
-NENTRY(ufetchstoreerr)
-9:	SMAP_ENABLE
-	UFETCHSTORE_EPILOGUE
-	ret
-END(ufetchstoreerr)
 
 /**************************************************************************/
 
@@ -638,6 +633,38 @@ _C_LABEL(onfault_table):
 	.quad .Lucas32_start
 	.quad .Lucas32_end
 	.quad _C_LABEL(ucas_fault)
+
+	.quad .L_ufetch_8_start
+	.quad .L_ufetch_8_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ufetch_16_start
+	.quad .L_ufetch_16_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ufetch_32_start
+	.quad .L_ufetch_32_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ufetch_64_start
+	.quad .L_ufetch_64_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ustore_8_start
+	.quad .L_ustore_8_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ustore_16_start
+	.quad .L_ustore_16_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ustore_32_start
+	.quad .L_ustore_32_end
+	.quad _C_LABEL(copy_fault)
+
+	.quad .L_ustore_64_start
+	.quad .L_ustore_64_end
+	.quad _C_LABEL(copy_fault)
 
 	.quad 0	/* terminate */
 
