@@ -4,7 +4,7 @@ ARCH:
 	amd64		-- changes done, tested-except-intrsafe
 	arm
 	hppa
-	i386
+	i386		-- inital changes, NOT TESTED
 	ia64
 	m68k
 	mips

@@ -275,7 +275,7 @@ trap(struct trapframe *frame)
 	struct lwp *l = curlwp;
 	struct proc *p;
 	struct pcb *pcb;
-	extern char fusubail[], kcopy_fault[], return_address_fault[];
+	extern char kcopy_fault[], return_address_fault[];
 	struct trapframe *vframe;
 	ksiginfo_t ksi;
 	void *onfault;
@@ -568,12 +568,8 @@ kernelfault:
 		if (__predict_false(l == NULL))
 			goto we_re_toast;
 
-		/*
-		 * fusubail is used by [fs]uswintr() to prevent page faulting
-		 * from inside the profiling interrupt.
-		 */
 		onfault = pcb->pcb_onfault;
-		if (onfault == fusubail || onfault == return_address_fault) {
+		if (onfault == return_address_fault) {
 			goto copyefault;
 		}
 		if (cpu_intr_p() || (l->l_pflag & LP_INTR) != 0) {

@@ -498,153 +498,123 @@ ENTRY(copystr)
 	ret
 END(copystr)
 
-/*
- * long fuword(const void *uaddr);
- * Fetch an int from the user's address space.
- * see fuword(9)
- */
-ENTRY(fuword)
+/**************************************************************************/
+
+#define	UFETCHSTORE_PROLOGUE						\
+	movl	4(%esp),%edx					;	\
+	cmpl	$VM_MAXUSER_ADDRESS-4,%edx			;	\
+	ja	_C_LABEL(ufetchstore_efault)
+
+ENTRY(_ufetch_8)
 	DEFERRED_SWITCH_CHECK
-	movl	4(%esp),%edx
-	cmpl	$VM_MAXUSER_ADDRESS-4,%edx
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%ecx)
-	movl	$_C_LABEL(fusufault),PCB_ONFAULT(%ecx)
+	UFETCHSTORE_PROLOGUE
 
 	SMAP_DISABLE
-	movl	(%edx),%eax
+.L_ufetch_8_start:
+	movb	(%edx),%al
+.L_ufetch_8_end:
 	SMAP_ENABLE
 
-	movl	$0,PCB_ONFAULT(%ecx)
-	ret
-	DEFERRED_SWITCH_CALL
-END(fuword)
-
-/*
- * int fuswintr(const void *uaddr);
- * Fetch a short from the user's address space.  Can be called during an
- * interrupt.
- * see fuswintr(9)
- */
-ENTRY(fuswintr)
-	cmpl	$TLBSTATE_VALID,CPUVAR(TLBSTATE)
-	jnz	_C_LABEL(fusuaddrfault)
-	movl	4(%esp),%edx
-	cmpl	$VM_MAXUSER_ADDRESS-2,%edx
-	ja	_C_LABEL(fusuaddrfault)
-	movl	CPUVAR(CURLWP),%ecx
-	movl	L_PCB(%ecx),%ecx
-	movl	$_C_LABEL(fusubail),PCB_ONFAULT(%ecx)
-
-	SMAP_DISABLE
-	movzwl	(%edx),%eax
-	SMAP_ENABLE
-
-	movl	$0,PCB_ONFAULT(%ecx)
-	ret
-END(fuswintr)
-
-/*
- * int fubyte(const void *uaddr);
- * Fetch a byte from the user's address space.
- * see fubyte(9)
- */
-ENTRY(fubyte)
-	DEFERRED_SWITCH_CHECK
-	movl	4(%esp),%edx
-	cmpl	$VM_MAXUSER_ADDRESS-1,%edx
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%ecx)
-	movl	$_C_LABEL(fusufault),PCB_ONFAULT(%ecx)
-
-	SMAP_DISABLE
-	movzbl	(%edx),%eax
-	SMAP_ENABLE
-
-	movl	$0,PCB_ONFAULT(%ecx)
-	ret
-	DEFERRED_SWITCH_CALL
-END(fubyte)
-
-/*
- * Handle faults from [fs]u*().  Clean up and return -1.
- */
-ENTRY(fusufault)
-	SMAP_ENABLE
-	movl	$0,PCB_ONFAULT(%ecx)
-	movl	$-1,%eax
-	ret
-END(fusufault)
-
-/*
- * Handle faults from [fs]u*().  Clean up and return -1.  This differs from
- * fusufault() in that trap() will recognize it and return immediately rather
- * than trying to page fault.
- */
-ENTRY(fusubail)
-	SMAP_ENABLE
-	movl	$0,PCB_ONFAULT(%ecx)
-	movl	$-1,%eax
-	ret
-END(fusubail)
-
-/*
- * Handle earlier faults from [fs]u*(), due to our of range addresses.
- */
-ENTRY(fusuaddrfault)
-	movl	$-1,%eax
-	ret
-END(fusuaddrfault)
-
-/*
- * int suswintr(void *uaddr, short x);
- * Store a short in the user's address space.  Can be called during an
- * interrupt.
- * see suswintr(9)
- */
-ENTRY(suswintr)
-	cmpl	$TLBSTATE_VALID,CPUVAR(TLBSTATE)
-	jnz	_C_LABEL(fusuaddrfault)
-	movl	4(%esp),%edx
-	cmpl	$VM_MAXUSER_ADDRESS-2,%edx
-	ja	_C_LABEL(fusuaddrfault)
-	movl	CPUVAR(CURLWP),%ecx
-	movl	L_PCB(%ecx),%ecx
-	movl	$_C_LABEL(fusubail),PCB_ONFAULT(%ecx)
-	movl	8(%esp),%eax
-
-	SMAP_DISABLE
-	movw	%ax,(%edx)
-	SMAP_ENABLE
-
+	movl	8(%esp),%edx
+	movb	%al,(%edx)
 	xorl	%eax,%eax
-	movl	%eax,PCB_ONFAULT(%ecx)
 	ret
-END(suswintr)
+	DEFERRED_SWITCH_CALL
+END(_ufetch_8)
 
-/*
- * int subyte(void *uaddr, char x);
- * Store a byte in the user's address space.
- * see subyte(9)
- */
-ENTRY(subyte)
+ENTRY(_ufetch_16)
 	DEFERRED_SWITCH_CHECK
-	movl	4(%esp),%edx
-	cmpl	$VM_MAXUSER_ADDRESS-1,%edx
-	ja	_C_LABEL(fusuaddrfault)
-	GET_CURPCB(%ecx)
-	movl	$_C_LABEL(fusufault),PCB_ONFAULT(%ecx)
+	UFETCHSTORE_PROLOGUE
+
+	SMAP_DISABLE
+.L_ufetch_16_start:
+	movw	(%edx),%ax
+.L_ufetch_16_end:
+	SMAP_ENABLE
+
+	movl	8(%esp),%edx
+	movw	%ax,(%edx)
+	xorl	%eax,%eax
+	ret
+	DEFERRED_SWITCH_CALL
+END(_ufetch_16)
+
+ENTRY(_ufetch_32)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+
+	SMAP_DISABLE
+.L_ufetch_32_start:
+	movl	(%edx),%eax
+.L_ufetch_32_end:
+	SMAP_ENABLE
+
+	movl	8(%esp),%edx
+	movl	%eax,(%edx)
+	xorl	%eax,%eax
+	ret
+	DEFERRED_SWITCH_CALL
+END(_ufetch_32)
+
+ENTRY(_ustore_8)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
 	movb	8(%esp),%al
 
 	SMAP_DISABLE
+.L_ustore_8_start:
 	movb	%al,(%edx)
+.L_ustore_8_end:
 	SMAP_ENABLE
 
 	xorl	%eax,%eax
-	movl	%eax,PCB_ONFAULT(%ecx)
 	ret
 	DEFERRED_SWITCH_CALL
-END(subyte)
+END(_ustore_8)
+
+ENTRY(_ustore_16)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+	movw	8(%esp),%ax
+
+	SMAP_DISABLE
+.L_ustore_16_start:
+	movw	%ax,(%edx)
+.L_ustore_16_end:
+	SMAP_ENABLE
+
+	xorl	%eax,%eax
+	ret
+	DEFERRED_SWITCH_CALL
+END(_ustore_16)
+
+ENTRY(_ustore_32)
+	DEFERRED_SWITCH_CHECK
+	UFETCHSTORE_PROLOGUE
+	movl	8(%esp),%eax
+
+	SMAP_DISABLE
+.L_ustore_32_start:
+	movl	%eax,(%edx)
+.L_ustore_32_end:
+	SMAP_ENABLE
+
+	xorl	%eax,%eax
+	ret
+	DEFERRED_SWITCH_CALL
+END(_ustore_32)
+
+ENTRY(ufetchstore_efault)
+	movl	$EFAULT,%eax
+	ret
+END(ufetchstore_efault)
+
+ENTRY(ufetchstore_fault)
+	SMAP_ENABLE
+	ret
+END(fetchstore_fault)
+
+/**************************************************************************/
 
 /*
  * Compare-and-swap the 32-bit integer in the user-space.
@@ -805,6 +775,30 @@ _C_LABEL(onfault_table):
 	.long .Lucas32_start
 	.long .Lucas32_end
 	.long _C_LABEL(ucas_fault)
+
+	.long .L_ufetch_8_start
+	.long .L_ufetch_8_end
+	.long _C_LABEL(ufetchstore_fault)
+
+	.long .L_ufetch_16_start
+	.long .L_ufetch_16_end
+	.long _C_LABEL(ufetchstore_fault)
+
+	.long .L_ufetch_32_start
+	.long .L_ufetch_32_end
+	.long _C_LABEL(ufetchstore_fault)
+
+	.long .L_ustore_8_start
+	.long .L_ustore_8_end
+	.long _C_LABEL(ufetchstore_fault)
+
+	.long .L_ustore_16_start
+	.long .L_ustore_16_end
+	.long _C_LABEL(ufetchstore_fault)
+
+	.long .L_ustore_32_start
+	.long .L_ustore_32_end
+	.long _C_LABEL(ufetchstore_fault)
 
 	.long .Lx86_copyargs_start
 	.long .Lx86_copyargs_end
