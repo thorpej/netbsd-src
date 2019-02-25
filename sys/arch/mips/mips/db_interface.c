@@ -980,15 +980,15 @@ branch_taken(int inst, db_addr_t pc, db_regs_t *regs)
 db_addr_t
 next_instr_address(db_addr_t pc, bool bd)
 {
-	unsigned ins;
+	uint32_t ins;
 
 	if (bd == false)
 		return (pc + 4);
 	
 	if (pc < MIPS_KSEG0_START)
-		ins = ufetch_32((void *)pc);
+		ins = mips_ufetch32((void *)pc);
 	else
-		ins = *(unsigned *)pc;
+		ins = *(uint32_t *)pc;
 
 	if (inst_branch(ins) || inst_call(ins) || inst_return(ins))
 		return (pc + 4);
