@@ -333,7 +333,7 @@ END(suswintr)
  * returns it in v0.
  *
  * We have this in addition to the MI fetch(9) API for the convenience
- * of bsd_emul.S and fp.S.
+ * of bds_emul.S and fp.S.
  */
 LEAF(mips_ufetch32)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
@@ -451,11 +451,10 @@ STRONG_ALIAS(suword, ustore_uint32)
 #endif
 
 /*
- * int mips_ustore_uint32_isync(void *, uint32_t)
+ * int mips_ustore32_isync(void *, uint32_t)
  * Have to flush instruction cache afterwards.
- * XXXJRT CONVERT TO NEW API
  */
-LEAF(mips_ustore_uint32_isync)
+LEAF(mips_ustore32_isync)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
 	PTR_LA	v0, _C_LABEL(fswberr)
 	blt	a0, zero, _C_LABEL(fswberr)
@@ -466,7 +465,7 @@ LEAF(mips_ustore_uint32_isync)
 	move	v0, zero
 	j	t9				# NOTE: must not clobber v0!
 	 li	a1, 4				# size of word
-END(mips_ustore_uint32_isync)
+END(mips_ustore32_isync)
 
 #ifdef _LP64
 /*

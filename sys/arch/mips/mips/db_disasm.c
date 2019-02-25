@@ -226,14 +226,11 @@ db_disasm(db_addr_t loc, bool altfmt)
 	 * loses the current debugging context.  KSEG2 not checked.
 	 */
 	if (loc < MIPS_KSEG0_START) {
-		instr = ufetch_32((void *)loc);
-		if (instr == 0xffffffff) {
-			/* "sd ra, -1(ra)" is unlikely */
+		if (ufetch_32((void *)loc, &instr) != 0) {
 			db_printf("invalid address.\n");
 			return loc;
 		}
-	}
-	else {
+	} else {
 		instr =  *(uint32_t *)loc;
 	}
 

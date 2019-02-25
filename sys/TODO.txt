@@ -7,7 +7,7 @@ ARCH:
 	i386
 	ia64
 	m68k
-	mips		-- AUDIT MIPS ufetch_* / ustore_* usage!!
+	mips
 	or1k
 	powerpc
 	riscv
