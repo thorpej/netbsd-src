@@ -129,9 +129,6 @@ extern struct emul emul_sunos;
 extern struct emul emul_netbsd_aoutm68k;
 #endif
 
-/* Special labels in m68k/copy.s */
-extern char fubail[], subail[];
-
 /* These are called from locore.s */
 void trap(struct trapframe *, int type, u_int code, u_int v);
 void trap_kdebug(int type, struct trapframe tf);
@@ -472,20 +469,6 @@ trap(struct trapframe *tf, int type, u_int code, u_int v)
 		if (kgdb_recover != 0)
 			goto dopanic;
 #endif
-		/*
-		 * If we were doing profiling ticks or other user mode
-		 * stuff from interrupt code, Just Say No.
-		 */
-		if (onfault == (void *)fubail || onfault == (void *)subail) {
-#ifdef	DEBUG
-			if (mmudebug & MDB_CPFAULT) {
-				printf("trap: copyfault fu/su bail\n");
-				Debugger();
-			}
-#endif
-			rv = EFAULT;
-			goto copyfault;
-		}
 		/*FALLTHROUGH*/
 
 	case T_MMUFLT|T_USER: { 	/* page fault */

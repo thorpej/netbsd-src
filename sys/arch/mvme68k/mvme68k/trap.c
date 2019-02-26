@@ -273,7 +273,6 @@ machine_userret(struct lwp *l, struct frame *f, u_quad_t t)
 void
 trap(struct frame *fp, int type, unsigned int code, unsigned int v)
 {
-	extern char fubail[], subail[];
 	struct lwp *l;
 	struct proc *p;
 	struct pcb *pcb;
@@ -521,15 +520,6 @@ trap(struct frame *fp, int type, unsigned int code, unsigned int v)
 		goto out;
 
 	case T_MMUFLT:		/* kernel mode page fault */
-		/*
-		 * If we were doing profiling ticks or other user mode
-		 * stuff from interrupt code, Just Say No.
-		 */
-		rv = EFAULT;
-		if (pcb->pcb_onfault == fubail || pcb->pcb_onfault == subail)
-			goto copyfault;
-		/* fall into ... */
-
 	case T_MMUFLT|T_USER:	/* page fault */
 	    {
 		vaddr_t va;

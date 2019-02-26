@@ -179,7 +179,6 @@ int mmudebug = 0;
 #endif
 
 extern struct pcb *curpcb;
-extern char fubail[], subail[];
 int _write_back(u_int, u_int, u_int, u_int, struct vm_map *);
 static void userret(struct lwp *, int, u_quad_t);
 void panictrap(int, u_int, u_int, struct frame *);
@@ -510,7 +509,6 @@ trap(struct frame *fp, int type, u_int code, u_int v)
 	struct lwp *l;
 	struct proc *p;
 	struct pcb *pcb;
-	void *onfault;
 	ksiginfo_t ksi;
 	u_quad_t sticks = 0;
 
@@ -705,12 +703,6 @@ trap(struct frame *fp, int type, u_int code, u_int v)
 	 * Kernel/User page fault
 	 */
 	case T_MMUFLT:
-		onfault = pcb->pcb_onfault;
-		if (onfault == (void *)fubail || onfault == (void *)subail) {
-			trapcpfault(l, fp, EFAULT);
-			return;
-		}
-		/*FALLTHROUGH*/
 	case T_MMUFLT|T_USER:	/* page fault */
 		trapmmufault(type, code, v, fp, l, sticks);
 		return;

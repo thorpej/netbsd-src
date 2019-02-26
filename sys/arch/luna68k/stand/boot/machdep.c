@@ -169,7 +169,7 @@ dumpmem(int *ptr, int sz, int ustack)
 			printf(" ");
 #if 0
 		if (ustack == 1) {
-			if ((val = fuword(ptr++)) == -1)
+			if (ufetch_int((void *)(ptr++), (u_int *)&val) != 0)
 				break;
 		} else {
 			if (ustack == 0 &&
