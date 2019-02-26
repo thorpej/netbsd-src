@@ -113,8 +113,6 @@ __KERNEL_RCSID(0, "$NetBSD: fault.c,v 1.107 2018/08/10 16:17:30 maxv Exp $");
 #include <arch/arm/arm/disassem.h>
 #include <arm/arm32/machdep.h>
 
-extern char fusubailout[];
-
 #ifdef DEBUG
 int last_fault_code;	/* For the benefit of pmap_fault_fixup() */
 #endif
@@ -301,13 +299,6 @@ data_abort_handler(trapframe_t *tf)
 	 * These are the main virtual memory-related faults signalled by
 	 * the MMU.
 	 */
-
-	/* fusubailout is used by [fs]uswintr to avoid page faulting */
-	if (__predict_false(pcb->pcb_onfault == fusubailout)) {
-		tf->tf_r0 = EFAULT;
-		tf->tf_pc = (intptr_t) pcb->pcb_onfault;
-		return;
-	}
 
 	KASSERTMSG(!user || tf == lwp_trapframe(l), "tf %p vs %p", tf,
 	    lwp_trapframe(l));
