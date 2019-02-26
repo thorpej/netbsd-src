@@ -12,7 +12,7 @@ ARCH:
 	powerpc
 	riscv
 	sh3
-	sparc
+	sparc		-- initial changes, NOT TESTED
 	sparc64
 	usermode
 	vax
