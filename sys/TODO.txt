@@ -1,10 +1,10 @@
 ARCH:
-	aarch64
+	aarch64		-- initial changes, NOT TESTED
 	alpha		-- changes done, NOT TESTED
 	amd64		-- changes done, tested-except-intrsafe
 	arm
 	hppa
-	i386		-- inital changes, NOT TESTED
+	i386		-- initial changes, NOT TESTED
 	ia64
 	m68k
 	mips
