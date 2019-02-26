@@ -685,11 +685,11 @@ calc_ea(struct insn_ea *ea, char *ptr, char **eaddr)
 			    __func__, ea->ea_basedisp, ea->ea_outerdisp));
 			DPRINTF(("%s: addr fetched from %p\n", __func__, ptr));
 			/* memory indirect modes */
-			if (ufetch_short(ptr, &sval))
+			if (ufetch_short((u_short *)ptr, &sval))
 				return SIGSEGV;
 			word = sval;
 			word <<= 16;
-			if (ufetch_short(ptr + 2, &sval))
+			if (ufetch_short((u_short *)(ptr + 2), &sval))
 				return SIGSEGV;
 			word |= sval;
 			DPRINTF(("%s: fetched ptr 0x%08x\n", __func__, word));
