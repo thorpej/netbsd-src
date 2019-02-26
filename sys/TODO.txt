@@ -11,7 +11,7 @@ ARCH:
 	or1k
 	powerpc		-- initial changes, NOT TESTED
 	riscv
-	sh3
+	sh3		-- initial changes, NOT TESTED
 	sparc		-- initial changes, NOT TESTED
 	sparc64		-- iniital changes, NOT TESTED
 	usermode
