@@ -1,4 +1,4 @@
-/*	$NetBSD: libnvmm_x86.c,v 1.18 2019/02/01 06:49:58 maxv Exp $	*/
+/*	$NetBSD: libnvmm_x86.c,v 1.24 2019/02/17 20:25:46 maxv Exp $	*/
 
 /*
  * Copyright (c) 2018 The NetBSD Foundation, Inc.
@@ -92,7 +92,6 @@ nvmm_vcpu_dump(struct nvmm_machine *mach, nvmm_cpuid_t cpuid)
 	printf("| -> CR3=%p\n", (void *)state.crs[NVMM_X64_CR_CR3]);
 	printf("| -> CR4=%p\n", (void *)state.crs[NVMM_X64_CR_CR4]);
 	printf("| -> CR8=%p\n", (void *)state.crs[NVMM_X64_CR_CR8]);
-	printf("| -> CPL=%p\n", (void *)state.misc[NVMM_X64_MISC_CPL]);
 
 	return 0;
 }
@@ -111,6 +110,8 @@ nvmm_vcpu_dump(struct nvmm_machine *mach, nvmm_cpuid_t cpuid)
 #define pte32_l1idx(va)	(((va) & PTE32_L1_MASK) >> PTE32_L1_SHIFT)
 #define pte32_l2idx(va)	(((va) & PTE32_L2_MASK) >> PTE32_L2_SHIFT)
 
+#define CR3_FRAME_32BIT	PG_FRAME
+
 typedef uint32_t pte_32bit_t;
 
 static int
@@ -125,7 +126,7 @@ x86_gva_to_gpa_32bit(struct nvmm_machine *mach, uint64_t cr3,
 	*prot = NVMM_PROT_ALL;
 
 	/* Parse L2. */
-	L2gpa = (cr3 & PG_FRAME);
+	L2gpa = (cr3 & CR3_FRAME_32BIT);
 	if (nvmm_gpa_to_hva(mach, L2gpa, &L2hva) == -1)
 		return -1;
 	pdir = (pte_32bit_t *)L2hva;
@@ -181,11 +182,13 @@ x86_gva_to_gpa_32bit(struct nvmm_machine *mach, uint64_t cr3,
 #define pte32_pae_l2idx(va)	(((va) & PTE32_PAE_L2_MASK) >> PTE32_PAE_L2_SHIFT)
 #define pte32_pae_l3idx(va)	(((va) & PTE32_PAE_L3_MASK) >> PTE32_PAE_L3_SHIFT)
 
+#define CR3_FRAME_32BIT_PAE	__BITS(31, 5)
+
 typedef uint64_t pte_32bit_pae_t;
 
 static int
 x86_gva_to_gpa_32bit_pae(struct nvmm_machine *mach, uint64_t cr3,
-    gvaddr_t gva, gpaddr_t *gpa, bool has_pse, nvmm_prot_t *prot)
+    gvaddr_t gva, gpaddr_t *gpa, nvmm_prot_t *prot)
 {
 	gpaddr_t L3gpa, L2gpa, L1gpa;
 	uintptr_t L3hva, L2hva, L1hva;
@@ -195,7 +198,7 @@ x86_gva_to_gpa_32bit_pae(struct nvmm_machine *mach, uint64_t cr3,
 	*prot = NVMM_PROT_ALL;
 
 	/* Parse L3. */
-	L3gpa = (cr3 & PG_FRAME);
+	L3gpa = (cr3 & CR3_FRAME_32BIT_PAE);
 	if (nvmm_gpa_to_hva(mach, L3gpa, &L3hva) == -1)
 		return -1;
 	pdir = (pte_32bit_pae_t *)L3hva;
@@ -221,8 +224,6 @@ x86_gva_to_gpa_32bit_pae(struct nvmm_machine *mach, uint64_t cr3,
 		*prot &= ~NVMM_PROT_WRITE;
 	if (pte & PG_NX)
 		*prot &= ~NVMM_PROT_EXEC;
-	if ((pte & PG_PS) && !has_pse)
-		return -1;
 	if (pte & PG_PS) {
 		*gpa = (pte & PTE32_PAE_L2_FRAME);
 		*gpa = *gpa + (gva & PTE32_PAE_L1_MASK);
@@ -272,6 +273,8 @@ x86_gva_to_gpa_32bit_pae(struct nvmm_machine *mach, uint64_t cr3,
 #define pte64_l3idx(va)	(((va) & PTE64_L3_MASK) >> PTE64_L3_SHIFT)
 #define pte64_l4idx(va)	(((va) & PTE64_L4_MASK) >> PTE64_L4_SHIFT)
 
+#define CR3_FRAME_64BIT	PG_FRAME
+
 typedef uint64_t pte_64bit_t;
 
 static inline bool
@@ -297,7 +300,7 @@ x86_gva_to_gpa_64bit(struct nvmm_machine *mach, uint64_t cr3,
 		return -1;
 
 	/* Parse L4. */
-	L4gpa = (cr3 & PG_FRAME);
+	L4gpa = (cr3 & CR3_FRAME_64BIT);
 	if (nvmm_gpa_to_hva(mach, L4gpa, &L4hva) == -1)
 		return -1;
 	pdir = (pte_64bit_t *)L4hva;
@@ -403,8 +406,7 @@ x86_gva_to_gpa(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 		ret = x86_gva_to_gpa_64bit(mach, cr3, gva, gpa, prot);
 	} else if (is_pae && !is_lng) {
 		/* 32bit PAE */
-		ret = x86_gva_to_gpa_32bit_pae(mach, cr3, gva, gpa, has_pse,
-		    prot);
+		ret = x86_gva_to_gpa_32bit_pae(mach, cr3, gva, gpa, prot);
 	} else if (!is_pae && !is_lng) {
 		/* 32bit */
 		ret = x86_gva_to_gpa_32bit(mach, cr3, gva, gpa, has_pse, prot);
@@ -820,13 +822,68 @@ out:
 
 /* -------------------------------------------------------------------------- */
 
-static void x86_emul_or(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_and(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_xor(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_mov(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_stos(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_lods(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
-static void x86_emul_movs(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
+struct x86_emul {
+	bool read;
+	bool notouch;
+	void (*func)(struct nvmm_mem *, uint64_t *);
+};
+
+static void x86_func_or(struct nvmm_mem *, uint64_t *);
+static void x86_func_and(struct nvmm_mem *, uint64_t *);
+static void x86_func_sub(struct nvmm_mem *, uint64_t *);
+static void x86_func_xor(struct nvmm_mem *, uint64_t *);
+static void x86_func_cmp(struct nvmm_mem *, uint64_t *);
+static void x86_func_test(struct nvmm_mem *, uint64_t *);
+static void x86_func_mov(struct nvmm_mem *, uint64_t *);
+static void x86_func_stos(struct nvmm_mem *, uint64_t *);
+static void x86_func_lods(struct nvmm_mem *, uint64_t *);
+static void x86_func_movs(struct nvmm_mem *, uint64_t *);
+
+static const struct x86_emul x86_emul_or = {
+	.read = true,
+	.func = x86_func_or
+};
+
+static const struct x86_emul x86_emul_and = {
+	.read = true,
+	.func = x86_func_and
+};
+
+static const struct x86_emul x86_emul_sub = {
+	.read = true,
+	.func = x86_func_sub
+};
+
+static const struct x86_emul x86_emul_xor = {
+	.read = true,
+	.func = x86_func_xor
+};
+
+static const struct x86_emul x86_emul_cmp = {
+	.notouch = true,
+	.func = x86_func_cmp
+};
+
+static const struct x86_emul x86_emul_test = {
+	.notouch = true,
+	.func = x86_func_test
+};
+
+static const struct x86_emul x86_emul_mov = {
+	.func = x86_func_mov
+};
+
+static const struct x86_emul x86_emul_stos = {
+	.func = x86_func_stos
+};
+
+static const struct x86_emul x86_emul_lods = {
+	.func = x86_func_lods
+};
+
+static const struct x86_emul x86_emul_movs = {
+	.func = x86_func_movs
+};
 
 /* Legacy prefixes. */
 #define LEG_LOCK	0xF0
@@ -954,10 +1011,9 @@ struct x86_instr {
 
 	struct x86_store src;
 	struct x86_store dst;
-
 	struct x86_store *strm;
 
-	void (*emul)(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
+	const struct x86_emul *emul;
 };
 
 struct x86_decode_fsm {
@@ -985,14 +1041,15 @@ struct x86_opcode {
 	int defsize;
 	int allsize;
 	bool group1;
+	bool group3;
 	bool group11;
 	bool immediate;
 	int flags;
-	void (*emul)(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
+	const struct x86_emul *emul;
 };
 
 struct x86_group_entry {
-	void (*emul)(struct nvmm_mem *, void (*)(struct nvmm_mem *), uint64_t *);
+	const struct x86_emul *emul;
 };
 
 #define OPSIZE_BYTE 0x01
@@ -1005,19 +1062,37 @@ struct x86_group_entry {
 #define FLAG_ze		0x04
 
 static const struct x86_group_entry group1[8] = {
-	[1] = { .emul = x86_emul_or },
-	[4] = { .emul = x86_emul_and },
-	[6] = { .emul = x86_emul_xor }
+	[1] = { .emul = &x86_emul_or },
+	[4] = { .emul = &x86_emul_and },
+	[6] = { .emul = &x86_emul_xor },
+	[7] = { .emul = &x86_emul_cmp }
+};
+
+static const struct x86_group_entry group3[8] = {
+	[0] = { .emul = &x86_emul_test },
+	[1] = { .emul = &x86_emul_test }
 };
 
 static const struct x86_group_entry group11[8] = {
-	[0] = { .emul = x86_emul_mov }
+	[0] = { .emul = &x86_emul_mov }
 };
 
 static const struct x86_opcode primary_opcode_table[] = {
 	/*
 	 * Group1
 	 */
+	{
+		/* Eb, Ib */
+		.byte = 0x80,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = false,
+		.defsize = OPSIZE_BYTE,
+		.allsize = -1,
+		.group1 = true,
+		.immediate = true,
+		.emul = NULL /* group1 */
+	},
 	{
 		/* Ev, Iz */
 		.byte = 0x81,
@@ -1043,6 +1118,35 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.immediate = true,
 		.flags = FLAG_imm8,
 		.emul = NULL /* group1 */
+	},
+
+	/*
+	 * Group3
+	 */
+	{
+		/* Eb, Ib */
+		.byte = 0xF6,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = false,
+		.defsize = OPSIZE_BYTE,
+		.allsize = -1,
+		.group3 = true,
+		.immediate = true,
+		.emul = NULL /* group3 */
+	},
+	{
+		/* Ev, Iz */
+		.byte = 0xF7,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = true,
+		.defsize = -1,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.group3 = true,
+		.immediate = true,
+		.flags = FLAG_immz,
+		.emul = NULL /* group3 */
 	},
 
 	/*
@@ -1085,7 +1189,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_or
+		.emul = &x86_emul_or
 	},
 	{
 		/* Ev, Gv */
@@ -1095,7 +1199,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_or
+		.emul = &x86_emul_or
 	},
 	{
 		/* Gb, Eb */
@@ -1105,7 +1209,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_or
+		.emul = &x86_emul_or
 	},
 	{
 		/* Gv, Ev */
@@ -1115,7 +1219,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_or
+		.emul = &x86_emul_or
 	},
 
 	/*
@@ -1129,7 +1233,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_and
+		.emul = &x86_emul_and
 	},
 	{
 		/* Ev, Gv */
@@ -1139,7 +1243,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_and
+		.emul = &x86_emul_and
 	},
 	{
 		/* Gb, Eb */
@@ -1149,7 +1253,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_and
+		.emul = &x86_emul_and
 	},
 	{
 		/* Gv, Ev */
@@ -1159,7 +1263,51 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_and
+		.emul = &x86_emul_and
+	},
+
+	/*
+	 * SUB
+	 */
+	{
+		/* Eb, Gb */
+		.byte = 0x28,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = false,
+		.defsize = OPSIZE_BYTE,
+		.allsize = -1,
+		.emul = &x86_emul_sub
+	},
+	{
+		/* Ev, Gv */
+		.byte = 0x29,
+		.regmodrm = true,
+		.regtorm = true,
+		.szoverride = true,
+		.defsize = -1,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.emul = &x86_emul_sub
+	},
+	{
+		/* Gb, Eb */
+		.byte = 0x2A,
+		.regmodrm = true,
+		.regtorm = false,
+		.szoverride = false,
+		.defsize = OPSIZE_BYTE,
+		.allsize = -1,
+		.emul = &x86_emul_sub
+	},
+	{
+		/* Gv, Ev */
+		.byte = 0x2B,
+		.regmodrm = true,
+		.regtorm = false,
+		.szoverride = true,
+		.defsize = -1,
+		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
+		.emul = &x86_emul_sub
 	},
 
 	/*
@@ -1173,7 +1321,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_xor
+		.emul = &x86_emul_xor
 	},
 	{
 		/* Ev, Gv */
@@ -1183,7 +1331,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_xor
+		.emul = &x86_emul_xor
 	},
 	{
 		/* Gb, Eb */
@@ -1193,7 +1341,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_xor
+		.emul = &x86_emul_xor
 	},
 	{
 		/* Gv, Ev */
@@ -1203,7 +1351,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_xor
+		.emul = &x86_emul_xor
 	},
 
 	/*
@@ -1217,7 +1365,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Ev, Gv */
@@ -1227,7 +1375,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Gb, Eb */
@@ -1237,7 +1385,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Gv, Ev */
@@ -1247,7 +1395,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* AL, Ob */
@@ -1257,7 +1405,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* rAX, Ov */
@@ -1267,7 +1415,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Ob, AL */
@@ -1277,7 +1425,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Ov, rAX */
@@ -1287,7 +1435,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 
 	/*
@@ -1300,7 +1448,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_movs
+		.emul = &x86_emul_movs
 	},
 	{
 		/* Yv, Xv */
@@ -1309,7 +1457,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_movs
+		.emul = &x86_emul_movs
 	},
 
 	/*
@@ -1322,7 +1470,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_stos
+		.emul = &x86_emul_stos
 	},
 	{
 		/* Yv, rAX */
@@ -1331,7 +1479,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_stos
+		.emul = &x86_emul_stos
 	},
 
 	/*
@@ -1344,7 +1492,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = false,
 		.defsize = OPSIZE_BYTE,
 		.allsize = -1,
-		.emul = x86_emul_lods
+		.emul = &x86_emul_lods
 	},
 	{
 		/* rAX, Xv */
@@ -1353,7 +1501,7 @@ static const struct x86_opcode primary_opcode_table[] = {
 		.szoverride = true,
 		.defsize = -1,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
-		.emul = x86_emul_lods
+		.emul = &x86_emul_lods
 	},
 };
 
@@ -1370,7 +1518,7 @@ static const struct x86_opcode secondary_opcode_table[] = {
 		.defsize = OPSIZE_BYTE,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
 		.flags = FLAG_ze,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 	{
 		/* Gv, Ew */
@@ -1381,7 +1529,7 @@ static const struct x86_opcode secondary_opcode_table[] = {
 		.defsize = OPSIZE_WORD,
 		.allsize = OPSIZE_WORD|OPSIZE_DOUB|OPSIZE_QUAD,
 		.flags = FLAG_ze,
-		.emul = x86_emul_mov
+		.emul = &x86_emul_mov
 	},
 };
 
@@ -2064,6 +2212,11 @@ node_regmodrm(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 			return -1;
 		}
 		instr->emul = group1[instr->regmodrm.reg].emul;
+	} else if (opcode->group3) {
+		if (group3[instr->regmodrm.reg].emul == NULL) {
+			return -1;
+		}
+		instr->emul = group3[instr->regmodrm.reg].emul;
 	} else if (opcode->group11) {
 		if (group11[instr->regmodrm.reg].emul == NULL) {
 			return -1;
@@ -2080,14 +2233,14 @@ node_regmodrm(struct x86_decode_fsm *fsm, struct x86_instr *instr)
 		strg->u.reg = reg;
 	}
 
+	/* The displacement applies to RM. */
+	strm->disp.type = get_disp_type(instr);
+
 	if (has_sib(instr)) {
 		/* Overwrites RM */
 		fsm_advance(fsm, 1, node_sib);
 		return 0;
 	}
-
-	/* The displacement applies to RM. */
-	strm->disp.type = get_disp_type(instr);
 
 	if (is_rip_relative(fsm, instr)) {
 		/* Overwrites RM */
@@ -2425,150 +2578,270 @@ x86_decode(uint8_t *inst_bytes, size_t inst_len, struct x86_instr *instr,
 
 /* -------------------------------------------------------------------------- */
 
-static inline uint8_t
-compute_parity(uint8_t *data)
-{
-	uint64_t *ptr = (uint64_t *)data;
-	uint64_t val = *ptr;
-
-	val ^= val >> 32;
-	val ^= val >> 16;
-	val ^= val >> 8;
-	val ^= val >> 4;
-	val ^= val >> 2;
-	val ^= val >> 1;
-	return (~val) & 1;
+#define EXEC_INSTR(sz, instr)						\
+static uint##sz##_t							\
+exec_##instr##sz(uint##sz##_t op1, uint##sz##_t op2, uint64_t *rflags)	\
+{									\
+	uint##sz##_t res;						\
+	__asm __volatile (						\
+		#instr " %2, %3;"					\
+		"mov %3, %1;"						\
+		"pushfq;"						\
+		"popq %0"						\
+	    : "=r" (*rflags), "=r" (res)				\
+	    : "r" (op1), "r" (op2));					\
+	return res;							\
 }
 
+#define EXEC_DISPATCHER(instr)						\
+static uint64_t								\
+exec_##instr(uint64_t op1, uint64_t op2, uint64_t *rflags, size_t opsize) \
+{									\
+	switch (opsize) {						\
+	case 1:								\
+		return exec_##instr##8(op1, op2, rflags);		\
+	case 2:								\
+		return exec_##instr##16(op1, op2, rflags);		\
+	case 4:								\
+		return exec_##instr##32(op1, op2, rflags);		\
+	default:							\
+		return exec_##instr##64(op1, op2, rflags);		\
+	}								\
+}
+
+/* SUB: ret = op1 - op2 */
+#define PSL_SUB_MASK	(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF|PSL_AF)
+EXEC_INSTR(8, sub)
+EXEC_INSTR(16, sub)
+EXEC_INSTR(32, sub)
+EXEC_INSTR(64, sub)
+EXEC_DISPATCHER(sub)
+
+/* OR:  ret = op1 | op2 */
+#define PSL_OR_MASK	(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF)
+EXEC_INSTR(8, or)
+EXEC_INSTR(16, or)
+EXEC_INSTR(32, or)
+EXEC_INSTR(64, or)
+EXEC_DISPATCHER(or)
+
+/* AND: ret = op1 & op2 */
+#define PSL_AND_MASK	(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF)
+EXEC_INSTR(8, and)
+EXEC_INSTR(16, and)
+EXEC_INSTR(32, and)
+EXEC_INSTR(64, and)
+EXEC_DISPATCHER(and)
+
+/* XOR: ret = op1 ^ op2 */
+#define PSL_XOR_MASK	(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF)
+EXEC_INSTR(8, xor)
+EXEC_INSTR(16, xor)
+EXEC_INSTR(32, xor)
+EXEC_INSTR(64, xor)
+EXEC_DISPATCHER(xor)
+
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Emulation functions. We don't care about the order of the operands, except
+ * for SUB, CMP and TEST. For these ones we look at mem->write todetermine who
+ * is op1 and who is op2.
+ */
+
 static void
-x86_emul_or(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_or(struct nvmm_mem *mem, uint64_t *gprs)
 {
+	uint64_t *retval = (uint64_t *)mem->data;
 	const bool write = mem->write;
-	uint64_t fl = gprs[NVMM_X64_GPR_RFLAGS];
-	uint8_t data[8];
-	size_t i;
+	uint64_t *op1, op2, fl, ret;
 
-	fl &= ~(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF);
+	op1 = (uint64_t *)mem->data;
+	op2 = 0;
 
-	memcpy(data, mem->data, sizeof(data));
-
-	/* Fetch the value to be OR'ed. */
+	/* Fetch the value to be OR'ed (op2). */
+	mem->data = (uint8_t *)&op2;
 	mem->write = false;
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
 
 	/* Perform the OR. */
-	for (i = 0; i < mem->size; i++) {
-		mem->data[i] |= data[i];
-		if (mem->data[i] != 0)
-			fl |= PSL_Z;
-	}
-	if (mem->data[mem->size-1] & __BIT(7))
-		fl |= PSL_N;
-	if (compute_parity(mem->data))
-		fl |= PSL_PF;
+	ret = exec_or(*op1, op2, &fl, mem->size);
 
 	if (write) {
 		/* Write back the result. */
+		mem->data = (uint8_t *)&ret;
 		mem->write = true;
-		(*cb)(mem);
+		(*__callbacks.mem)(mem);
+	} else {
+		/* Return data to the caller. */
+		*retval = ret;
 	}
 
-	gprs[NVMM_X64_GPR_RFLAGS] = fl;
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_OR_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_OR_MASK);
 }
 
 static void
-x86_emul_and(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_and(struct nvmm_mem *mem, uint64_t *gprs)
 {
+	uint64_t *retval = (uint64_t *)mem->data;
 	const bool write = mem->write;
-	uint64_t fl = gprs[NVMM_X64_GPR_RFLAGS];
-	uint8_t data[8];
-	size_t i;
+	uint64_t *op1, op2, fl, ret;
 
-	fl &= ~(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF);
+	op1 = (uint64_t *)mem->data;
+	op2 = 0;
 
-	memcpy(data, mem->data, sizeof(data));
-
-	/* Fetch the value to be AND'ed. */
+	/* Fetch the value to be AND'ed (op2). */
+	mem->data = (uint8_t *)&op2;
 	mem->write = false;
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
 
 	/* Perform the AND. */
-	for (i = 0; i < mem->size; i++) {
-		mem->data[i] &= data[i];
-		if (mem->data[i] != 0)
-			fl |= PSL_Z;
-	}
-	if (mem->data[mem->size-1] & __BIT(7))
-		fl |= PSL_N;
-	if (compute_parity(mem->data))
-		fl |= PSL_PF;
+	ret = exec_and(*op1, op2, &fl, mem->size);
 
 	if (write) {
 		/* Write back the result. */
+		mem->data = (uint8_t *)&ret;
 		mem->write = true;
-		(*cb)(mem);
+		(*__callbacks.mem)(mem);
+	} else {
+		/* Return data to the caller. */
+		*retval = ret;
 	}
 
-	gprs[NVMM_X64_GPR_RFLAGS] = fl;
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_AND_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_AND_MASK);
 }
 
 static void
-x86_emul_xor(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_sub(struct nvmm_mem *mem, uint64_t *gprs)
 {
+	uint64_t *retval = (uint64_t *)mem->data;
 	const bool write = mem->write;
-	uint64_t fl = gprs[NVMM_X64_GPR_RFLAGS];
-	uint8_t data[8];
-	size_t i;
+	uint64_t *op1, *op2, fl, ret;
+	uint64_t tmp;
+	bool memop1;
 
-	fl &= ~(PSL_V|PSL_C|PSL_Z|PSL_N|PSL_PF);
+	memop1 = !mem->write;
+	op1 = memop1 ? &tmp : (uint64_t *)mem->data;
+	op2 = memop1 ? (uint64_t *)mem->data : &tmp;
 
-	memcpy(data, mem->data, sizeof(data));
-
-	/* Fetch the value to be XOR'ed. */
+	/* Fetch the value to be SUB'ed (op1 or op2). */
+	mem->data = (uint8_t *)&tmp;
 	mem->write = false;
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
+
+	/* Perform the SUB. */
+	ret = exec_sub(*op1, *op2, &fl, mem->size);
+
+	if (write) {
+		/* Write back the result. */
+		mem->data = (uint8_t *)&ret;
+		mem->write = true;
+		(*__callbacks.mem)(mem);
+	} else {
+		/* Return data to the caller. */
+		*retval = ret;
+	}
+
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_SUB_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_SUB_MASK);
+}
+
+static void
+x86_func_xor(struct nvmm_mem *mem, uint64_t *gprs)
+{
+	uint64_t *retval = (uint64_t *)mem->data;
+	const bool write = mem->write;
+	uint64_t *op1, op2, fl, ret;
+
+	op1 = (uint64_t *)mem->data;
+	op2 = 0;
+
+	/* Fetch the value to be XOR'ed (op2). */
+	mem->data = (uint8_t *)&op2;
+	mem->write = false;
+	(*__callbacks.mem)(mem);
 
 	/* Perform the XOR. */
-	for (i = 0; i < mem->size; i++) {
-		mem->data[i] ^= data[i];
-		if (mem->data[i] != 0)
-			fl |= PSL_Z;
-	}
-	if (mem->data[mem->size-1] & __BIT(7))
-		fl |= PSL_N;
-	if (compute_parity(mem->data))
-		fl |= PSL_PF;
+	ret = exec_xor(*op1, op2, &fl, mem->size);
 
 	if (write) {
 		/* Write back the result. */
+		mem->data = (uint8_t *)&ret;
 		mem->write = true;
-		(*cb)(mem);
+		(*__callbacks.mem)(mem);
+	} else {
+		/* Return data to the caller. */
+		*retval = ret;
 	}
 
-	gprs[NVMM_X64_GPR_RFLAGS] = fl;
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_XOR_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_XOR_MASK);
 }
 
 static void
-x86_emul_mov(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_cmp(struct nvmm_mem *mem, uint64_t *gprs)
+{
+	uint64_t *op1, *op2, fl;
+	uint64_t tmp;
+	bool memop1;
+
+	memop1 = !mem->write;
+	op1 = memop1 ? &tmp : (uint64_t *)mem->data;
+	op2 = memop1 ? (uint64_t *)mem->data : &tmp;
+
+	/* Fetch the value to be CMP'ed (op1 or op2). */
+	mem->data = (uint8_t *)&tmp;
+	mem->write = false;
+	(*__callbacks.mem)(mem);
+
+	/* Perform the CMP. */
+	exec_sub(*op1, *op2, &fl, mem->size);
+
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_SUB_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_SUB_MASK);
+}
+
+static void
+x86_func_test(struct nvmm_mem *mem, uint64_t *gprs)
+{
+	uint64_t *op1, *op2, fl;
+	uint64_t tmp;
+	bool memop1;
+
+	memop1 = !mem->write;
+	op1 = memop1 ? &tmp : (uint64_t *)mem->data;
+	op2 = memop1 ? (uint64_t *)mem->data : &tmp;
+
+	/* Fetch the value to be TEST'ed (op1 or op2). */
+	mem->data = (uint8_t *)&tmp;
+	mem->write = false;
+	(*__callbacks.mem)(mem);
+
+	/* Perform the TEST. */
+	exec_and(*op1, *op2, &fl, mem->size);
+
+	gprs[NVMM_X64_GPR_RFLAGS] &= ~PSL_AND_MASK;
+	gprs[NVMM_X64_GPR_RFLAGS] |= (fl & PSL_AND_MASK);
+}
+
+static void
+x86_func_mov(struct nvmm_mem *mem, uint64_t *gprs)
 {
 	/*
 	 * Nothing special, just move without emulation.
 	 */
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
 }
 
 static void
-x86_emul_stos(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_stos(struct nvmm_mem *mem, uint64_t *gprs)
 {
 	/*
 	 * Just move, and update RDI.
 	 */
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
 
 	if (gprs[NVMM_X64_GPR_RFLAGS] & PSL_D) {
 		gprs[NVMM_X64_GPR_RDI] -= mem->size;
@@ -2578,13 +2851,12 @@ x86_emul_stos(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
 }
 
 static void
-x86_emul_lods(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_lods(struct nvmm_mem *mem, uint64_t *gprs)
 {
 	/*
 	 * Just move, and update RSI.
 	 */
-	(*cb)(mem);
+	(*__callbacks.mem)(mem);
 
 	if (gprs[NVMM_X64_GPR_RFLAGS] & PSL_D) {
 		gprs[NVMM_X64_GPR_RSI] -= mem->size;
@@ -2594,8 +2866,7 @@ x86_emul_lods(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
 }
 
 static void
-x86_emul_movs(struct nvmm_mem *mem, void (*cb)(struct nvmm_mem *),
-    uint64_t *gprs)
+x86_func_movs(struct nvmm_mem *mem, uint64_t *gprs)
 {
 	/*
 	 * Special instruction: double memory operand. Don't call the cb,
@@ -2683,7 +2954,7 @@ store_to_gva(struct nvmm_x64_state *state, struct x86_instr *instr,
 static int
 fetch_segment(struct nvmm_machine *mach, struct nvmm_x64_state *state)
 {
-	uint8_t inst_bytes[15], byte;
+	uint8_t inst_bytes[5], byte;
 	size_t i, fetchsize;
 	gvaddr_t gva;
 	int ret, seg;
@@ -2795,7 +3066,7 @@ assist_mem_double(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 		return -1;
 
 	mem.size = size;
-	(*instr->emul)(&mem, NULL, state->gprs);
+	(*instr->emul->func)(&mem, state->gprs);
 
 	return 0;
 }
@@ -2860,15 +3131,25 @@ assist_mem_single(struct nvmm_machine *mach, struct nvmm_x64_state *state,
 		default:
 			DISASSEMBLER_BUG();
 		}
-	}
-
-	(*instr->emul)(&mem, __callbacks.mem, state->gprs);
-
-	if (!mem.write) {
+	} else if (instr->emul->read) {
 		if (instr->dst.type != STORE_REG) {
 			DISASSEMBLER_BUG();
 		}
-		memcpy(&val, mem.data, sizeof(uint64_t));
+		if (instr->dst.disp.type != DISP_NONE) {
+			DISASSEMBLER_BUG();
+		}
+		val = state->gprs[instr->dst.u.reg->num];
+		val = __SHIFTOUT(val, instr->dst.u.reg->mask);
+		memcpy(mem.data, &val, mem.size);
+	}
+
+	(*instr->emul->func)(&mem, state->gprs);
+
+	if (!instr->emul->notouch && !mem.write) {
+		if (instr->dst.type != STORE_REG) {
+			DISASSEMBLER_BUG();
+		}
+		memcpy(&val, membuf, sizeof(uint64_t));
 		val = __SHIFTIN(val, instr->dst.u.reg->mask);
 		state->gprs[instr->dst.u.reg->num] &= ~instr->dst.u.reg->mask;
 		state->gprs[instr->dst.u.reg->num] |= val;

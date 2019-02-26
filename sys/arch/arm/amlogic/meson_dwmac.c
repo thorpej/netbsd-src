@@ -1,4 +1,4 @@
-/* $NetBSD: meson_dwmac.c,v 1.1 2019/01/19 20:56:03 jmcneill Exp $ */
+/* $NetBSD: meson_dwmac.c,v 1.3 2019/02/25 19:30:17 jmcneill Exp $ */
 
 /*-
  * Copyright (c) 2017 Jared McNeill <jmcneill@invisible.ca>
@@ -28,7 +28,7 @@
 
 #include <sys/cdefs.h>
 
-__KERNEL_RCSID(0, "$NetBSD: meson_dwmac.c,v 1.1 2019/01/19 20:56:03 jmcneill Exp $");
+__KERNEL_RCSID(0, "$NetBSD: meson_dwmac.c,v 1.3 2019/02/25 19:30:17 jmcneill Exp $");
 
 #include <sys/param.h>
 #include <sys/bus.h>
@@ -53,13 +53,13 @@ __KERNEL_RCSID(0, "$NetBSD: meson_dwmac.c,v 1.1 2019/01/19 20:56:03 jmcneill Exp
 
 static const char * compatible[] = {
 	"amlogic,meson8b-dwmac",
+	"amlogic,meson-gx-dwmac",
 	NULL
 };
 
 static int
 meson_dwmac_reset(const int phandle)
 {
-#if notyet
 	struct fdtbus_gpio_pin *pin_reset;
 	const u_int *reset_delay_us;
 	bool reset_active_low;
@@ -83,7 +83,6 @@ meson_dwmac_reset(const int phandle)
 	delay(be32toh(reset_delay_us[1]));
 	fdtbus_gpio_write(pin_reset, val);
 	delay(be32toh(reset_delay_us[2]));
-#endif
 
 	return 0;
 }
@@ -187,7 +186,7 @@ meson_dwmac_attach(device_t parent, device_t self, void *aux)
 	if (meson_dwmac_reset(phandle) != 0)
 		aprint_error_dev(self, "PHY reset failed\n");
 
-	dwc_gmac_attach(sc, GMAC_MII_CLK_100_150M_DIV62);
+	dwc_gmac_attach(sc, MII_PHY_ANY, GMAC_MII_CLK_100_150M_DIV62);
 }
 
 CFATTACH_DECL_NEW(meson_dwmac, sizeof(struct dwc_gmac_softc),

@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.41 2019/02/06 02:57:39 christos Exp $
+#	$NetBSD: Makefile,v 1.43 2019/02/17 00:05:11 mrg Exp $
 
 REQUIRETOOLS=	yes
 NOLINT=		# defined
@@ -18,22 +18,25 @@ LIBDPLIBS+=	m ${.CURDIR}/../../../../../lib/libm
 COPTS.random.cc+=	${${ACTIVE_CC} == "clang":? -mrdrnd :}
 .endif
 
+SYMBOLS=	libstdc++-symbols.ver
 .if ${MKPIC} != "no"
-libstdc++-symbols.ver:
+${SYMBOLS}:
 	cat ${DIST}/libstdc++-v3/config/abi/pre/gnu.ver ${G_port_specific_symbol_files} | \
 	${TOOL_GREP} -E -v '^[     ]*#(#| |$$)' | \
 	${CXX} -I${DESTDIR}/usr/include/g++ -E -P -include ${.CURDIR}/arch/${LIBSTDCXX_MACHINE_ARCH}/c++config.h - > \
 	${.TARGET}.tmp && mv ${.TARGET}.tmp ${.TARGET} && rm -f ${.TARGET}.tmp
 
+CLEANFILES+=	${SYMBOLS}
+
 .if ${MKPICLIB} != "no"
-libstdc++_pic.a:: libstdc++-symbols.ver
+libstdc++_pic.a:: ${SYMBOLS}
 .else
-libstdc++.a:: libstdc++-symbols.ver
+libstdc++.a:: ${SYMBOLS}
 .endif
 
 LDFLAGS+=	-Wl,-O1 \
 		-Wl,--gc-sections \
-		-Wl,--version-script=libstdc++-symbols.ver
+		-Wl,--version-script=${SYMBOLS}
 .endif
 
 CXXFLAGS.clang+=	-stdlib=libstdc++ -std=c++11 -D_GLIBCXX_ABI_TAG_CXX11=
@@ -144,6 +147,7 @@ SRCS+=	c98-codecvt.cc c11-codecvt.cc
 .include "../Makefile.gthr"
 
 # XXX Make this either/or, not one, and maybe another
+# XXX pull out libstdc++/Makefile/cxx11_sources for many of these.
 CXX11_ALWAYS=	localename.cc \
 		locale_init.cc \
 		compatibility-c++0x.cc \
@@ -155,6 +159,15 @@ CXX11_ALWAYS=	localename.cc \
 
 .for _s in ${CXX11_ALWAYS}
 COPTS.${_s}+= -std=gnu++11
+.endfor
+
+# XXX pull out libstdc++/Makefile/cxx98_sources for many of these.
+CXX98_ALWAYS=	compatibility.cc \
+		compatibility-debug_list.cc \
+		compatibility-debug_list-2.cc
+
+.for _s in ${CXX98_ALWAYS}
+COPTS.${_s}+= -std=gnu++98
 .endfor
 
 COPTS.cp-demangle.c += -Wno-unused-function

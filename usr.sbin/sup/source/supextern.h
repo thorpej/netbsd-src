@@ -1,4 +1,4 @@
-/*	$NetBSD: supextern.h,v 1.25 2019/02/03 12:13:37 mrg Exp $	*/
+/*	$NetBSD: supextern.h,v 1.28 2019/02/14 17:08:54 christos Exp $	*/
 
 struct stat;
 
@@ -133,7 +133,7 @@ int recvreg(TREE *, int, struct stat *);
 int copyfile(char *, char *);
 void finishup(int);
 void done(int, const char *, ...)
-	__attribute__((__format__(__printf__, 2, 3))) __dead;
+	__attribute__((__format__(__printf__, 2, 3)));
 void goaway(const char *, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 
