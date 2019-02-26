@@ -169,7 +169,9 @@ syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		code = fuword(params);
+		error = ufetch_long((void *)params, (u_long *)&code);
+		if (error)
+			goto bad;
 		params += sizeof(int);
 #if defined(COMPAT_13) || defined(COMPAT_16)
 		/*
@@ -194,7 +196,11 @@ syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 		 * Like syscall, but code is a quad, so as to maintain
 		 * quad alignment for the rest of the arguments.
 		 */
-		code = fuword(params + _QUAD_LOWWORD * sizeof(int));
+		error = ufetch_long((void *)(params +
+					     _QUAD_LOWWORD * sizeof(int)),
+				    (u_long *)&code);
+		if (error)
+			goto bad;
 		params += sizeof(quad_t);
 		break;
 	default:
@@ -291,7 +297,9 @@ syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		code = fuword(params);
+		error = ufetch_long((void *)params, (u_long *)&code);
+		if (error)
+			goto bad;
 		params += sizeof(int);
 #if defined(COMPAT_13) || defined(COMPAT_16)
 		/*
@@ -316,7 +324,11 @@ syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 		 * Like syscall, but code is a quad, so as to maintain
 		 * quad alignment for the rest of the arguments.
 		 */
-		code = fuword(params + _QUAD_LOWWORD * sizeof(int));
+		error = ufetch_long((void *)(params +
+					     _QUAD_LOWWORD * sizeof(int)),
+				    (u_long *)&code);
+		if (error)
+			goto bad;
 		params += sizeof(quad_t);
 		break;
 	default:
