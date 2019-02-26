@@ -1,7 +1,7 @@
 ARCH:
 	aarch64		-- initial changes, NOT TESTED
 	alpha		-- changes done, NOT TESTED
-	amd64		-- changes done, tested-except-intrsafe
+	amd64		-- changes done, tested
 	arm		-- initial changes, NOT TESTED
 	hppa
 	i386		-- initial changes, NOT TESTED
