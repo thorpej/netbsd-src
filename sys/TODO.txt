@@ -13,7 +13,7 @@ ARCH:
 	riscv
 	sh3
 	sparc		-- initial changes, NOT TESTED
-	sparc64
+	sparc64		-- iniital changes, NOT TESTED
 	usermode
 	vax
 	x86

@@ -1111,16 +1111,7 @@ data_access_fault(struct trapframe64 *tf, unsigned int type, vaddr_t pc,
 		access_type = (sfsr & SFSR_W) ? VM_PROT_WRITE : VM_PROT_READ;
 	}
 	if (tstate & TSTATE_PRIV) {
-		extern char Lfsbail[];
-
 		rv = EFAULT;
-
-		/*
-		 * If this was an access that we shouldn't try to page in,
-		 * resume at the fault handler without any action.
-		 */
-		if (onfault == (vaddr_t)Lfsbail)
-			goto kfault;
 
 		/*
 		 * During autoconfiguration, faults are never OK unless
