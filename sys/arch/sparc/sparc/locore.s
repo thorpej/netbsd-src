@@ -5094,7 +5094,7 @@ ENTRY(_ustore_16)
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
-/* LINTSTUB: int _ustore_32(uint16_t *uaddr, uint32_t val); */
+/* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
 ENTRY(_ustore_32)
 	UFETCHSTORE_PROLOGUE
 	st	%o1, [%o0]		! *uaddr = val
