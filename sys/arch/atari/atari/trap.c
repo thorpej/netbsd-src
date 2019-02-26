@@ -325,7 +325,6 @@ trap(struct frame *fp, int type, u_int code, u_int v)
 	struct pcb	*pcb;
 	ksiginfo_t ksi;
 	u_quad_t	sticks;
-	extern char	fubail[], subail[];
 
 	l = curlwp;
 	sticks = 0;
@@ -553,16 +552,6 @@ trap(struct frame *fp, int type, u_int code, u_int v)
 	 * Kernel/User page fault
 	 */
 	case T_MMUFLT:
-		/*
-		 * If we were doing profiling ticks or other user mode
-		 * stuff from interrupt code, Just Say No.
-		 */
-		if (pcb->pcb_onfault == (void *)fubail ||
-		    pcb->pcb_onfault == (void *)subail) {
-			trapcpfault(l, fp, EFAULT);
-			return;
-		}
-		/*FALLTHROUGH*/
 	case T_MMUFLT|T_USER:	/* page fault */
 	    {
 		vaddr_t	va;

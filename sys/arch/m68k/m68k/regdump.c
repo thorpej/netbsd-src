@@ -114,7 +114,7 @@ dumpmem(int *ptr, int sz, int ustack)
 		else
 			printf(" ");
 		if (ustack == 1) {
-			if ((val = fuword(ptr++)) == -1)
+			if (ufetch_int((void *)(ptr++), (u_int *)&val) != 0)
 				break;
 		} else {
 			if (((int) ptr) >= limit)

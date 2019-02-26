@@ -119,7 +119,6 @@ void fic_init(void);
 
 /* prototypes for local functions */
 void    identifycpu(void);
-void	dumpmem(int *, int, int);
 char	*hexstr(int, int);
 
 /* functions called from locore.s */

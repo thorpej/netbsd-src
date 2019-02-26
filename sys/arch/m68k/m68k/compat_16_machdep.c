@@ -254,7 +254,7 @@ compat_16_sys___sigreturn14(struct lwp *l, const struct compat_16_sys___sigretur
 	struct frame *frame;
 	struct sigcontext tsigc;
 	struct sigstate tstate;
-	int rf, flags;
+	int rf, flags, error;
 
 	/*
 	 * The trampoline code hands us the context.
@@ -291,14 +291,14 @@ compat_16_sys___sigreturn14(struct lwp *l, const struct compat_16_sys___sigretur
 	 * See if there is anything to do before we go to the
 	 * expense of copying in close to 1/2K of data
 	 */
-	flags = fuword((void *)rf);
+	error = ufetch_int((void *)rf, (u_int *)&flags);
 #ifdef DEBUG
 	if (sigdebug & SDB_FOLLOW)
 		printf("sigreturn(%d): sc_ap %x flags %x\n",
-		    p->p_pid, rf, flags);
+		    p->p_pid, rf, error ? -1 : flags);
 #endif
-	/* fuword failed (bogus sc_ap value). */
-	if (flags == -1)
+	/* ufetch_int() failed (bogus sc_ap value). */
+	if (error)
 		return EINVAL;
 
 	if (flags == 0 || copyin((void *)rf, &tstate, sizeof(tstate)) != 0)
