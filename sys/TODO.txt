@@ -9,7 +9,7 @@ ARCH:
 	m68k		-- initial changes, NOT TESTED
 	mips
 	or1k
-	powerpc
+	powerpc		-- initial changes, NOT TESTED
 	riscv
 	sh3
 	sparc		-- initial changes, NOT TESTED

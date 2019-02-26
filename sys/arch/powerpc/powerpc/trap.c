@@ -537,6 +537,64 @@ unsetusr(void)
 }
 #endif
 
+#define	UFETCH(sz)							\
+int									\
+_ufetch_ ## sz(const uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t *valp)	\
+{									\
+	struct faultbuf env;						\
+	vaddr_t p;							\
+	size_t seglen;							\
+	int rv;								\
+									\
+	if ((rv = setfault(&env)) != 0) {				\
+		goto out;						\
+	}								\
+	p = setusr((vaddr_t)uaddr, &seglen);				\
+	*valp = *(const volatile uint_ ## sz ## _t *)p;			\
+ out:									\
+	unsetusr();							\
+	curpcb->pcb_onfault = 0;					\
+	return rv;							\
+}
+
+UFETCH(8)
+UFETCH(16)
+UFETCH(32)
+#ifdef _LP64
+UFETCH(64)
+#endif
+
+#undef UFETCH
+
+#define	USTORE(sz)							\
+int									\
+_ustore_ ## sz(uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t val)		\
+{									\
+	struct faultbuf env;						\
+	vaddr_t p;							\
+	size_t seglen;							\
+	int rv;								\
+									\
+	if ((rv = setfault(&env)) != 0) {				\
+		goto out;						\
+	}								\
+	p = setusr((vaddr_t)uaddr, &seglen);				\
+	*(volatile uint_ ## sz ## _t *)p = val;				\
+ out:									\
+	unsetusr();							\
+	curpcb->pcb_onfault = 0;					\
+	return rv;							\
+}
+
+USTORE(8)
+USTORE(16)
+USTORE(32)
+#ifdef _LP64
+USTORE(64)
+#endif
+
+#undef USTORE
+
 int
 copyin(const void *udaddr, void *kaddr, size_t len)
 {
