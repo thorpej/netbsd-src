@@ -404,18 +404,21 @@ ENTRY(_ufetch_32)
 	movl	#.Lufetchstore_fault,PCB_ONFAULT(%a1)
 
 /* LINTSTUB: _ustore_8(uint8_t *uaddr, uint8_t val); */
+ENTRY(_ustore_8)
 	USTORE_PROLOGUE
 	movb	11(%sp),%d0		| value to store
 	movsb	%d0,(%a0)		| do write to user space
 	jra	.Lufetchstore_success
 
 /* LINTSTUB: _ustore_16(uint16_t *uaddr, uint16_t val); */
+ENTRY(_ustore_16)
 	USTORE_PROLOGUE
 	movw	10(%sp),%d0		| value to store
 	movsw	%d0,(%a0)		| do write to user space
 	jra	.Lufetchstore_success
 
 /* LINTSTUB: _ustore_32(uint32_t *uaddr, uint32_t val); */
+ENTRY(_ustore_32)
 	USTORE_PROLOGUE
 	movl	8(%sp),%d0		| value to store
 	movsl	%d0,(%a0)		| do write to user space
