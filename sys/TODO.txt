@@ -15,7 +15,7 @@ ARCH:
 	sparc		-- initial changes, NOT TESTED
 	sparc64		-- iniital changes, NOT TESTED
 	usermode
-	vax
+	vax		-- initial changes, NOT TESTED
 	x86
 	xen
 

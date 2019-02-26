@@ -502,53 +502,81 @@ ENTRY(copystr,0)
 	movl	$ENAMETOOLONG,%r0 # inform about too long string
 	brb	0b		# out of chars
 
-ENTRY(subyte,0)
-	movl	4(%ap),%r0
-	blss	3f		# illegal space
-	mfpr	$PR_ESP,%r1
-	movab	1f,(%r1)	# set pcb_onfault
-	movb	8(%ap),(%r0)
-	clrl	%r0
-1:	mfpr	$PR_ESP,%r1
-	clrl	(%r1)		# clear pcb_onfault
-	ret
-
-ENTRY(suword,0)
-	movl	4(%ap),%r0
-	blss	3f		# illegal space
-	mfpr	$PR_ESP,%r1
-	movab	3f,(%r1)	# set pcb_onfault
-	movl	8(%ap),(%r0)
-	clrl	%r0
-1:	mfpr	$PR_ESP,%r1
-	clrl	(%r1)		# clear pcb_onfault
-	ret
-
-ENTRY(suswintr,0)
-	movl	4(%ap),%r0
-	blss	3f		# illegal space
-	mfpr	$PR_ESP,%r1
-	movab	3f,(%r1)	# set pcb_onfault
-	movw	8(%ap),(%r0)
-	clrl	%r0
-1:	mfpr	$PR_ESP,%r1
-	clrl	(%r1)		# clear pcb_onfault
-	ret
-
-3:	mnegl	$1,%r0
-	brb	1b
+/**************************************************************************/
 
 	.align	2
-ALTENTRY(fusword)
-ENTRY(fuswintr,0)
-	movl	4(%ap),%r2
-	blss	3b
-	mfpr	$PR_ESP,%r1
-	movab	3b,(%r1)	# set pcb_onfault
-	movzwl	(%r2),%r0
-1:	mfpr	$PR_ESP,%r1
-	clrl	(%r1)		# clear pcb_onfault
+
+#define	USTORE_PROLOGUE							 \
+	movl	4(%ap),%r0		# %r0 = uaddr			;\
+	blss	Lufetchstore_efault	# illegal space			;\
+	mfpr	$PR_ESP,%r2		# &pcb_onfault is in ESP	;\	
+	movab	Lufetchstore_fault,(%r2)# set pcb_onfault
+
+#define	UFETCH_PROLOGUE							 \
+	USTORE_PROLOGUE							;\
+	movl	8(%ap),%r1		# %r1 = valp			;\
+
+#define	UFETCHSTORE_EPILOGUE						 \
+	mfpr	$PR_ESP,%r2		# &pcb_onfault is in ESP	;\
+	clrl	(%r2)			# pcb_onfault = NULL
+
+#define	UFETCHSTORE_RETURN_SUCCESS
+	clrl	%r0							;\
 	ret
+
+/* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
+ENTRY(_ufetch_8,0)
+	UFETCH_PROLOGUE
+	movb	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+/* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
+ENTRY(_ufetch_16,0)
+	UFETCH_PROLOGUE
+	movw	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+/* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
+ENTRY(_ufetch_32,0)
+	UFETCH_PROLOGUE
+	movl	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+/* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
+ENTRY(_ustore_8,0)
+	USTORE_PROLOGUE
+	movb	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+/* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
+ENTRY(_ustore_16,0)
+	USTORE_PROLOGUE
+	movw	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+/* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
+ENTRY(_ustore_32,0)
+	USTORE_PROLOGUE
+	movl	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_EPILOGUE
+	UFETCHSTORE_RETURN_SUCCESS
+
+Lufetchstore_efault:
+	movl	$EFAULT,%r0
+	ret				# return EFAULT
+
+Lufetchstore_fault:
+	UFETCHSTORE_EPILOGUE
+	ret				# error already in %r0
+
+/**************************************************************************/
+
+	.align	2
 
 JSBENTRY(Slock)
 1:	bbssi	$0,(%r1),1b
