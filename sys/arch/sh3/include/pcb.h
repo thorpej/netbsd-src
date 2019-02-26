@@ -37,7 +37,6 @@
 struct pcb {
 	struct switchframe pcb_sf;	/* kernel context for resume */
 	void *	pcb_onfault;		/* for copyin/out fault */
-	int	pcb_faultbail;		/* bail out before call uvm_fault. */
 };
 
 extern struct pcb *curpcb;

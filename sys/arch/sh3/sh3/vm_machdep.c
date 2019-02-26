@@ -174,7 +174,6 @@ sh3_setup_uarea(struct lwp *l)
 
 	pcb = lwp_getpcb(l);
 	pcb->pcb_onfault = NULL;
-	pcb->pcb_faultbail = 0;
 #ifdef SH3
 	/*
 	 * Accessing context store space must not cause exceptions.

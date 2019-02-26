@@ -378,14 +378,6 @@ tlb_exception(struct lwp *l, struct trapframe *tf, uint32_t va)
 	}
 
 	/* Page not found. call fault handler */
-	if (!usermode && pmap != pmap_kernel() && pcb->pcb_faultbail) {
-		TLB_ASSERT(onfault != NULL,
-		    "no copyin/out fault handler (interrupt context)");
-		tf->tf_spc = (int)onfault;
-		tf->tf_r0 = EFAULT;
-		return;
-	}
-
 	pcb->pcb_onfault = NULL;
 	err = uvm_fault(map, va, ftype);
 	pcb->pcb_onfault = onfault;
