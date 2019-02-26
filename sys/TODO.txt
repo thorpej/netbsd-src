@@ -6,7 +6,7 @@ ARCH:
 	hppa
 	i386		-- initial changes, NOT TESTED
 	ia64
-	m68k
+	m68k		-- initial changes, NOT TESTED
 	mips
 	or1k
 	powerpc

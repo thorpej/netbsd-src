@@ -1,7 +1,7 @@
 /*	$NetBSD: copy.s,v 1.46 2019/03/14 16:59:10 thorpej Exp $	*/
 
 /*-
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
+ * Copyright (c) 1998, 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -64,7 +64,7 @@
 
 /*
  * This file contains the functions for user-space access:
- * copyin/copyout, fuword/suword, etc.
+ * copyin/copyout, ufetch/ustore, etc.
  */
 
 #include "opt_multiprocessor.h"
@@ -367,142 +367,63 @@ ENTRY(kcopy)
 	addl	#16,%sp			| pop args and return address
 	jra	.Lkcdone
 
-/*
- * fuword(void *uaddr);
- * Fetch an int from the user's address space.
- */
-ENTRY(fuword)
-	CHECK_SFC
-	movl	4(%sp),%a0		| address to read
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lferr,PCB_ONFAULT(%a1)
-	movsl	(%a0),%d0		| do read from user space
-	jra	.Lfdone
+#define	UFETCH_PROLOGUE							\
+	CHECK_SFC						;	\
+	movl	4(%sp),%a0		| address to read	;	\
+	GETCURPCB(%a1)			| a1 = curpcb		;	\
+	movl	#.Lufetchstore_fault,PCB_ONFAULT(%a1)
 
-/*
- * fusword(void *uaddr);
- * Fetch a short from the user's address space.
- */
-ENTRY(fusword)
-	CHECK_SFC
-	movl	4(%sp),%a0		| address to read
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lferr,PCB_ONFAULT(%a1)
-	moveq	#0,%d0
-	movsw	(%a0),%d0		| do read from user space
-	jra	.Lfdone
-
-/*
- * fuswintr(void *uaddr);
- * Fetch a short from the user's address space.
- * Can be called during an interrupt.
- */
-ENTRY(fuswintr)
-	CHECK_SFC
-	movl	4(%sp),%a0		| address to read
-	GETCURPCB(%a1)			| set fault handler
-	movl	#_C_LABEL(fubail),PCB_ONFAULT(%a1)
-	moveq	#0,%d0
-	movsw	(%a0),%d0		| do read from user space
-	jra	.Lfdone
-
-/*
- * fubyte(void *uaddr);
- * Fetch a byte from the user's address space.
- */
-ENTRY(fubyte)
-	CHECK_SFC
-	movl	4(%sp),%a0		| address to read
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lferr,PCB_ONFAULT(%a1)
-	moveq	#0,%d0
+/* LINTSTUB: _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
+ENTRY(_ufetch_8)
+	UFETCH_PROLOGUE
 	movsb	(%a0),%d0		| do read from user space
-	jra	.Lfdone
+	movl	8(%sp),%a0		| destination address
+	movb	%d0,(%a0)
+	jra	.Lufetchstore_success
 
-/*
- * Error routine for fuswintr.  The fault handler in trap.c
- * checks for pcb_onfault set to this fault handler and
- * "bails out" before calling the VM fault handler.
- * (We can not call VM code from interrupt level.)
- * Same code as Lferr but must have a different address.
- */
-ENTRY(fubail)
-	nop
-.Lferr:
-	moveq	#-1,%d0			| error indicator
-.Lfdone:
-	clrl	PCB_ONFAULT(%a1) 	| clear fault handler
-	rts
+/* LINTSTUB: _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
+ENTRY(_ufetch_16)
+	UFETCH_PROLOGUE
+	movsw	(%a0),%d0		| do read from user space
+	movl	8(%sp),%a0		| destination address
+	movw	%d0,(%a0)
+	jra	.Lufetchstore_success
 
-/*
- * suword(void *uaddr, int x);
- * Store an int in the user's address space.
- */
-ENTRY(suword)
-	CHECK_DFC
-	movl	4(%sp),%a0		| address to write
-	movl	8(%sp),%d0		| value to put there
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lserr,PCB_ONFAULT(%a1)
-	movsl	%d0,(%a0)		| do write to user space
-	moveq	#0,%d0			| indicate no fault
-	jra	.Lsdone
+/* LINTSTUB: _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
+ENTRY(_ufetch_32)
+	UFETCH_PROLOGUE
+	movsl	(%a0),%d0		| do read from user space
+	movl	8(%sp),%a0		| destination address
+	movl	%d0,(%a0)
+	jra	.Lufetchstore_success
 
-/*
- * susword(void *uaddr, short x);
- * Store a short in the user's address space.
- */
-ENTRY(susword)
-	CHECK_DFC
-	movl	4(%sp),%a0		| address to write
-	movw	10(%sp),%d0		| value to put there
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lserr,PCB_ONFAULT(%a1)
-	movsw	%d0,(%a0)		| do write to user space
-	moveq	#0,%d0			| indicate no fault
-	jra	.Lsdone
+#define	USTORE_PROLOGUE							\
+	CHECK_DFC						;	\
+	movl	4(%sp),%a0		| address to write	;	\
+	GETCURPCB(%a1)			| a1 = curpcb		;	\
+	movl	#.Lufetchstore_fault,PCB_ONFAULT(%a1)
 
-/*
- * suswintr(void *uaddr, short x);
- * Store a short in the user's address space.
- * Can be called during an interrupt.
- */
-ENTRY(suswintr)
-	CHECK_DFC
-	movl	4(%sp),%a0		| address to write
-	movw	10(%sp),%d0		| value to put there
-	GETCURPCB(%a1)			| set fault handler
-	movl	#_C_LABEL(subail),PCB_ONFAULT(%a1)
-	movsw	%d0,(%a0)		| do write to user space
-	moveq	#0,%d0			| indicate no fault
-	jra	.Lsdone
-
-/*
- * subyte(void *uaddr, char x);
- * Store a byte in the user's address space.
- */
-ENTRY(subyte)
-	CHECK_DFC
-	movl	4(%sp),%a0		| address to write
-	movb	11(%sp),%d0		| value to put there
-	GETCURPCB(%a1)			| set fault handler
-	movl	#.Lserr,PCB_ONFAULT(%a1)
+/* LINTSTUB: _ustore_8(uint8_t *uaddr, uint8_t val); */
+	USTORE_PROLOGUE
+	movb	11(%sp),%d0		| value to store
 	movsb	%d0,(%a0)		| do write to user space
-	moveq	#0,%d0			| indicate no fault
-	jra	.Lsdone
+	jra	.Lufetchstore_success
 
-/*
- * Error routine for suswintr.  The fault handler in trap.c
- * checks for pcb_onfault set to this fault handler and
- * "bails out" before calling the VM fault handler.
- * (We can not call VM code from interrupt level.)
- * Same code as Lserr but must have a different address.
- */
-ENTRY(subail)
-	nop
-.Lserr:
-	moveq	#-1,%d0			| error indicator
-.Lsdone:
+/* LINTSTUB: _ustore_16(uint16_t *uaddr, uint16_t val); */
+	USTORE_PROLOGUE
+	movw	10(%sp),%d0		| value to store
+	movsw	%d0,(%a0)		| do write to user space
+	jra	.Lufetchstore_success
+
+/* LINTSTUB: _ustore_32(uint32_t *uaddr, uint32_t val); */
+	USTORE_PROLOGUE
+	movl	8(%sp),%d0		| value to store
+	movsl	%d0,(%a0)		| do write to user space
+	jra	.Lufetchstore_success
+
+.Lufetchstore_success:
+	clrl	%d0			| return 0
+.Lufetchstore_fault:
 	clrl	PCB_ONFAULT(%a1) 	| clear fault handler
 	rts
 
