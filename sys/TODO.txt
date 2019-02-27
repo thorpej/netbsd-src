@@ -10,7 +10,7 @@ ARCH:
 	mips
 	or1k
 	powerpc		-- initial changes, NOT TESTED
-	riscv
+	riscv		-- initial changes, NOT TESTED
 	sh3		-- initial changes, NOT TESTED
 	sparc		-- initial changes, NOT TESTED
 	sparc64		-- iniital changes, NOT TESTED
