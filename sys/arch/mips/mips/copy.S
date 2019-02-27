@@ -294,38 +294,102 @@ LEAF(kfetch_32)
 	 PTR_S	t0, PCB_ONFAULT(v1)
 END(kfetch_32)
 
-/*
- * int fuswintr(void *)
- * Fetches a short word of data from the user-space address.
- * This function is safe to call during an interrupt context.
- */
-LEAF(fuswintr)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswintrberr)
-	PTR_L	a2, PCB_ONFAULT(v1)
-	blt	a0, zero, _C_LABEL(fswintrberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	lhu	v0, 0(a0)			# fetch short
-	j	ra
-	 PTR_S	a2, PCB_ONFAULT(v1)
-END(fuswintr)
+/**************************************************************************/
 
-/*
- * int suswintr(void *, short);
- * Stores a short word of data to the user-space address.
- * This function is safe to call during an interrupt context.
- */
-LEAF(suswintr)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswintrberr)
-	PTR_L	a2, PCB_ONFAULT(v1)
-	blt	a0, zero, _C_LABEL(fswintrberr)
+#define	UFETCHSTORE_PROLOGUE						 \
+	PTR_L	v1, L_PCB(MIPS_CURLWP)					;\
+	PTR_LA	v0, _C_LABEL(ufetchstore_fault)				;\
+	blt	a0, zero, _C_LABEL(ufetchstore_efault)			;\
 	 PTR_S	v0, PCB_ONFAULT(v1)
-	sh	a1, 0(a0)			# store short
-	PTR_S	a2, PCB_ONFAULT(v1)
-	j	ra
+
+	/* keep to a single insn; it's used in a branch delay slot */
+#define	UFETCHSTORE_EPILOGUE						;\
+	PTR_S	zero, PCB_ONFAULT(v1)
+
+#define	UFETCHTORE_RETURN_SUCCESS					;\
+	j	ra							;\
 	 move	v0, zero
-END(suswintr)
+
+/* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
+LEAF(_ufetch_8)
+	UFETCHSTORE_PROLOGUE
+	lbu	v0, 0(a0)		/* v0 = *uaddr */
+	 UFETCHSTORE_EPILOGUE		/* load delay slot (MIPS1) */
+	sb	v0, 0(a1)		/* *valp = v0 */
+	UFETCHTORE_RETURN_SUCCESS
+END(_ufetch_8)
+
+/* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
+LEAF(_ufetch_16)
+	UFETCHSTORE_PROLOGUE
+	lhu	v0, 0(a0)		/* v0 = *uaddr */
+	 UFETCHSTORE_EPILOGUE		/* load delay slot (MIPS1) */
+	sh	v0, 0(a1)		/* *valp = v0 */
+	UFETCHTORE_RETURN_SUCCESS
+END(_ufetch_16)
+
+/* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
+LEAF(_ufetch_32)
+	UFETCHSTORE_PROLOGUE
+	lw	v0, 0(a0)		/* v0 = *uaddr */
+	 UFETCHSTORE_EPILOGUE		/* load delay slot (MIPS1) */
+	sw	v0, 0(a1)		/* *valp = v0 */
+	UFETCHTORE_RETURN_SUCCESS
+END(_ufetch_32)
+
+#ifdef _LP64
+/* LINTSTUB: int _ufetch_64(const uint64_t *uaddr, uint64_t *valp); */
+LEAF(_ufetch_32)
+	UFETCHSTORE_PROLOGUE
+	ld	v0, 0(a0)		/* v0 = *uaddr */
+	 UFETCHSTORE_EPILOGUE		/* load delay slot (MIPS1, LOL) */
+	sd	v0, 0(a1)		/* *valp = v0 */
+	UFETCHTORE_RETURN_SUCCESS
+END(_ufetch_32)
+#endif /* _LP64 */
+
+/* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
+LEAF(_ustore_8)
+	UFETCHSTORE_PROLOGUE
+	sb	a1, 0(a0)		/* *uaddr = val */
+	UFETCHSTORE_EPILOGUE
+	UFETCHTORE_RETURN_SUCCESS
+END(_ustore_8)
+
+/* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
+LEAF(_ustore_16)
+	UFETCHSTORE_PROLOGUE
+	sh	a1, 0(a0)		/* *uaddr = val */
+	UFETCHSTORE_EPILOGUE
+	UFETCHTORE_RETURN_SUCCESS
+END(_ustore_16)
+
+/* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
+LEAF(_ustore_32)
+	UFETCHSTORE_PROLOGUE
+	sw	a1, 0(a0)		/* *uaddr = val */
+	UFETCHSTORE_EPILOGUE
+	UFETCHTORE_RETURN_SUCCESS
+END(_ustore_32)
+
+#ifdef _LP64
+/* LINTSTUB: int _ustore_64(uint64_t *uaddr, uint64_t val); */
+LEAF(_ustore_64)
+	UFETCHSTORE_PROLOGUE
+	sd	a1, 0(a0)		/* *uaddr = val */
+	UFETCHSTORE_EPILOGUE
+	UFETCHTORE_RETURN_SUCCESS
+END(_ustore_64)
+#endif /* _LP64 */
+
+LEAF(ufetchstore_efault)
+	li	v0, EFAULT
+XLEAF(ufetchstore_fault)
+	j	ra
+	 UFETCHSTORE_EPILOGUE
+END(ufetchstore_fault)
+
+/**************************************************************************/
 
 /*
  * uint32_t mips_ufetch32(const void *)
@@ -337,118 +401,13 @@ END(suswintr)
  */
 LEAF(mips_ufetch32)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
+	PTR_LA	v0, _C_LABEL(mips_ufetch32_fault)
+	blt	a0, zero, _C_LABEL(mips_ufetch32_fault)
 	 PTR_S	v0, PCB_ONFAULT(v1)
 	INT_L	v0, 0(a0)			# fetch int
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_uint32)
-#ifndef _LP64
-STRONG_ALIAS(fuword, mips_ufetch32)
-#endif
-
-#ifdef _LP64
-/*
- * uint64_t ufetch_uint64(void *)
- * Fetches a 64-bit datum from the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ufetch_uint64)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	LONG_L	v0, 0(a0)			# fetch 64-bit datum
-	j	ra
-	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_uint64)
-STRONG_ALIAS(fuword, ufetch_uint64)
-#endif
-
-/*
- * uint16_t ufetch_uint16(void *)
- * Fetches an unsigned 16-bit datum from the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ufetch_uint16)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	lhu	v0, 0(a0)			# fetch short
-	j	ra
-	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_uint16)
-STRONG_ALIAS(fusword, ufetch_uint16)
-
-#if 0 /* XXXJRT */
-/*
- * int16_t ufetch_int16(void *)
- * Fetches a signed 16-bit datum from the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ufetch_int16)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	lh	v0, 0(a0)			# fetch short
-	j	ra
-	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_int16)
-#endif /* XXXJRT */
-
-/*
- * uint8_t uftech_uint8(void *)
- * Fetch a byte from the user's address space.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ufetch_uint8)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	lbu	v0, 0(a0)			# fetch byte
-	j	ra
-	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_uint8)
-STRONG_ALIAS(fubyte, ufetch_uint8)
-
-#if 0 /* XXXJRT */
-/*
- * int8_t uftech_int8(void *)
- * Fetch a byte from the user's address space.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ufetch_int8)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	lb	v0, 0(a0)			# fetch byte
-	j	ra
-	 PTR_S	zero, PCB_ONFAULT(v1)
-END(ufetch_int8)
-#endif /* XXXJRT */
-
-/*
- * int ustore_uint32(void *, uint32_t)
- * Stores a 32-bit datum to the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ustore_uint32)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	INT_S	a1, 0(a0)			# store word
-	PTR_S	zero, PCB_ONFAULT(v1)
-	j	ra
-	 move	v0, zero
-END(ustore_uint32)
-STRONG_ALIAS(suword, ustore_uint32)
-#endif
+END(mips_ufetch32)
 
 /*
  * int mips_ustore32_isync(void *, uint32_t)
@@ -456,8 +415,8 @@ STRONG_ALIAS(suword, ustore_uint32)
  */
 LEAF(mips_ustore32_isync)
 	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
+	PTR_LA	v0, _C_LABEL(mips_ufetch32_fault)
+	blt	a0, zero, _C_LABEL(mips_ufetch32_fault)
 	 PTR_S	v0, PCB_ONFAULT(v1)
 	INT_S	a1, 0(a0)			# store word
 	PTR_S	zero, PCB_ONFAULT(v1)
@@ -467,58 +426,12 @@ LEAF(mips_ustore32_isync)
 	 li	a1, 4				# size of word
 END(mips_ustore32_isync)
 
-#ifdef _LP64
-/*
- * int ustore_uint64(void *, uint64_t)
- * Stores a 64-bit datum to the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ustore_uint64)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	LONG_S	a1, 0(a0)			# store word
-	PTR_S	zero, PCB_ONFAULT(v1)
+LEAF(mips_ufetch32_fault)
+	li	v0, -1
 	j	ra
-	 move	v0, zero
-END(ustore_uint64)
-STRONG_ALIAS(suword, ustore_uint64)
-#endif
+	 PTR_S	zero, PCB_ONFAULT(v1)
 
-/*
- * int ustore_uint16(void *, uint16_t)
- * Stores a short word of data to the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ustore_uint16)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	sh	a1, 0(a0)			# store short
-	PTR_S	zero, PCB_ONFAULT(v1)
-	j	ra
-	 move	v0, zero
-END(ustore_uint16)
-STRONG_ALIAS(susword, ustore_uint16)
-
-/*
- * int ustore_uint8(void *, uint8_t)
- * Stores a byte of data to the user-space address.
- * XXXJRT CONVERT TO NEW API
- */
-LEAF(ustore_uint8)
-	PTR_L	v1, L_PCB(MIPS_CURLWP)
-	PTR_LA	v0, _C_LABEL(fswberr)
-	blt	a0, zero, _C_LABEL(fswberr)
-	 PTR_S	v0, PCB_ONFAULT(v1)
-	sb	a1, 0(a0)			# store byte
-	PTR_S	zero, PCB_ONFAULT(v1)
-	j	ra
-	 move	v0, zero
-END(ustore_uint8)
-STRONG_ALIAS(subyte, ustore_uint8)
+/**************************************************************************/
 
 /*
  * int badaddr(void addr, int len)
