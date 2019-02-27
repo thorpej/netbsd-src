@@ -7,7 +7,7 @@ ARCH:
 	i386		-- initial changes, NOT TESTED
 	ia64
 	m68k		-- initial changes, NOT TESTED
-	mips
+	mips		-- initial changes, NOT TESTED
 	or1k
 	powerpc		-- initial changes, NOT TESTED
 	riscv		-- initial changes, NOT TESTED
