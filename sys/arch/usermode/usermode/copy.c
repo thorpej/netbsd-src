@@ -94,28 +94,61 @@ kcopy(const void *src, void *dst, size_t len)
 }
 
 int
-fuswintr(const void *base)
+_ufetch_8(const uint8_t *uaddr, uint8_t *valp)
 {
-	return *(const short *)base;
+	*valp = *uaddr;
+	return 0
 }
 
 int
-suswintr(void *base, short c)
+_ufetch_16(const uint16_t *uaddr, uint16_t *valp)
 {
-	*(short *)base = c;
-	return 0;
+	*valp = *uaddr;
+	return 0
 }
 
 int
-subyte(void *base, int c)
+_ufetch_32(const uint32_t *uaddr, uint32_t *valp)
 {
-	*(char *)base = c;
-	return 0;
+	*valp = *uaddr;
+	return 0
+}
+
+#ifdef _LP64
+int
+_ufetch_64(const uint64_t *uaddr, uint64_t *valp)
+{
+	*valp = *uaddr;
+	return 0
+}
+#endif /* _LP64 */
+
+int
+_ustore_8(uint8_t *uaddr, uint8_t val)
+{
+	*uaddr = val;
+	return 0
 }
 
 int
-suword(void *base, long c)
+_ustore_16(uint16_t *uaddr, uint16_t val)
 {
-	*(long *)base = c;
-	return 0;
+	*uaddr = val;
+	return 0
 }
+
+int
+_ustore_32(uint32_t *uaddr, uint32_t val)
+{
+	*uaddr = val;
+	return 0
+}
+
+#ifdef _LP64
+int
+_ustore_64(uint64_t *uaddr, uint64_t val)
+{
+	*uaddr = val;
+	return 0
+}
+#endif /* _LP64 */
