@@ -339,13 +339,13 @@ END(_ufetch_32)
 
 #ifdef _LP64
 /* LINTSTUB: int _ufetch_64(const uint64_t *uaddr, uint64_t *valp); */
-LEAF(_ufetch_32)
+LEAF(_ufetch_64)
 	UFETCHSTORE_PROLOGUE
 	ld	v0, 0(a0)		/* v0 = *uaddr */
 	 UFETCHSTORE_EPILOGUE		/* load delay slot (MIPS1, LOL) */
 	sd	v0, 0(a1)		/* *valp = v0 */
 	UFETCHTORE_RETURN_SUCCESS
-END(_ufetch_32)
+END(_ufetch_64)
 #endif /* _LP64 */
 
 /* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
