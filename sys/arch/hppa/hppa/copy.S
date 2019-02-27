@@ -97,45 +97,50 @@
 #define	FUSUX(name)				  \
 LEAF_ENTRY_NOPROFILE(name)			! \
 	ldil	L%VM_MAXUSER_ADDRESS, %t1	! \
-	comb,>>= %arg0, %t1, fusubadaddr	! \
+	comb,>>= %arg0, %t1, ufetchstore_efault	! \
 	GET_CURLWP(%t1)				! \
 	ldw	L_PCB(%t1), %t1			! \
-	ldil	L%fusufault, %t2		! \
-	ldo	R%fusufault(%t2), %t2		! \
+	ldil	L%ufetchstore_fault, %t2	! \
+	ldo	R%ufetchstore_fault(%t2), %t2	! \
 	ldw	PCB_ONFAULT(%t1), %t3		! \
 	stw	%t2, PCB_ONFAULT(%t1)		! \
 	ldw	PCB_SPACE(%t1), %t2		! \
 	mtsp	%t2, %sr1
 
-#define	FUX(name,insn)				  \
+#define	FUX(name,linsn,sinsn)			  \
 	FUSUX(name)				! \
-	insn	0(%sr1, %arg0), %ret0		! \
-	bv	%r0(%rp)			! \
+	linsn	0(%sr1, %arg0), %t2		! \
 	stw	%r0, PCB_ONFAULT(%t1)		! \
+	sinsn	%t2, 0(%arg1)			! \
+	bv	%r0(%rp)			! \
+	 ldi	0, %ret0
 EXIT(name)
 
 #define	SUX(name,insn)				  \
 	FUSUX(name)				! \
 	insn	%arg1, 0(%sr1, %arg0)		! \
-	bv	%r0(%rp)			! \
 	stw	%r0, PCB_ONFAULT(%t1)		! \
+	bv	%r0(%rp)			! \
+	 ldi	0, %ret0
 EXIT(name)
 
-LEAF_ENTRY_NOPROFILE(fusufault)
-	stw	%r0, PCB_ONFAULT(%t1)
-ALTENTRY(fusubadaddr)
+LEAF_ENTRY_NOPROFILE(ufetchstore_fault)
 	bv	0(%rp)
-	ldi	-1, %ret0
-EXIT(fusufault)
+	 stw	%r0, PCB_ONFAULT(%t1)
+EXIT(ufetchstore_fault)
 
-FUX(fubyte,   ldb)
-FUX(fusword,  ldh)
-FUX(fuword,   ldw)
-FUX(fuswintr, ldh)
-SUX(subyte,   stb)
-SUX(susword,  sth)
-SUX(suword,   stw)
-SUX(suswintr, sth)
+LEAF_ENTRY_NOPROFILE(ufetchstore_efault)
+	bv	0(%rp)
+	 ldi	EFAULT, %ret0
+EXIT(ufetchstore_efault)
+
+FUX(_ufetch_8,  ldb, stb)
+FUX(_ufetch_16, ldh, sth)
+FUX(_ufetch_32, ldw, stw)
+
+SUX(_ustore_8,  stb)
+SUX(_ustore_16, sth)
+SUX(_ustore_32, stw)
 
 	.align	64
 
