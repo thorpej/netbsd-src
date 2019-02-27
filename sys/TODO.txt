@@ -13,9 +13,6 @@ ARCH:
 	riscv		-- initial changes, NOT TESTED
 	sh3		-- initial changes, NOT TESTED
 	sparc		-- initial changes, NOT TESTED
-	sparc64		-- iniital changes, NOT TESTED
-	usermode
+	sparc64		-- initial changes, NOT TESTED
+	usermode	-- initial changes, NOT TESTED
 	vax		-- initial changes, NOT TESTED
-	x86
-	xen
-
