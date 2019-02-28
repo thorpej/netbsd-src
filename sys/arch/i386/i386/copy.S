@@ -618,7 +618,7 @@ END(ufetchstore_efault)
 ENTRY(ufetchstore_fault)
 	SMAP_ENABLE
 	ret
-END(fetchstore_fault)
+END(ufetchstore_fault)
 
 /**************************************************************************/
 
