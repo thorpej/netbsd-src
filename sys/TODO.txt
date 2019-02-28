@@ -1,6 +1,6 @@
 ARCH:
-	aarch64		-- initial changes, NOT TESTED
-	alpha		-- changes done, NOT TESTED
+	aarch64		-- changes compile, NOT TESTED
+	alpha		-- changes compile, NOT TESTED
 	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
 	arm		-- initial changes, NOT TESTED
 	hppa		-- initial changes, NOT TESTED
