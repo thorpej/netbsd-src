@@ -796,7 +796,7 @@ ENTRY(probeget)
 	mov	%o2, %o4
 	! %o0 = addr, %o1 = asi, %o4 = (1,2,4)
 	sethi	%hi(CPCB), %o2
-	LDPTR	[%o2 + %lo(CPCB)], %o2	! cpcb->pcb_onfault = Lfserr;
+	LDPTR	[%o2 + %lo(CPCB)], %o2	! cpcb->pcb_onfault = Lfsbail;
 #ifdef _LP64
 	set	_C_LABEL(Lfsbail), %o5
 #else
@@ -851,7 +851,7 @@ ENTRY(probeget)
 	 membar	#StoreStore|#StoreLoad
 
 	/*
-	 * Fault handler for probeget
+	 * Fault handlers for probeget
 	 */
 _C_LABEL(Lfsprobe):
 #ifndef _LP64
@@ -861,6 +861,16 @@ _C_LABEL(Lfsprobe):
 	mov	-1, %o1
 	wr	%g0, ASI_PRIMARY_NOFAULT, %asi		! Restore default ASI	
 	membar	#StoreStore|#StoreLoad
+	retl				! and return error indicator
+	 mov	-1, %o0
+
+	.globl	_C_LABEL(Lfsbail)
+_C_LABEL(Lfsbail):
+	STPTR	%g0, [%o2 + PCB_ONFAULT]! error in r/w, clear pcb_onfault
+	membar	#StoreStore|#StoreLoad
+#ifndef _LP64
+	mov	-1, %o1
+#endif
 	retl				! and return error indicator
 	 mov	-1, %o0
 
@@ -883,8 +893,8 @@ ENTRY(probeset)
 #endif
 	mov	%o2, %o4
 	! %o0 = addr, %o1 = asi, %o4 = (1,2,4), %o3 = val
-	sethi	%hi(CPCB), %o2		! Lfserr requires CPCB in %o2
-	LDPTR	[%o2 + %lo(CPCB)], %o2	! cpcb->pcb_onfault = Lfserr;
+	sethi	%hi(CPCB), %o2		! Lfsbail requires CPCB in %o2
+	LDPTR	[%o2 + %lo(CPCB)], %o2	! cpcb->pcb_onfault = Lfsbail;
 	set	_C_LABEL(Lfsbail), %o5
 	STPTR	%o5, [%o2 + PCB_ONFAULT]
 	btst	1, %o4
@@ -905,7 +915,7 @@ ENTRY(probeset)
 	ba,pt	%icc, 1f
 	 sta	%o3, [%o0] %asi		!	*(int *)addr = value;
 0:
-	bz	Lfserr			! if (len & 8)
+	bz	Lfsbail			! if (len & 8)
 	ba,pt	%icc, 1f
 	 sta	%o3, [%o0] %asi		!	*(int *)addr = value;
 1:	membar	#Sync
