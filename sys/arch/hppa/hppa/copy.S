@@ -113,7 +113,7 @@ LEAF_ENTRY_NOPROFILE(name)			! \
 	stw	%r0, PCB_ONFAULT(%t1)		! \
 	sinsn	%t2, 0(%arg1)			! \
 	bv	%r0(%rp)			! \
-	 ldi	0, %ret0
+	 ldi	0, %ret0			! \
 EXIT(name)
 
 #define	SUX(name,insn)				  \
@@ -121,7 +121,7 @@ EXIT(name)
 	insn	%arg1, 0(%sr1, %arg0)		! \
 	stw	%r0, PCB_ONFAULT(%t1)		! \
 	bv	%r0(%rp)			! \
-	 ldi	0, %ret0
+	 ldi	0, %ret0			! \
 EXIT(name)
 
 LEAF_ENTRY_NOPROFILE(ufetchstore_fault)
