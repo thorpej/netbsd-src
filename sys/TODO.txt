@@ -1,10 +1,10 @@
 ARCH:
 	aarch64		-- changes compile, NOT TESTED
 	alpha		-- changes compile, NOT TESTED
-	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
-	arm		-- initial changes, NOT TESTED
-	hppa		-- initial changes, NOT TESTED
-	i386		-- initial changes, NOT TESTED
+	amd64		-- changes done, SHOULD TEST AGAIN tested (thorpej, x86_64 VMware VM)
+	arm		-- changes compile, NOT TESTED
+	hppa		-- changes compile, NOT TESTED
+	i386		-- changes compile, NOT TESTED
 	ia64
 	m68k		-- initial changes, NOT TESTED
 	mips		-- initial changes, NOT TESTED
@@ -12,7 +12,7 @@ ARCH:
 	powerpc		-- initial changes, NOT TESTED
 	riscv		-- initial changes, NOT TESTED
 	sh3		-- initial changes, NOT TESTED
-	sparc		-- initial changes, NOT TESTED
-	sparc64		-- initial changes, NOT TESTED
+	sparc		-- changes compile, NOT TESTED
+	sparc64		-- changes compile, NOT TESTED
 	usermode	-- initial changes, NOT TESTED
-	vax		-- initial changes, NOT TESTED
+	vax		-- changes compile, NOT TESTED
