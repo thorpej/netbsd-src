@@ -542,7 +542,7 @@ sendsig_siginfo(const ksiginfo_t *ksi, const sigset_t *mask)
 	ucsz = (int)&uc.__uc_pad - (int)&uc;
 	error = (copyout(&ksi->ksi_info, &fp->sf_si, sizeof ksi->ksi_info) ||
 	    copyout(&uc, &fp->sf_uc, ucsz) ||
-	    ustore_ptr(&((struct rwindow *)newsp)->rw_in[6], oldsp));
+	    ustore_int((u_int *)&((struct rwindow *)newsp)->rw_in[6], oldsp));
 	mutex_enter(p->p_lock);
 
 	if (error) {

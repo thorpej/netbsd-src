@@ -5113,6 +5113,12 @@ Lufetchstore_fault:
 
 /* probeget and probeset are meant to be used during autoconfiguration */
 
+	.globl	_C_LABEL(Lfsbail)
+_C_LABEL(Lfsbail):
+	st	%g0, [%o2 + PCB_ONFAULT]! error in r/w, clear pcb_onfault
+	retl				! and return error indicator
+	 mov	-1, %o0
+
 /*
  * probeget(addr, size) void *addr; int size;
  *
@@ -5125,8 +5131,8 @@ Lufetchstore_fault:
 ENTRY(probeget)
 	! %o0 = addr, %o1 = (1,2,4)
 	sethi	%hi(cpcb), %o2
-	ld	[%o2 + %lo(cpcb)], %o2	! cpcb->pcb_onfault = Lfserr;
-	set	Lfserr, %o5
+	ld	[%o2 + %lo(cpcb)], %o2	! cpcb->pcb_onfault = Lfsbail;
+	set	Lfsbail, %o5
 	st	%o5, [%o2 + PCB_ONFAULT]
 	btst	1, %o1
 	bnz,a	0f			! if (len & 1)
@@ -5148,8 +5154,8 @@ ENTRY(probeget)
 ENTRY(probeset)
 	! %o0 = addr, %o1 = (1,2,4), %o2 = val
 	sethi	%hi(cpcb), %o3
-	ld	[%o3 + %lo(cpcb)], %o3	! cpcb->pcb_onfault = Lfserr;
-	set	Lfserr, %o5
+	ld	[%o3 + %lo(cpcb)], %o3	! cpcb->pcb_onfault = Lfsbail;
+	set	Lfsbail, %o5
 	st	%o5, [%o3 + PCB_ONFAULT]
 	btst	1, %o1
 	bnz,a	0f			! if (len & 1)

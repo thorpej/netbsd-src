@@ -819,12 +819,16 @@ mem_access_fault(unsigned type, int ser, u_int v, int pc, int psr,
 		 * instructions as read faults, so if the faulting instruction
 		 * is one of those, relabel this fault as both read and write.
 		 */
-		if ((fuword((void *)pc) & 0xc1680000) == 0xc0680000) {
+		u_int insn;
+		if (ufetch_int((void *)pc, &insn) == 0 &&
+		    (insn & 0xc1680000) == 0xc0680000) {
 			atype = VM_PROT_READ | VM_PROT_WRITE;
 		}
 	}
 	va = trunc_page(v);
 	if (psr & PSR_PS) {
+		extern char Lfsbail[];
+
 		if (type == T_TEXTFAULT) {
 			(void) splhigh();
 		        snprintb(bits, sizeof(bits), SER_BITS, ser);
@@ -832,6 +836,14 @@ mem_access_fault(unsigned type, int ser, u_int v, int pc, int psr,
 			       cpu_number(), pc, bits);
 			panic("kernel fault");
 			/* NOTREACHED */
+		}
+		/*
+		 * If this was an access that we shouldn't try to page in,
+		 * resume at the fault handler without any action.
+		 */
+		if (onfault == (vaddr_t)Lfsbail) {
+			rv = EFAULT;
+			goto kfault;
 		}
 
 		/*
@@ -1145,6 +1157,7 @@ mem_access_fault4m(unsigned type, u_int sfsr, u_int sfva, struct trapframe *tf)
 	}
 
 	if (psr & PSR_PS) {
+		extern char Lfsbail[];
 		if (sfsr & SFSR_AT_TEXT || type == T_TEXTFAULT) {
 			(void) splhigh();
 			snprintb(bits, sizeof(bits), SFSR_BITS, sfsr);
@@ -1152,6 +1165,14 @@ mem_access_fault4m(unsigned type, u_int sfsr, u_int sfva, struct trapframe *tf)
 			       cpu_number(), pc, bits, sfva);
 			panic("kernel fault");
 			/* NOTREACHED */
+		}
+		/*
+		 * If this was an access that we shouldn't try to page in,
+		 * resume at the fault handler without any action.
+		 */
+		if (onfault == (vaddr_t)Lfsbail) {
+			rv = EFAULT;
+			goto kfault;
 		}
 
 		/*

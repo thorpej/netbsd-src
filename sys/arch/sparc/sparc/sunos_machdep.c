@@ -139,7 +139,7 @@ void sunos_sendsig(const ksiginfo_t *ksi, const sigset_t *mask)
 	newsp = (int)fp - sizeof(struct rwindow);
 	write_user_windows();
 	error = (rwindow_save(l) || copyout((void *)&sf, (void *)fp, sizeof sf) ||
-	    ustore_ptr(&((struct rwindow *)newsp)->rw_in[6], oldsp));
+	    ustore_int((u_int *)&((struct rwindow *)newsp)->rw_in[6], oldsp));
 	mutex_enter(p->p_lock);
 
 	if (error) {
