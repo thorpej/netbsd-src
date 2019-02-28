@@ -101,7 +101,6 @@ END(_ufetch_8)
 
 #if (ARM_ARCH_2 + ARM_ARCH_3) > 0
 /* LINTSTUB: int _ufetch_16_armv2(const uint16_t *uaddr, uint16_t *valp); */
-
 ENTRY(_ufetch_16_armv2)
 	UFETCHSTORE_PROLOGUE
 
@@ -114,11 +113,10 @@ ENTRY(_ufetch_16_armv2)
 	UFETCHSTORE_EPILOGUE
 	RETURN_SUCCESS
 END(_ufetch_16_armv2)
-#endif /* (ARM_ARCH_2 + ARM_ARCH_3) > 0 */
 
-#if (ARM_ARCH_4 + ARM_ARCH_5 + ARM_ARCH_6 + ARM_ARCH_7) > 0
+#else /* XXX */
+
 /* LINTSTUB: int _ufetch_16_armv4(const uint16_t *uaddr, uint16_t *valp); */
-
 ENTRY(_ufetch_16_armv4)
 	UFETCHSTORE_PROLOGUE
 
@@ -131,8 +129,6 @@ END(_ufetch_16_armv4)
 #endif /* (ARM_ARCH_4 + ARM_ARCH_5 + ARM_ARCH_6 + ARM_ARCH_7) > 0 */
 
 /* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
-
-/* XXXJRT Run-time upgrade to armv4 version would be nice. */
 #if (ARM_ARCH_2 + ARM_ARCH_3) > 0
 STRONG_ALIAS(_ufetch_16,_ufetch_16_armv2)
 #else
@@ -140,7 +136,6 @@ STRONG_ALIAS(_ufetch_16,_ufetch_16_armv4)
 #endif /* #if (ARM_ARCH_2 + ARM_ARCH_3) > 0 */
 
 /* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
-
 ENTRY(_ufetch_32)
 	UFETCHSTORE_PROLOGUE
 
@@ -152,7 +147,6 @@ ENTRY(_ufetch_32)
 END(_ufetch_32)
 
 /* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
-
 ENTRY(_ustore_8)
 	UFETCHSTORE_PROLOGUE
 
@@ -164,7 +158,6 @@ END(_ustore_8)
 
 #if (ARM_ARCH_2 + ARM_ARCH_3) > 0
 /* LINTSTUB: int _ustore_16_armv2(uint16_t *uaddr, uint16_t val); */
-
 ENTRY(_ustore_16_armv2)
 	UFETCHSTORE_PROLOGUE
 
@@ -180,11 +173,10 @@ ENTRY(_ustore_16_armv2)
 	UFETCHSTORE_EPILOGUE
 	RETURN_SUCCESS
 END(_ustore_16_armv2)
-#endif /* (ARM_ARCH_2 + ARM_ARCH_3) > 0 */
 
-#if (ARM_ARCH_4 + ARM_ARCH_5 + ARM_ARCH_6 + ARM_ARCH_7) > 0
+#else /* XXX */
+
 /* LINTSTUB: int _ustore_16_armv4(uint16_t *uaddr, uint16_t val); */
-
 ENTRY(_ustore_16_armv4)
 	UFETCHSTORE_PROLOGUE
 
@@ -196,7 +188,6 @@ END(_ustore_16_armv4)
 #endif /* (ARM_ARCH_4 + ARM_ARCH_5 + ARM_ARCH_6 + ARM_ARCH_7) > 0 */
 
 /* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
-
 /* XXXJRT Run-time upgrade to armv4 version would be nice. */
 #if (ARM_ARCH_2 + ARM_ARCH_3) > 0
 STRONG_ALIAS(_ustore_16,_ustore_16_armv2)
@@ -205,7 +196,6 @@ STRONG_ALIAS(_ustore_16,_ustore_16_armv4)
 #endif /* #if (ARM_ARCH_2 + ARM_ARCH_3) > 0 */
 
 /* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
-
 ENTRY(_ustore_32)
 	UFETCHSTORE_PROLOGUE
 
