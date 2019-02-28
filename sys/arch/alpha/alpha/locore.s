@@ -1003,6 +1003,7 @@ END(copyerr)
 /* N.B. T1 MUST BE PRESERVED -- IT CONTAINS THE PCB ADDRESS. */
 /*     T10 MUST BE PRESERVED -- IT CONTAINS THE pcb_onfault VALUE TO RESTORE */
 
+/* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
 LEAF_NOPROFILE(_ufetch_8, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq_u	t0, 0(a0)	/* load quad containing byte */
@@ -1017,6 +1018,7 @@ LEAF_NOPROFILE(_ufetch_8, 2)
 	RET
 	END(_ufetch_8)
 
+/* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
 LEAF_NOPROFILE(_ufetch_16, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq_u	t0, 0(a0)	/* load quad containing short */
@@ -1031,6 +1033,7 @@ LEAF_NOPROFILE(_ufetch_16, 2)
 	RET
 	END(_ufetch_16)
 
+/* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
 LEAF_NOPROFILE(_ufetch_32, 2)
 	UFETCHSTORE_PROLOGUE
 	ldl	v0, 0(a0)
@@ -1040,6 +1043,7 @@ LEAF_NOPROFILE(_ufetch_32, 2)
 	RET
 	END(_ufetch_32)
 
+/* LINTSTUB: int _ufetch_64(const uint64_t *uaddr, uint64_t *valp); */
 LEAF_NOPROFILE(_ufetch_64, 2)
 	UFETCHSTORE_PROLOGUE
 	ldq	v0, 0(a0)
@@ -1049,6 +1053,7 @@ LEAF_NOPROFILE(_ufetch_64, 2)
 	RET
 	END(_ufetch_64)
 
+/* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
 LEAF_NOPROFILE(_ustore_8, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfe, a1	/* kill arg's high bytes */
@@ -1062,6 +1067,7 @@ LEAF_NOPROFILE(_ustore_8, 2)
 	RET
 	END(_ustore_8)
 
+/* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
 LEAF_NOPROFILE(_ustore_16, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfc, a1	/* kill arg's high bytes */
@@ -1075,6 +1081,7 @@ LEAF_NOPROFILE(_ustore_16, 2)
 	RET
 	END(_ustore_16)
 
+/* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
 LEAF_NOPROFILE(_ustore_32, 2)
 	UFETCHSTORE_PROLOGUE
 	stl	a1, 0(a0)
@@ -1083,6 +1090,7 @@ LEAF_NOPROFILE(_ustore_32, 2)
 	RET
 	END(_ustore_32)
 
+/* LINTSTUB: int _ustore_64(uint64_t *uaddr, uint64_t val); */
 LEAF_NOPROFILE(_ustore_64, 2)
 	UFETCHSTORE_PROLOGUE
 	stq	a1, 0(a0)

@@ -61,7 +61,6 @@ RCSID("$NetBSD: fusu.S,v 1.5 2018/07/17 18:08:36 christos Exp $");
 	.endm
 
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
-
 ENTRY(_ufetch_8)
 	enter_cpu_onfault
 
@@ -73,7 +72,6 @@ ENTRY(_ufetch_8)
 END(_ufetch_8)
 
 /* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
-
 ENTRY(_ufetch_16)
 	enter_cpu_onfault
 
@@ -85,7 +83,6 @@ ENTRY(_ufetch_16)
 END(_ufetch_16)
 
 /* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
-
 ENTRY(_ufetch_32)
 	enter_cpu_onfault
 
@@ -97,7 +94,6 @@ ENTRY(_ufetch_32)
 END(_ufetch_32)
 
 /* LINTSTUB: int _ufetch_64(const uint64_t *uaddr, uint64_t *valp); */
-
 ENTRY(_ufetch_64)
 	enter_cpu_onfault
 
@@ -109,7 +105,6 @@ ENTRY(_ufetch_64)
 END(_ufetch_64)
 
 /* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
-
 ENTRY(_ustore_8)
 	enter_cpu_onfault
 
@@ -120,7 +115,6 @@ ENTRY(_ustore_8)
 END(_ustore_8)
 
 /* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
-
 ENTRY(_ustore_16)
 	enter_cpu_onfault
 
@@ -131,7 +125,6 @@ ENTRY(_ustore_16)
 END(_ustore_16)
 
 /* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
-
 ENTRY(_ustore_32)
 	enter_cpu_onfault
 
@@ -142,7 +135,6 @@ ENTRY(_ustore_32)
 END(_ustore_32)
 
 /* LINTSTUB: int _ustore_64(uint64_t *uaddr, uint64_t val); */
-
 ENTRY(_ustore_64)
 	enter_cpu_onfault
 
