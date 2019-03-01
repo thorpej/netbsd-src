@@ -340,7 +340,7 @@ int	_ufetch_64(const uint64_t *uaddr, uint64_t *valp);
 int	_ustore_8(uint8_t *uaddr, uint8_t val);
 int	_ustore_16(uint16_t *uaddr, uint16_t val);
 int	_ustore_32(uint32_t *uaddr, uint32_t val);
-#ifdef __LP64
+#ifdef _LP64
 int	_ustore_64(uint64_t *uaddr, uint64_t val);
 #endif
 #endif /* __UFETCHSTORE_PRIVATE */
