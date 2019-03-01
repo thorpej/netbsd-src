@@ -645,7 +645,7 @@ extern kcpuset_t *cpus_halted;
 
 /* copy.S */
 uint32_t mips_ufetch32(const void *);
-int	mips_ustore_uint32_isync(void *, uint32_t);
+int	mips_ustore32_isync(void *, uint32_t);
 
 int32_t kfetch_32(volatile uint32_t *, uint32_t);
 

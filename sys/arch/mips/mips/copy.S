@@ -387,7 +387,7 @@ LEAF(ufetchstore_efault)
 XLEAF(ufetchstore_fault)
 	j	ra
 	 UFETCHSTORE_EPILOGUE
-END(ufetchstore_fault)
+END(ufetchstore_efault)
 
 /**************************************************************************/
 
@@ -430,6 +430,7 @@ LEAF(mips_ufetch32_fault)
 	li	v0, -1
 	j	ra
 	 PTR_S	zero, PCB_ONFAULT(v1)
+END(mips_ufetch32_fault)
 
 /**************************************************************************/
 
