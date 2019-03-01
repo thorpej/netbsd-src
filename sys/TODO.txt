@@ -6,10 +6,10 @@ ARCH:
 	hppa		-- changes compile, NOT TESTED
 	i386		-- changes compile, NOT TESTED
 	ia64
-	m68k		-- initial changes, NOT TESTED
-	mips		-- initial changes, NOT TESTED
+	m68k		-- changes compile, NOT TESTED
+	mips		-- changes compile, NOT TESTED
 	or1k
-	powerpc		-- initial changes, NOT TESTED
+	powerpc		-- changes compile, NOT TESTED
 	riscv		-- initial changes, NOT TESTED
 	sh3		-- initial changes, NOT TESTED
 	sparc		-- changes compile, NOT TESTED
