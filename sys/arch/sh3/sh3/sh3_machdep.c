@@ -532,7 +532,8 @@ setregs(struct lwp *l, struct exec_package *pack, vaddr_t stack)
 	tf->tf_r1 = 0;
 	tf->tf_r2 = 0;
 	tf->tf_r3 = 0;
-	tf->tf_r4 = fuword((void *)stack);	/* argc */
+	if (ufetch_int((void *)stack, (u_int *)&tf->tf_r4) != 0) /* argc */
+		tf->tf_r4 = -1;
 	tf->tf_r5 = stack + 4;			/* argv */
 	tf->tf_r6 = stack + 4 * tf->tf_r4 + 8;	/* envp */
 	tf->tf_r7 = 0;
