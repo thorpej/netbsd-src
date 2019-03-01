@@ -38,6 +38,8 @@ __KERNEL_RCSID(0, "$NetBSD: trap.c,v 1.154 2018/06/15 22:07:14 uwe Exp $");
 #include "opt_ddb.h"
 #include "opt_multiprocessor.h"
 
+#define	__UFETCHSTORE_PRIVATE
+
 #include <sys/param.h>
 
 #include <sys/proc.h>
@@ -539,7 +541,7 @@ unsetusr(void)
 
 #define	UFETCH(sz)							\
 int									\
-_ufetch_ ## sz(const uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t *valp)	\
+_ufetch_ ## sz(const uint ## sz ## _t *uaddr, uint ## sz ## _t *valp)	\
 {									\
 	struct faultbuf env;						\
 	vaddr_t p;							\
@@ -550,7 +552,7 @@ _ufetch_ ## sz(const uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t *valp)	\
 		goto out;						\
 	}								\
 	p = setusr((vaddr_t)uaddr, &seglen);				\
-	*valp = *(const volatile uint_ ## sz ## _t *)p;			\
+	*valp = *(const volatile uint ## sz ## _t *)p;			\
  out:									\
 	unsetusr();							\
 	curpcb->pcb_onfault = 0;					\
@@ -568,7 +570,7 @@ UFETCH(64)
 
 #define	USTORE(sz)							\
 int									\
-_ustore_ ## sz(uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t val)		\
+_ustore_ ## sz(uint ## sz ## _t *uaddr, uint ## sz ## _t val)		\
 {									\
 	struct faultbuf env;						\
 	vaddr_t p;							\
@@ -579,7 +581,7 @@ _ustore_ ## sz(uint_ ## sz ## _t *uaddr, uint_ ## sz ## _t val)		\
 		goto out;						\
 	}								\
 	p = setusr((vaddr_t)uaddr, &seglen);				\
-	*(volatile uint_ ## sz ## _t *)p = val;				\
+	*(volatile uint ## sz ## _t *)p = val;				\
  out:									\
 	unsetusr();							\
 	curpcb->pcb_onfault = 0;					\
