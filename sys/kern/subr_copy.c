@@ -82,6 +82,8 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: subr_copy.c,v 1.8 2018/05/28 21:04:41 chs Exp $");
 
+#define	__UFETCHSTORE_PRIVATE
+
 #include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
@@ -368,13 +370,6 @@ do {									\
 		return EFAULT;						\
 } while (/*CONSTCOND*/0)
 
-extern int	_ufetch_8(const uint8_t *, uint8_t *);
-extern int	_ufetch_16(const uint16_t *, uint16_t *);
-extern int	_ufetch_32(const uint32_t *, uint32_t *);
-#ifdef _LP64
-extern int	_ufetch_64(const uint64_t *, uint64_t *);
-#endif
-
 int
 ufetch_8(const uint8_t *uaddr, uint8_t *valp)
 {
@@ -423,13 +418,6 @@ __strong_alias(ufetch_ptr,ufetch_64);
 __strong_alias(ufetch_long,ufetch_32);
 __strong_alias(ufetch_ptr,ufetch_32);
 #endif /* _LP64 */
-
-extern int	_ustore_8(uint8_t *, uint8_t);
-extern int	_ustore_16(uint16_t *, uint16_t);
-extern int	_ustore_32(uint32_t *, uint32_t);
-#ifdef _LP64
-extern int	_ustore_64(uint64_t *, uint64_t);
-#endif
 
 int
 ustore_8(uint8_t *uaddr, uint8_t val)
