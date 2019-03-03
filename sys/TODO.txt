@@ -1,8 +1,8 @@
 ARCH:
-	aarch64		-- changes compile, NOT TESTED
+	aarch64		-- changes done, tested (thorpej, Qemu aarch64)
 	alpha		-- changes compile, NOT TESTED
-	amd64		-- changes done, SHOULD TEST AGAIN tested (thorpej, x86_64 VMware VM)
-	arm		-- changes compile, NOT TESTED
+	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
+	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4)
 	hppa		-- changes compile, NOT TESTED
 	i386		-- changes compile, NOT TESTED
 	ia64
