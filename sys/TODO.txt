@@ -12,7 +12,7 @@ ARCH:
 	powerpc		-- changes compile, NOT TESTED
 	riscv		-- initial changes, NOT TESTED -- can't build
 	sh3		-- changes compile, NOT TESTED
-	sparc		-- changes compile, TEST SUITE FAILS (big-endian?)
+	sparc		-- changes done, tested (thorpej, Qemu sparc)
 	sparc64		-- changes compile, NOT TESTED
 	usermode	-- initial changes, NOT TESTED -- can't build
 	vax		-- changes compile, NOT TESTED
