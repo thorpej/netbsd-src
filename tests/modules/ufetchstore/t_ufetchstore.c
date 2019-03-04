@@ -217,33 +217,36 @@ struct memory_cell {
 #define	index32		0
 
 #define	test_pattern8	0xa5
-#define	test_pattern16	0x5a5a
+#define	test_pattern16	0x5a6b
 #define	test_pattern32	0xb01cafe1
 #ifdef _LP64
 #define	test_pattern64	0xcafedeadfeedbabe
 #endif
 
+#if _BYTE_ORDER == _LITTLE_ENDIAN
 #define	test_cell_val8	((unsigned long)test_pattern8  << (index8  * NBBY))
 #define	test_cell_val16	((unsigned long)test_pattern16 << (index16 * NBBY*2))
 #define	test_cell_val32	((unsigned long)test_pattern32 << (index32 * NBBY*4))
 #ifdef _LP64
 #define	test_cell_val64	((unsigned long)test_pattern64)
 #endif
-
-#if _BYTE_ORDER == _LITTLE_ENDIAN
-#define	read_test_cell(cell)		(cell)->test_cell
-#define	write_test_cell(cell, v)	(cell)->test_cell = (v)
-#endif
+#endif /* _BYTE_ORDER == _LITTLE_ENDIAN */
 
 #if _BYTE_ORDER == _BIG_ENDIAN
 #ifdef _LP64
-#define	read_test_cell(cell)		bswap64((cell)->test_cell)
-#define	write_test_cell(cell, v)	(cell)->test_cell = bswap64(v)
-#else
-#define	read_test_cell(cell)		bswap32((cell)->test_cell)
-#define	write_test_cell(cell, v)	(cell)->test_cell = bswap32(v)
+#define	test_cell_val8	((unsigned long)test_pattern8  << (56-(index8  * NBBY)))
+#define	test_cell_val16	((unsigned long)test_pattern16 << (48-(index16 * NBBY*2)))
+#define	test_cell_val32	((unsigned long)test_pattern32 << (32-(index32 * NBBY*4)))
+#define	test_cell_val64	((unsigned long)test_pattern64)
+#else /* ! _LP64 */
+#define	test_cell_val8	((unsigned long)test_pattern8  << (24-(index8  * NBBY)))
+#define	test_cell_val16	((unsigned long)test_pattern16 << (16-(index16 * NBBY*2)))
+#define	test_cell_val32	((unsigned long)test_pattern32)
 #endif /* _LP64 */
-#endif /* _BYTE_ORDER == _BIG_ENDIAN */
+#endif /* #if _BYTE_ORDER == _BIG_ENDIAN */
+
+#define	read_test_cell(cell)		(cell)->test_cell
+#define	write_test_cell(cell, v)	(cell)->test_cell = (v)
 
 #define	memory_cell_initializer		\
 	{				\
