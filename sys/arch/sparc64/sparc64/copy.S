@@ -678,23 +678,23 @@ ENTRY(ucas_64)
 
 /**************************************************************************/
 
-#define	UFETCHSTORE_PROLOGUE						\
-	sethi	%hi(CPCB), %o2		! cpcb->pcb_onfault =	 ;	\
-	LDPTR	[%o2 + %lo(CPCB)], %o2	!     Lufetchstore_fault ;	\
-	set	Lufetchstore_fault, %o3				 ;	\
-	STPTR	%o3, [%o2 + PCB_ONFAULT]			 ;	\
+#define	UFETCHSTORE_PROLOGUE						 \
+	sethi	%hi(CPCB), %o2		/* cpcb->pcb_onfault =   */ 	;\
+	LDPTR	[%o2 + %lo(CPCB)], %o2	/*    Lufetchstore_fault */ 	;\
+	set	Lufetchstore_fault, %o3				 	;\
+	STPTR	%o3, [%o2 + PCB_ONFAULT]			 	;\
 	membar	#Sync
 
-#define	_UFETCHSTORE_EPILOGUE						\
-	STPTR	%g0, [%o2 + PCB_ONFAULT]! cpcb->pcb_onfault = NULL ;	\
+#define	_UFETCHSTORE_EPILOGUE						 \
+	STPTR	%g0, [%o2 + PCB_ONFAULT] /* cpcb->pcb_onfault = NULL */	;\
 	membar	#StoreStore|#StoreLoad
 
-#define	UFETCHSTORE_EPILOGUE						\
-	membar	#Sync						;	\
+#define	UFETCHSTORE_EPILOGUE						 \
+	membar	#Sync							;\
 	_UFETCHSTORE_EPILOGUE
 
-#define	UFETCHSTORE_RETURN_SUCCESS					\
-	retl							;	\
+#define	UFETCHSTORE_RETURN_SUCCESS					 \
+	retl								;\
 	 clr	%o0
 
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
