@@ -5038,14 +5038,14 @@ ENTRY(lwp_trampoline)
 
 /**************************************************************************/
 
-#define	UFETCHSTORE_PROLOGUE						\
-	set	KERNBASE, %o2					 ;	\
-	cmp	%o0, %o2		! if addr >= KERNBASE... ;	\
-	bgeu	Lufetchstore_badaddr				 ;	\
-	 .empty							 ;	\
-	sethi	%hi(cpcb), %o2		! cpcb->pcb_onfault =	 ;	\
-	ld	[%o2 + %lo(cpcb)], %o2	!     Lufetchstore_fault ;	\
-	set	Lufetchstore_fault, %o3				 ;	\
+#define	UFETCHSTORE_PROLOGUE						 \
+	set	KERNBASE, %o2					 	;\
+	cmp	%o0, %o2		/* if addr >= KERNBASE... */	;\
+	bgeu	Lufetchstore_badaddr				 	;\
+	 .empty							 	;\
+	sethi	%hi(cpcb), %o2		/* cpcb->pcb_onfault =	  */ 	;\
+	ld	[%o2 + %lo(cpcb)], %o2	/*    Lufetchstore_fault  */	;\
+	set	Lufetchstore_fault, %o3				 	;\
 	st	%o3, [%o2 + PCB_ONFAULT]
 
 	/* keep to a single insn; it's used in a branch delay slot */
