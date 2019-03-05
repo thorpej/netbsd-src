@@ -506,19 +506,15 @@ ENTRY(copystr,0)
 
 	.align	2
 
-#define	USTORE_PROLOGUE							 \
-	movl	4(%ap),%r0		# %r0 = uaddr			;\
-	blss	Lufetchstore_efault	# illegal space			;\
-	mfpr	$PR_ESP,%r2		# &pcb_onfault is in ESP	;\	
-	movab	Lufetchstore_fault,(%r2)# set pcb_onfault
-
-#define	UFETCH_PROLOGUE							 \
-	USTORE_PROLOGUE							;\
-	movl	8(%ap),%r1		# %r1 = valp			;\
+#define	UFETCHSTORE_PROLOGUE						 \
+	movl	4(%ap),%r2		/* %r0 = uaddr */		;\
+	blss	Lufetchstore_efault	/* illegal space */		;\
+	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\	
+	movab	Lufetchstore_fault,(%r1)/* set pcb_onfault */
 
 #define	UFETCHSTORE_EPILOGUE						 \
-	mfpr	$PR_ESP,%r2		# &pcb_onfault is in ESP	;\
-	clrl	(%r2)			# pcb_onfault = NULL
+	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\
+	clrl	(%r1)			/* pcb_onfault = NULL */
 
 #define	UFETCHSTORE_RETURN_SUCCESS
 	clrl	%r0							;\
@@ -526,43 +522,43 @@ ENTRY(copystr,0)
 
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
 ENTRY(_ufetch_8,0)
-	UFETCH_PROLOGUE
-	movb	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_PROLOGUE
+	movb	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
 /* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
 ENTRY(_ufetch_16,0)
-	UFETCH_PROLOGUE
-	movw	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_PROLOGUE
+	movw	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
 /* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
 ENTRY(_ufetch_32,0)
-	UFETCH_PROLOGUE
-	movl	(%r0),(%r1)		# *valp = *uaddr
+	UFETCHSTORE_PROLOGUE
+	movl	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
 /* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
 ENTRY(_ustore_8,0)
-	USTORE_PROLOGUE
-	movb	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_PROLOGUE
+	movb	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
 /* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
 ENTRY(_ustore_16,0)
-	USTORE_PROLOGUE
-	movw	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_PROLOGUE
+	movw	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
 /* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
 ENTRY(_ustore_32,0)
-	USTORE_PROLOGUE
-	movl	8(%ap),(%r0)		# *uaddr = val
+	UFETCHSTORE_PROLOGUE
+	movl	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN_SUCCESS
 
