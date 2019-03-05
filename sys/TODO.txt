@@ -4,7 +4,7 @@ ARCH:
 	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
 	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4)
 	hppa		-- changes compile, NOT TESTED
-	i386		-- changes compile, NOT TESTED
+	i386		-- changes done, tested (thorpej, x86 VMware VM)
 	ia64		-- changes compile, NOT TESTED
 	m68k		-- changes compile, NOT TESTED
 	mips		-- changes compile, NOT TESTED
