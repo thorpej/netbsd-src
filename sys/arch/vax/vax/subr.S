@@ -507,64 +507,62 @@ ENTRY(copystr,0)
 	.align	2
 
 #define	UFETCHSTORE_PROLOGUE						 \
-	movl	4(%ap),%r2		/* %r0 = uaddr */		;\
-	blss	Lufetchstore_efault	/* illegal space */		;\
-	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\	
+	tstl	4(%ap)			/* uaddr in userpsace? */	;\
+	blss	1f			/* nope, fault */		;\
+	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\
 	movab	Lufetchstore_fault,(%r1)/* set pcb_onfault */
 
 #define	UFETCHSTORE_EPILOGUE						 \
 	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\
 	clrl	(%r1)			/* pcb_onfault = NULL */
 
-#define	UFETCHSTORE_RETURN_SUCCESS
-	clrl	%r0							;\
-	ret
+#define	UFETCHSTORE_RETURN						 \
+	clrl	%r0			/* return success */		;\
+	ret								;\
+1:	movl	$EFAULT,%r0						;\
+	ret				/* return EFAULT */
 
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
 ENTRY(_ufetch_8,0)
 	UFETCHSTORE_PROLOGUE
 	movb	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
+	UFETCHSTORE_RETURN
 
 /* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
 ENTRY(_ufetch_16,0)
 	UFETCHSTORE_PROLOGUE
 	movw	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
+	UFETCHSTORE_RETURN
 
 /* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
 ENTRY(_ufetch_32,0)
 	UFETCHSTORE_PROLOGUE
 	movl	*4(%ap),*8(%ap)		# *valp = *uaddr
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
+	UFETCHSTORE_RETURN
 
 /* LINTSTUB: int _ustore_8(uint8_t *uaddr, uint8_t val); */
 ENTRY(_ustore_8,0)
 	UFETCHSTORE_PROLOGUE
 	movb	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
+	UFETCHSTORE_RETURN
 
 /* LINTSTUB: int _ustore_16(uint16_t *uaddr, uint16_t val); */
 ENTRY(_ustore_16,0)
 	UFETCHSTORE_PROLOGUE
 	movw	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
+	UFETCHSTORE_RETURN
 
 /* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
 ENTRY(_ustore_32,0)
 	UFETCHSTORE_PROLOGUE
 	movl	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
-	UFETCHSTORE_RETURN_SUCCESS
-
-Lufetchstore_efault:
-	movl	$EFAULT,%r0
-	ret				# return EFAULT
+	UFETCHSTORE_RETURN
 
 Lufetchstore_fault:
 	UFETCHSTORE_EPILOGUE
