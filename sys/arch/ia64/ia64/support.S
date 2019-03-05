@@ -245,6 +245,73 @@ ENTRY(casuptr, 3)
 }
 END(casuptr)
 
+/**************************************************************************/
+
+ENTRY(ufetchstore_fault, 0)
+{	.mfb
+	st8.rel		[r15]=r0		// Clear onfault.
+	nop		0			// ret0 already has error
+	br.ret.sptk	rp
+	;;
+}
+END(ufetchstore_fault)
+
+/* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
+ENTRY(_ufetch_8, 2)
+	/* BEGIN UFETCH PROLOGUE */
+{	.mlx
+	add		r15=PC_CURLWP,r13
+	movl		r14=VM_MAX_ADDRESS
+	;;
+}
+{	.mib
+	ld8		r15=[r15]		// r15 = curlwp
+	cmp.geu		p6,p0=in0,r14
+(p6)	br.dpnt.few	1f
+	;;
+}
+{	.mlx
+	add		r15=L_PCB,r15
+	movl		r14=ufetchstore_fault
+	;;
+}
+{	.mmi
+	ld8		r15=[r15]		// r15 = curlwp->l_pcb
+	;;
+	nop		0
+	add		r15=PCB_ONFAULT,r15
+	;;
+}
+{	.mmi
+	st8		[r15]=r14		// curpcb->pcb_onfault = 
+	;;					//     ufetchstore_fault
+	mf
+	nop		0
+	;;
+}	/* END UFETCH PROLOGUE */
+{	.mmi
+	ld1		r14=[in0]		// r14 = *uaddr
+	;;
+	st8.rel		[r15]=r0		// curpcb->pcb_onfault = NULL
+	mov		ret0=r0			// ret0 = 0 (success!)
+	;;
+}
+{	.mib
+	st1		[in1]=r14		// *valp = r14
+	nop		0
+	br.ret.sptk	rp
+	;;
+}
+1:	/* BEGIN UFETCHSTORE EIPLOGUE */
+{	.mfb
+	mov		ret0=EFAULT		// return EFAULT
+	nop		0
+	br.ret.sptk	rp
+	;;
+}
+
+/**************************************************************************/
+
 /*
  * subyte(void *addr, int byte)
  * suword16(void *addr, int word)
