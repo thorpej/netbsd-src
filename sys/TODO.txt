@@ -5,7 +5,7 @@ ARCH:
 	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4)
 	hppa		-- changes compile, NOT TESTED
 	i386		-- changes compile, NOT TESTED
-	ia64
+	ia64		-- changes compile, NOT TESTED
 	m68k		-- changes compile, NOT TESTED
 	mips		-- changes compile, NOT TESTED
 	or1k
