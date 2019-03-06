@@ -15,4 +15,4 @@ ARCH:
 	sparc		-- changes done, tested (thorpej, Qemu sparc)
 	sparc64		-- changes compile, NOT TESTED
 	usermode	-- initial changes, NOT TESTED -- can't build
-	vax		-- changes compile, NOT TESTED
+	vax		-- changes done, tested (thorpej, SIMH vax)
