@@ -510,7 +510,7 @@ ENTRY(copystr,0)
 	tstl	4(%ap)			/* uaddr in userpsace? */	;\
 	blss	1f			/* nope, fault */		;\
 	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\
-	movab	Lufetchstore_fault,(%r1)/* set pcb_onfault */
+	movab	2f,(%r1)		/* set pcb_onfault */
 
 #define	UFETCHSTORE_EPILOGUE						 \
 	mfpr	$PR_ESP,%r1		/* &pcb_onfault is in ESP */	;\
@@ -520,7 +520,9 @@ ENTRY(copystr,0)
 	clrl	%r0			/* return success */		;\
 	ret								;\
 1:	movl	$EFAULT,%r0						;\
-	ret				/* return EFAULT */
+	ret				/* return EFAULT */		;\
+2:	UFETCHSTORE_EPILOGUE						;\
+	ret				/* error already in %r0 */
 
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
 ENTRY(_ufetch_8,0)
@@ -563,10 +565,6 @@ ENTRY(_ustore_32,0)
 	movl	8(%ap),*4(%ap)		# *uaddr = val
 	UFETCHSTORE_EPILOGUE
 	UFETCHSTORE_RETURN
-
-Lufetchstore_fault:
-	UFETCHSTORE_EPILOGUE
-	ret				# error already in %r0
 
 /**************************************************************************/
 
