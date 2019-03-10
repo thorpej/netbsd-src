@@ -62,6 +62,22 @@ struct ufetchstore_test_args {
 
 #define	mib_name	"kern.ufetchstore_test.test"
 
+static void *
+vm_max_address(void)
+{
+	static unsigned long max_addr = 0;
+	int rv;
+
+	if (max_addr == 0) {
+		size_t max_addr_size = sizeof(max_addr);
+		rv = sysctlbyname("vm.maxaddress", &max_addr, &max_addr_size,
+				  NULL, 0);
+		if (rv != 0)
+	                err(1, "sysctlbyname('vm.maxaddress')");
+        }
+	return (void *)max_addr;
+}
+
 static int
 do_sysctl(struct ufetchstore_test_args *args)
 {
@@ -386,6 +402,60 @@ ATF_TC_BODY(ufetch_64_null, tc)
 }
 #endif /* _LP64 */
 
+ATF_TC(ufetch_8_max);
+ATF_TC_HEAD(ufetch_8_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ufetch_8 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ufetch_8_max, tc)
+{
+	uint8_t res;
+
+	ATF_REQUIRE_EQ(do_ufetch_8(vm_max_address(), &res), EFAULT);
+}
+
+ATF_TC(ufetch_16_max);
+ATF_TC_HEAD(ufetch_16_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ufetch_16 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ufetch_16_max, tc)
+{
+	uint16_t res;
+
+	ATF_REQUIRE_EQ(do_ufetch_16(vm_max_address(), &res), EFAULT);
+}
+
+ATF_TC(ufetch_32_max);
+ATF_TC_HEAD(ufetch_32_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ufetch_32 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ufetch_32_max, tc)
+{
+	uint32_t res;
+
+	ATF_REQUIRE_EQ(do_ufetch_32(vm_max_address(), &res), EFAULT);
+}
+
+#ifdef _LP64
+ATF_TC(ufetch_64_max);
+ATF_TC_HEAD(ufetch_64_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ufetch_64 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ufetch_64_max, tc)
+{
+	uint64_t res;
+
+	ATF_REQUIRE_EQ(do_ufetch_64(vm_max_address(), &res), EFAULT);
+}
+#endif /* _LP64 */
+
 ATF_TC(ustore_8);
 ATF_TC_HEAD(ustore_8, tc)
 {
@@ -494,6 +564,52 @@ ATF_TC_BODY(ustore_64_null, tc)
 }
 #endif /* _LP64 */
 
+ATF_TC(ustore_8_max);
+ATF_TC_HEAD(ustore_8_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ustore_8 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ustore_8_max, tc)
+{
+	ATF_REQUIRE_EQ(do_ustore_8(vm_max_address(), 0), EFAULT);
+}
+
+ATF_TC(ustore_16_max);
+ATF_TC_HEAD(ustore_16_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ustore_16 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ustore_16_max, tc)
+{
+	ATF_REQUIRE_EQ(do_ustore_16(vm_max_address(), 0), EFAULT);
+}
+
+ATF_TC(ustore_32_max);
+ATF_TC_HEAD(ustore_32_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ustore_32 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ustore_32_max, tc)
+{
+	ATF_REQUIRE_EQ(do_ustore_32(vm_max_address(), 0), EFAULT);
+}
+
+#ifdef _LP64
+ATF_TC(ustore_64_max);
+ATF_TC_HEAD(ustore_64_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ustore_64 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ustore_64_max, tc)
+{
+	ATF_REQUIRE_EQ(do_ustore_64(vm_max_address(), 0), EFAULT);
+}
+#endif /* _LP64 */
+
 ATF_TP_ADD_TCS(tp)
 {
 	ATF_TP_ADD_TC(tp, ufetch_8);
@@ -510,6 +626,13 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, ufetch_64_null);
 #endif
 
+	ATF_TP_ADD_TC(tp, ufetch_8_max);
+	ATF_TP_ADD_TC(tp, ufetch_16_max);
+	ATF_TP_ADD_TC(tp, ufetch_32_max);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ufetch_64_max);
+#endif
+
 	ATF_TP_ADD_TC(tp, ustore_8);
 	ATF_TP_ADD_TC(tp, ustore_16);
 	ATF_TP_ADD_TC(tp, ustore_32);
@@ -522,6 +645,13 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, ustore_32_null);
 #ifdef _LP64
 	ATF_TP_ADD_TC(tp, ustore_64_null);
+#endif
+
+	ATF_TP_ADD_TC(tp, ustore_8_max);
+	ATF_TP_ADD_TC(tp, ustore_16_max);
+	ATF_TP_ADD_TC(tp, ustore_32_max);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ustore_64_max);
 #endif
 
 	return atf_no_error();
