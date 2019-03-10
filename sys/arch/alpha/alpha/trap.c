@@ -147,6 +147,38 @@ trap_init(void)
 }
 
 static void
+onfault_restore(struct trapframe *framep, vaddr_t onfault, int error)
+{
+	framep->tf_regs[FRAME_PC] = onfault;
+	framep->tf_regs[FRAME_V0] = error;
+}
+
+static vaddr_t
+onfault_handler(const struct pcb *pcb, const struct trapframe *tf)
+{
+	struct onfault_table {
+		vaddr_t start;
+		vaddr_t end;
+		vaddr_t handler;
+	};
+	extern const struct onfault_table onfault_table[];
+	const struct onfault_table *p;
+	vaddr_t pc;
+
+	if (pcb->pcb_onfault != 0) {
+		return pcb->pcb_onfault;
+	}
+
+	pc = framep->tf_regs[FRAME_PC];
+	for (p = onfault_table; p->start; p++) {
+		if (p->start <= pc && pc < p->end) {
+			return p->handler;
+		}
+	}
+	return 0;
+}
+
+static void
 printtrap(const u_long a0, const u_long a1, const u_long a2,
     const u_long entry, struct trapframe *framep, int isfatal, int user)
 {
@@ -366,7 +398,7 @@ trap(const u_long a0, const u_long a1, const u_long a2, const u_long entry,
 
 	case ALPHA_KENTRY_MM:
 		pcb = lwp_getpcb(l);
-		onfault = pcb->pcb_onfault;
+		onfault = onfault_handler(pcb, framep);
 
 		switch (a1) {
 		case ALPHA_MMCSR_FOR:
@@ -381,6 +413,7 @@ trap(const u_long a0, const u_long a1, const u_long a2, const u_long entry,
 		case ALPHA_MMCSR_INVALTRANS:
 		case ALPHA_MMCSR_ACCESS:
 	    	{
+			vaddr_t save_onfault;
 			vaddr_t va;
 			struct vmspace *vm = NULL;
 			struct vm_map *map;
@@ -429,8 +462,8 @@ trap(const u_long a0, const u_long a1, const u_long a2, const u_long entry,
 			/*
 			 * It is only a kernel address space fault iff:
 			 *	1. !user and
-			 *	2. pcb_onfault not set or
-			 *	3. pcb_onfault set but kernel space data fault
+			 *	2. onfault not set or
+			 *	3. onfault set but kernel space data fault
 			 * The last can occur during an exec() copyin where the
 			 * argument space is lazy-allocated.
 			 */
@@ -445,9 +478,10 @@ do_fault:
 			}
 
 			va = trunc_page((vaddr_t)a0);
+			save_onfault = pcb->pcb_onfault;
 			pcb->pcb_onfault = 0;
 			rv = uvm_fault(map, va, ftype);
-			pcb->pcb_onfault = onfault;
+			pcb->pcb_onfault = save_onfault;
 
 			/*
 			 * If this was a stack access we keep track of the
@@ -472,8 +506,7 @@ do_fault:
 			if (user == 0) {
 				/* Check for copyin/copyout fault */
 				if (onfault != 0) {
-					framep->tf_regs[FRAME_PC] = onfault;
-					framep->tf_regs[FRAME_V0] = rv;
+					onfault_restore(framep, onfault, rv);
 					goto out;
 				}
 				goto dopanic;
