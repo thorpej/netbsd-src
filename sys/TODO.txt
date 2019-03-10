@@ -1,10 +1,10 @@
 ARCH:
-	aarch64		-- changes done, RE-TEST (thorpej, Qemu aarch64)
+	aarch64		-- changes done, tested (thorpej, Qemu aarch64)
 	alpha		-- changes compile, NOT TESTED
-	amd64		-- changes done, RE-TEST (thorpej, x86_64 VMware VM)
-	arm		-- changes done, RE-TEST (thorpej, Qemu arm, v2 and v4)
+	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
+	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4)
 	hppa		-- changes compile, NOT TESTED
-	i386		-- changes done, RE-TEST (thorpej, x86 VMware VM)
+	i386		-- changes done, tested (thorpej, x86 VMware VM)
 	ia64		-- changes compile, NOT TESTED
 	m68k		-- changes compile, NOT TESTED
 	mips		-- changes compile, NOT TESTED
@@ -12,7 +12,7 @@ ARCH:
 	powerpc		-- changes compile, NOT TESTED
 	riscv		-- initial changes, NOT TESTED -- can't build
 	sh3		-- changes compile, NOT TESTED
-	sparc		-- changes done, RE-TEST (thorpej, Qemu sparc)
+	sparc		-- changes done, tested (thorpej, Qemu sparc)
 	sparc64		-- changes compile, NOT TESTED
 	usermode	-- initial changes, NOT TESTED -- can't build
-	vax		-- changes done, RE-TEST (thorpej, SIMH vax)
+	vax		-- changes done, tested (thorpej, SIMH vax)
