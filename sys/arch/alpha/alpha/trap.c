@@ -169,7 +169,7 @@ onfault_handler(const struct pcb *pcb, const struct trapframe *tf)
 		return pcb->pcb_onfault;
 	}
 
-	pc = framep->tf_regs[FRAME_PC];
+	pc = tf->tf_regs[FRAME_PC];
 	for (p = onfault_table; p->start; p++) {
 		if (p->start <= pc && pc < p->end) {
 			return p->handler;
