@@ -746,11 +746,6 @@ LEAF_NOPROFILE(lwp_trampoline, 0)
 
 /**************************************************************************/
 
-#define	ONFAULT_START(func)	.L ## func ## _start:
-#define	ONFAULT_END(func)	.L ## func ## _end:
-
-/**************************************************************************/
-
 /*
  * Copy a null-terminated string within the kernel's address space.
  * If lenp is not NULL, store the number of chars copied in *lenp
@@ -990,9 +985,9 @@ END(copyerr)
 /* LINTSTUB: int _ufetch_8(const uint8_t *uaddr, uint8_t *valp); */
 LEAF_NOPROFILE(_ufetch_8, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ufetch_8)
+.L_ufetch_8_start:
 	ldq_u	t0, 0(a0)	/* load quad containing byte */
-ONFAULT_END(_ufetch_8)
+.L_ufetch_8_end:
 	extbl	t0, a0, a0	/* a0 = extracted byte */
 	ldq_u	t0, 0(a1)	/* load dest quad */
 	insbl	a0, a1, a0	/* a0 = byte in target position */
@@ -1006,9 +1001,9 @@ ONFAULT_END(_ufetch_8)
 /* LINTSTUB: int _ufetch_16(const uint16_t *uaddr, uint16_t *valp); */
 LEAF_NOPROFILE(_ufetch_16, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ufetch_16)
+.L_ufetch_16_start:
 	ldq_u	t0, 0(a0)	/* load quad containing short */
-ONFAULT_END(_ufetch_16)
+.L_ufetch_16_end:
 	extwl	t0, a0, a0	/* a0 = extracted short */
 	ldq_u	t0, 0(a1)	/* load dest quad */
 	inswl	a0, a1, a0	/* a0 = short in target position */
@@ -1022,9 +1017,9 @@ ONFAULT_END(_ufetch_16)
 /* LINTSTUB: int _ufetch_32(const uint32_t *uaddr, uint32_t *valp); */
 LEAF_NOPROFILE(_ufetch_32, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ufetch_32)
+.L_ufetch_32_start:
 	ldl	v0, 0(a0)
-ONFAULT_END(_ufetch_32)
+.L_ufetch_32_end:
 	stl	v0, 0(a1)
 	mov	zero, v0
 	RET
@@ -1033,9 +1028,9 @@ ONFAULT_END(_ufetch_32)
 /* LINTSTUB: int _ufetch_64(const uint64_t *uaddr, uint64_t *valp); */
 LEAF_NOPROFILE(_ufetch_64, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ufetch_64)
+.L_ufetch_64_start:
 	ldq	v0, 0(a0)
-ONFAULT_END(_ufetch_64)
+.L_ufetch_64_end:
 	stq	v0, 0(a1)
 	mov	zero, v0
 	RET
@@ -1046,12 +1041,12 @@ LEAF_NOPROFILE(_ustore_8, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfe, a1	/* kill arg's high bytes */
 	insbl	a1, a0, a1	/* move it to the right spot */
-ONFAULT_START(_ustore_8)
+.L_ustore_8_start:
 	ldq_u	t0, 0(a0)	/* load quad around byte */
 	mskbl	t0, a0, t0	/* kill the target byte */
 	or	t0, a1, a1	/* put the result together */
 	stq_u	a1, 0(a0)	/* and store it. */
-ONFAULT_END(_ustore_8)
+.L_ustore_8_end:
 	mov	zero, v0
 	RET
 	END(_ustore_8)
@@ -1061,12 +1056,12 @@ LEAF_NOPROFILE(_ustore_16, 2)
 	UFETCHSTORE_PROLOGUE
 	zap	a1, 0xfc, a1	/* kill arg's high bytes */
 	inswl	a1, a0, a1	/* move it to the right spot */
-ONFAULT_START(_ustore_16)
+.L_ustore_16_start:
 	ldq_u	t0, 0(a0)	/* load quad around short */
 	mskwl	t0, a0, t0	/* kill the target short */
 	or	t0, a1, a1	/* put the result together */
 	stq_u	a1, 0(a0)	/* and store it. */
-ONFAULT_END(_ustore_16)
+.L_ustore_16_end:
 	mov	zero, v0
 	RET
 	END(_ustore_16)
@@ -1074,9 +1069,9 @@ ONFAULT_END(_ustore_16)
 /* LINTSTUB: int _ustore_32(uint32_t *uaddr, uint32_t val); */
 LEAF_NOPROFILE(_ustore_32, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ustore_32)
+.L_ustore_32_start:
 	stl	a1, 0(a0)
-ONFAULT_END(_ustore_32)
+.L_ustore_32_end:
 	mov	zero, v0
 	RET
 	END(_ustore_32)
@@ -1084,9 +1079,9 @@ ONFAULT_END(_ustore_32)
 /* LINTSTUB: int _ustore_64(uint64_t *uaddr, uint64_t val); */
 LEAF_NOPROFILE(_ustore_64, 2)
 	UFETCHSTORE_PROLOGUE
-ONFAULT_START(_ustore_64)
+.L_ustore_64_start:
 	stq	a1, 0(a0)
-ONFAULT_END(_ustore_64)
+.L_ustore_64_end:
 	mov	zero, v0
 	RET
 	END(_ustore_64)
@@ -1103,19 +1098,19 @@ XLEAF(ufetchstoreerr, 0)
 /*
  * int ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
  */
-LEAF_NOPROFILE(ucas_32)
+LEAF_NOPROFILE(ucas_32, 4)
 	UFETCHSTORE_PROLOGUE
 	and	a0, 3, t1			/* check if addr is aligned. */
 	bne	t1, ufetchstoreerr_efault	/* if it's not, error out.   */
 
 3:
-ONFAULT_START(ucas_32)
+.Lucas_32_start:
 	ldl_l	t0, 0(a0)			/* t0 = *uptr */
 	cmpeq	t0, a1, t1			/* does t0 = old? */
 	beq	t1, 1f				/* if not, skip */
 	mov	a2, t1
 	stl_c	t1, 0(a0)			/* *uptr ~= new */
-ONFAULT_END(ucas_32)
+.Lucas_32_end:
 	beq	t1, 2f				/* did it work? */
 1:
 	stl	t0, 0(a3)			/* *ret = t0 */
@@ -1131,19 +1126,19 @@ STRONG_ALIAS(ucas_int,ucas_32)
 /*
  * int ucas_64(volatile int64_t *uptr, int64_t old, int64_t new, int64_t *ret);
  */
-LEAF_NOPROFILE(ucas_64)
+LEAF_NOPROFILE(ucas_64, 4)
 	UFETCHSTORE_PROLOGUE
 	and	a0, 7, t1			/* check if addr is aligned. */
 	bne	t1, ufetchstoreerr_efault	/* if it's not, error out.   */
 
 3:
-ONFAULT_START(ucas_64)
+.Lucas_64_start:
 	ldq_l	t0, 0(a0)			/* t0 = *uptr */
 	cmpeq	t0, a1, t1			/* does t0 = old? */
 	beq	t1, 1f				/* if not, skip */
 	mov	a2, t1
 	stq_c	t1, 0(a0)			/* *uptr ~= new */
-ONFAULT_END(ucas_64)
+.Lucas_64_end:
 	beq	t1, 2f				/* did it work? */
 1:
 	stq	t0, 0(a3)			/* *ret = t0 */
@@ -1158,31 +1153,55 @@ STRONG_ALIAS(ucas_ptr,ucas_64)
 
 /**************************************************************************/
 
-#define	ONFAULT(func, handler)						 \
-	.quad	.L ## func ## _start					;\
-	.quad	.L ## func ## _end					;\
-	.quad	_C_LABEL(handler)
-
 /*
  * Fault table of user access functions for trap().
  */
 	.section ".rodata"
-	.globl _C_LABEL(onfault_table)
-_C_LABEL(onfault_table):
-	ONFAULT(_ufetch_8,  ufetchstoreerr)
-	ONFAULT(_ufetch_16, ufetchstoreerr)
-	ONFAULT(_ufetch_32, ufetchstoreerr)
-	ONFAULT(_ufetch_64, ufetchstoreerr)
+	.globl	onfault_table
+onfault_table:
+	.quad	.L_ufetch_8_start
+	.quad	.L_ufetch_8_end
+	.quad	ufetchstoreerr
 
-	ONFAULT(_ustore_8,  ufetchstoreerr)
-	ONFAULT(_ustore_16, ufetchstoreerr)
-	ONFAULT(_ustore_32, ufetchstoreerr)
-	ONFAULT(_ustore_64, ufetchstoreerr)
+	.quad	.L_ufetch_16_start
+	.quad	.L_ufetch_16_end
+	.quad	ufetchstoreerr
 
-	ONFAULT(ucas_32,    ufetchstoreerr)
-	ONFAULT(ucas_64,    ufetchstoreerr)
+	.quad	.L_ufetch_32_start
+	.quad	.L_ufetch_32_end
+	.quad	ufetchstoreerr
+
+	.quad	.L_ufetch_64_start
+	.quad	.L_ufetch_64_end
+	.quad	ufetchstoreerr
+
+	.quad	.L_ustore_8_start
+	.quad	.L_ustore_8_end
+	.quad	ufetchstoreerr
+
+	.quad	.L_ustore_16_start
+	.quad	.L_ustore_16_end
+	.quad	ufetchstoreerr
+
+	.quad	.L_ustore_32_start
+	.quad	.L_ustore_32_end
+	.quad	ufetchstoreerr
+
+	.quad	.L_ustore_64_start
+	.quad	.L_ustore_64_end
+	.quad	ufetchstoreerr
+
+	.quad	.Lucas_32_start
+	.quad	.Lucas_32_end
+	.quad	ufetchstoreerr
+
+	.quad	.Lucas_64_start
+	.quad	.Lucas_64_end
+	.quad	ufetchstoreerr
 
 	.quad	0
+
+	.text
 
 /**************************************************************************/
 
