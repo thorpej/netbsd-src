@@ -1,4 +1,4 @@
-#	$NetBSD: bsd.own.mk,v 1.1104 2019/02/09 21:05:48 maya Exp $
+#	$NetBSD: bsd.own.mk,v 1.1112 2019/03/11 09:20:14 mrg Exp $
 
 # This needs to be before bsd.init.mk
 .if defined(BSD_MK_COMPAT_FILE)
@@ -59,19 +59,13 @@ TOOLCHAIN_MISSING?=	no
 # What GCC is used?
 #
 .if \
-    ${MACHINE_CPU} == "alpha"	|| \
-    ${MACHINE_CPU} == "aarch64"	|| \
-    ${MACHINE_CPU} == "i386"	|| \
-    ${MACHINE_CPU} == "mips"	|| \
-    ${MACHINE_ARCH} == "powerpc"	|| \
-    ${MACHINE_CPU} == "riscv"	|| \
-    ${MACHINE_CPU} == "sparc"	|| \
-    ${MACHINE_CPU} == "sparc64"	|| \
-    ${MACHINE_CPU} == "x86_64"
-HAVE_GCC?=	7
-.else
+    ${MACHINE_CPU} == "hppa"	|| \
+    ${MACHINE_CPU} == "ia64"	|| \
+    ${MACHINE_ARCH} == "powerpc64"	|| \
+    ${MACHINE_CPU} == "vax"
 HAVE_GCC?=	6
 .endif
+HAVE_GCC?=	7
 
 #
 # Platforms that can't run a modern GCC natively
@@ -172,6 +166,18 @@ EXTERNAL_BINUTILS_SUBDIR=	binutils
 EXTERNAL_BINUTILS_SUBDIR=	binutils.old
 .else
 EXTERNAL_BINUTILS_SUBDIR=	/does/not/exist
+.endif
+
+#
+# What version of jemalloc we use (100 is the one
+# built-in to libc from 2005 (pre version 3).
+#
+.if ${MACHINE_CPU} == "x86_64"	|| \
+    ${MACHINE_CPU} == "i386"	|| \
+    ${MACHINE_CPU} == "aarch64"	
+HAVE_JEMALLOC?=		510
+.else
+HAVE_JEMALLOC?=		100
 .endif
 
 .if empty(.MAKEFLAGS:tW:M*-V .OBJDIR*)
@@ -1430,7 +1436,7 @@ X11SRCDIRMIT?=		${X11SRCDIR}/external/mit
 	FS ICE SM X11 XScrnSaver XTrap Xau Xcomposite Xcursor Xdamage \
 	Xdmcp Xevie Xext Xfixes Xfont Xfont2 Xft Xi Xinerama Xmu Xpresent Xpm \
 	Xrandr Xrender Xres Xt Xtst Xv XvMC Xxf86dga Xxf86misc Xxf86vm drm \
-	epoxy fontenc xkbfile xkbui Xaw pciaccess xcb xshmfence \
+	epoxy fontenc vdpau xkbfile xkbui Xaw pciaccess xcb xshmfence \
 	pthread-stubs
 X11SRCDIR.${_lib}?=		${X11SRCDIRMIT}/lib${_lib}/dist
 .endfor
@@ -1460,6 +1466,14 @@ HAVE_XORG_SERVER_VER?=110
 HAVE_XORG_SERVER_VER?=120
 .endif
 
+# MesaLib.old and MesaLib7 go together, and MesaLib is alone.
+HAVE_MESA_VER?=	10
+.if ${HAVE_MESA_VER} == "10"
+EXTERNAL_MESALIB_DIR?=	MesaLib.old
+.else
+EXTERNAL_MESALIB_DIR?=	MesaLib
+.endif
+
 .if ${HAVE_XORG_SERVER_VER} == "120"
 XORG_SERVER_SUBDIR?=xorg-server
 . if ${MACHINE} == "amd64" || ${MACHINE} == "i386"
@@ -1479,10 +1493,10 @@ HAVE_XORG_GLAMOR?=	no
 	xorg-cf-files imake xbiff xkeyboard-config \
 	xbitmaps appres xeyes xev xedit sessreg pixman \
 	beforelight bitmap editres makedepend fonttosfnt fslsfonts fstobdf \
-	glu glw mesa-demos MesaGLUT MesaLib MesaLib7 \
+	glu glw mesa-demos MesaGLUT MesaLib MesaLib.old MesaLib7 \
 	ico iceauth listres lndir \
 	luit xproxymanagementprotocol mkfontdir oclock proxymngr rgb \
-	rstart setxkbmap showfont smproxy twm viewres \
+	rstart setxkbmap showfont smproxy transset twm viewres \
 	x11perf xauth xcalc xclipboard \
 	xclock xcmsdb xconsole xditview xdpyinfo xdriinfo xdm \
 	xfd xf86dga xfindproxy xfontsel xfwp xgamma xgc xhost xinit \
@@ -1503,6 +1517,9 @@ HAVE_XORG_GLAMOR?=	no
 	font-sony-misc font-util ttf-bitstream-vera encodings
 X11SRCDIR.${_dir}?=		${X11SRCDIRMIT}/${_dir}/dist
 .endfor
+
+# X11SRCDIR.Mesa points to the currently used Mesa sources
+X11SRCDIR.Mesa?=		${X11SRCDIRMIT}/${EXTERNAL_MESALIB_DIR}/dist
 
 .for _i in \
 	elographics keyboard mouse synaptics vmmouse void ws
