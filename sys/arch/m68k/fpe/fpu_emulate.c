@@ -39,6 +39,8 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: fpu_emulate.c,v 1.38 2013/10/25 21:32:45 martin Exp $");
 
+#define	__UFETCHSTORE_PRIVATE
+
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/signal.h>
@@ -125,7 +127,7 @@ fpu_emulate(struct frame *frame, struct fpframe *fpf, ksiginfo_t *ksi)
 		frame->f_pc = insn.is_pc;
 	}
 
-	if (ufetch_short((void *)(insn.is_pc), &sval)) {
+	if (_ufetch_16((void *)(insn.is_pc), &sval)) {
 		DPRINTF(("%s: fault reading opcode\n", __func__));
 		fpe_abort(frame, ksi, SIGSEGV, SEGV_ACCERR);
 	}
@@ -144,7 +146,7 @@ fpu_emulate(struct frame *frame, struct fpframe *fpf, ksiginfo_t *ksi)
 	insn.is_opcode = sval;
 	optype = (sval & 0x01C0);
 
-	if (ufetch_short((void *)(insn.is_pc + 2), &sval)) {
+	if (_ufetch_16((void *)(insn.is_pc + 2), &sval)) {
 		DPRINTF(("%s: fault reading word1\n", __func__));
 		fpe_abort(frame, ksi, SIGSEGV, SEGV_ACCERR);
 	}
@@ -1014,9 +1016,9 @@ fpu_emul_type1(struct fpemu *fe, struct instruction *insn)
 			uint16_t count = frame->f_regs[insn->is_opcode & 7];
 
 			if (count-- != 0) {
-				if (ufetch_short((void *)(insn->is_pc +
-							   insn->is_advance),
-						  &sval)) {
+				if (_ufetch_16((void *)(insn->is_pc +
+							      insn->is_advance),
+						 	&sval)) {
 					DPRINTF(("%s: fault reading "
 					    "displacement\n", __func__));
 					return SIGSEGV;
@@ -1109,8 +1111,8 @@ fpu_emul_brcc(struct fpemu *fe, struct instruction *insn)
 	displ = insn->is_word1;
 
 	if (insn->is_opcode & 0x40) {
-		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
-				  &sval)) {
+		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+					&sval)) {
 			DPRINTF(("%s: fault reading word2\n", __func__));
 			return SIGSEGV;
 		}
