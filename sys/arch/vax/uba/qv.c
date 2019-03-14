@@ -772,7 +772,7 @@ qv_setcursor(struct qv_softc *sc, struct wsdisplay_cursor *v)
 	uint16_t red, green, blue;
 	uint32_t curfg[16], curmask[16];
 	uint16_t *curp;
-	int error, i;
+	int i;
 
 	/* Enable cursor */
 	if (v->which & WSDISPLAY_CURSOR_DOCUR) {
