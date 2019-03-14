@@ -71,6 +71,8 @@ __KERNEL_RCSID(0, "$NetBSD: m68k_syscall.c,v 1.51 2018/12/19 13:57:48 maxv Exp $
 #include "opt_compat_netbsd.h"
 #include "opt_compat_aout_m68k.h"
 
+#define	__UFETCHSTORE_PRIVATE
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/proc.h>
@@ -169,7 +171,7 @@ syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		error = ufetch_long((void *)params, (u_long *)&code);
+		error = _ufetch_32((void *)params, (uint32_t *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(int);
@@ -196,9 +198,9 @@ syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 		 * Like syscall, but code is a quad, so as to maintain
 		 * quad alignment for the rest of the arguments.
 		 */
-		error = ufetch_long((void *)(params +
+		error = _ufetch_32((void *)(params +
 					     _QUAD_LOWWORD * sizeof(int)),
-				    (u_long *)&code);
+				    (uint32_t *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(quad_t);
@@ -297,7 +299,7 @@ syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		error = ufetch_long((void *)params, (u_long *)&code);
+		error = _ufetch_32((void *)params, (uint32_t *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(int);
@@ -324,9 +326,9 @@ syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 		 * Like syscall, but code is a quad, so as to maintain
 		 * quad alignment for the rest of the arguments.
 		 */
-		error = ufetch_long((void *)(params +
+		error = _ufetch_32((void *)(params +
 					     _QUAD_LOWWORD * sizeof(int)),
-				    (u_long *)&code);
+				    (uint32_t *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(quad_t);
