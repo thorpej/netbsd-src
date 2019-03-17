@@ -468,12 +468,11 @@ __strong_alias(ustore_long,ustore_32);
 __strong_alias(ustore_ptr,ustore_32);
 #endif /* _LP64 */
 
-#define UFETCHSTORE_TEST
+#ifdef UFETCHSTORE_TEST
 
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#ifdef UFETCHSTORE_TEST
 static struct tester_ctx {
 	struct sysctllog *ctx_sysctllog;
 } tester_ctx;

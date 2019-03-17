@@ -3,7 +3,7 @@
 .include <bsd.own.mk>
 
 TESTSDIR=	${TESTSBASE}/modules
-CPPFLAGS+=	-D_KERNTYPES
+CPPFLAGS+=	-D_KERNTYPES -I${.CURDIR}/module
 
 # Ideally this test could be in the parent Makefile, which could not descend
 # into this directory at all.  Unfortunately, the etc/mtree/NetBSD.dist file
@@ -11,5 +11,7 @@ CPPFLAGS+=	-D_KERNTYPES
 # will confuse atf-run.  Therefore we must install, at the very least, the
 # Atffile into it.
 TESTS_C=	t_ufetchstore
+
+SUBDIR+=	module
 
 .include <bsd.test.mk>
