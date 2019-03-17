@@ -28,6 +28,8 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: rumpcopy.c,v 1.22 2016/05/25 17:43:58 christos Exp $");
 
+#define	__UFETCHSTORE_PRIVATE
+
 #include <sys/param.h>
 #include <sys/lwp.h>
 #include <sys/systm.h>
@@ -71,20 +73,6 @@ copyout(const void *kaddr, void *uaddr, size_t len)
 		error = rump_sysproxy_copyout(RUMP_SPVM2CTL(curproc->p_vmspace),
 		    kaddr, uaddr, len);
 	}
-	return error;
-}
-
-int
-subyte(void *uaddr, int byte)
-{
-	int error = 0;
-
-	if (RUMP_LOCALPROC_P(curproc))
-		*(char *)uaddr = byte;
-	else
-		error = rump_sysproxy_copyout(RUMP_SPVM2CTL(curproc->p_vmspace),
-		    &byte, uaddr, 1);
-
 	return error;
 }
 
@@ -215,18 +203,52 @@ uvm_io(struct vm_map *vm, struct uio *uio, int flag)
 	return error;
 }
 
-/*
- * Copy one byte from userspace to kernel.
- */
-int
-fubyte(const void *base)
-{
-	unsigned char val;
-	int error;
-
-	error = copyin(base, &val, sizeof(char));
-	if (error != 0)
-		return -1;
-
-	return (int)val;
+#define	UFETCH(sz)							\
+int									\
+_ufetch_ ## sz(const uint ## sz ##_t *uaddr, uint ## sz ## _t *valp)	\
+{									\
+	int error = 0;							\
+									\
+	if (RUMP_LOCALPROC_P(curproc)) {				\
+		*valp = *uaddr;						\
+	} else {							\
+		error = rump_sysproxy_copyin(				\
+		    RUMP_SPVM2CTL(curproc->p_vmspace),			\
+		    uaddr, valp, sizeof(*valp));			\
+	}								\
+	return error;							\
 }
+
+UFETCH(8)
+UFETCH(16)
+UFETCH(32)
+#ifdef _LP64
+UFETCH(64)
+#endif
+
+#undef UFETCH
+
+#define	USTORE(sz)							\
+int									\
+_ustore_ ## sz(uint ## sz ## _t *uaddr, uint ## sz ## _t val)		\
+{									\
+	int error = 0;							\
+									\
+	if (RUMP_LOCALPROC_P(curproc)) {				\
+		*uaddr = val;						\
+	} else {							\
+		error = rump_sysproxy_copyout(				\
+		    RUMP_SPVM2CTL(curproc->p_vmspace),			\
+		    &val, uaddr, sizeof(val));				\
+	}								\
+	return error;							\
+}
+
+USTORE(8)
+USTORE(16)
+USTORE(32)
+#ifdef _LP64
+USTORE(64)
+#endif
+
+#undef USTORE
