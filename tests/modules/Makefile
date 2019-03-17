@@ -26,5 +26,6 @@ SUBDIR+=	k_helper2
 SUBDIR+=	k_helper3
 SUBDIR+=	k_uvm
 SUBDIR+=	threadpool_tester
+SUBDIR+=	ufetchstore
 
 .include <bsd.test.mk>

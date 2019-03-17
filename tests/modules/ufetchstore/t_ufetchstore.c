@@ -1,4 +1,4 @@
-/* $NetBSD$ */
+/*	$NetBSD$	*/
 
 /*
  * Copyright (c) 2019 The NetBSD Foundation, Inc.
@@ -36,6 +36,7 @@ __RCSID("$NetBSD$");
 
 #include <sys/types.h>
 #include <sys/endian.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
 
 #include <err.h>
@@ -44,23 +45,68 @@ __RCSID("$NetBSD$");
 
 #include <atf-c.h>
 
-/* MUST BE KEPT IN SYNC WITH MODULE */
-struct ufetchstore_test_args {
-	void		*uaddr;
-	bool		is_store;
-	int		size;
-	int		fetchstore_error;
-	union {
-		uint8_t	 val8;
-		uint16_t val16;
-		uint32_t val32;
-#ifdef _LP64
-		uint64_t val64;
-#endif
-	};
-};
+#include "common.h"
 
 #define	mib_name	"kern.ufetchstore_test.test"
+
+#ifdef _LP64
+#define	NSIZES		4
+#else
+#define	NSIZES		3
+#endif /* _LP64 */
+
+	/* (8,16,32(,64)) x (normal,null,max) x (fetch,store) */
+#define	NTESTS		((NSIZES * 3) * 2)
+
+static int tests_remaining = NTESTS;
+
+static bool module_load_failed;
+
+#define	MODULE_PATH	\
+	"/usr/tests/modules/ufetchstore_tester/ufetchstore_tester.kmod"
+#define	MODULE_NAME	"ufetchstore_tester"
+
+#define	CHECK_MODULE()							\
+do {									\
+	if (module_load_failed) {					\
+		atf_tc_skip("loading '%s' module failed.", MODULE_NAME);\
+	}								\
+} while (/*CONSTCOND*/0)
+
+static void
+load_module(void)
+{
+	modctl_load_t params = {
+		.ml_filename = MODULE_PATH,
+		.ml_flags = MODCTL_NO_PROP,
+	};
+
+	if (modctl(MODCTL_LOAD, &params) != 0) {
+		warn("failed to load module '%s'", MODULE_PATH);
+		module_load_failed = true;
+	}
+}
+
+static void
+unload_module(void)
+{
+	if (module_load_failed)
+		return;
+
+	if (tests_remaining == 0)	/* precautionary; shouldn't happen */
+		return;
+	
+	tests_remaining--;
+
+	if (tests_remaining)
+		return;
+
+	char module_name[] = MODULE_NAME;
+
+	if (modctl(MODCTL_UNLOAD, module_name) != 0) {
+		warn("failed to unload module '%s'", MODULE_NAME);
+	}
+}
 
 static void *
 vm_max_address(void)
@@ -278,7 +324,7 @@ memory_cell_check_guard(const struct memory_cell * const cell)
 	       cell->guard1 == ULONG_MAX;
 }
 
-ATF_TC(ufetch_8);
+ATF_TC_WITH_CLEANUP(ufetch_8);
 ATF_TC_HEAD(ufetch_8, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -289,13 +335,19 @@ ATF_TC_BODY(ufetch_8, tc)
 	struct memory_cell cell = memory_cell_initializer;
 	uint8_t res;
 
+	CHECK_MODULE();
+
 	write_test_cell(&cell, test_cell_val8);
 	ATF_REQUIRE_EQ(do_ufetch_8(&cell.val8[index8], &res), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(res == test_pattern8);
 }
+ATF_TC_CLEANUP(ufetch_8, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_16);
+ATF_TC_WITH_CLEANUP(ufetch_16);
 ATF_TC_HEAD(ufetch_16, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -306,13 +358,19 @@ ATF_TC_BODY(ufetch_16, tc)
 	struct memory_cell cell = memory_cell_initializer;
 	uint16_t res;
 
+	CHECK_MODULE();
+
 	write_test_cell(&cell, test_cell_val16);
 	ATF_REQUIRE_EQ(do_ufetch_16(&cell.val16[index16], &res), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(res == test_pattern16);
 }
+ATF_TC_CLEANUP(ufetch_16, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_32);
+ATF_TC_WITH_CLEANUP(ufetch_32);
 ATF_TC_HEAD(ufetch_32, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -323,14 +381,20 @@ ATF_TC_BODY(ufetch_32, tc)
 	struct memory_cell cell = memory_cell_initializer;
 	uint32_t res;
 
+	CHECK_MODULE();
+
 	write_test_cell(&cell, test_cell_val32);
 	ATF_REQUIRE_EQ(do_ufetch_32(&cell.val32[index32], &res), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(res == test_pattern32);
 }
+ATF_TC_CLEANUP(ufetch_32, tc)
+{
+	unload_module();
+}
 
 #ifdef _LP64
-ATF_TC(ufetch_64);
+ATF_TC_WITH_CLEANUP(ufetch_64);
 ATF_TC_HEAD(ufetch_64, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -341,14 +405,20 @@ ATF_TC_BODY(ufetch_64, tc)
 	struct memory_cell cell = memory_cell_initializer;
 	uint64_t res;
 
+	CHECK_MODULE();
+
 	write_test_cell(&cell, test_cell_val64);
 	ATF_REQUIRE_EQ(do_ufetch_64(&cell.val64, &res), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(res == test_pattern64);
 }
+ATF_TC_CLEANUP(ufetch_64, tc)
+{
+	unload_module();
+}
 #endif /* _LP64 */
 
-ATF_TC(ufetch_8_null);
+ATF_TC_WITH_CLEANUP(ufetch_8_null);
 ATF_TC_HEAD(ufetch_8_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -358,10 +428,16 @@ ATF_TC_BODY(ufetch_8_null, tc)
 {
 	uint8_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_8(NULL, &res), EFAULT);
 }
+ATF_TC_CLEANUP(ufetch_8_null, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_16_null);
+ATF_TC_WITH_CLEANUP(ufetch_16_null);
 ATF_TC_HEAD(ufetch_16_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -371,10 +447,16 @@ ATF_TC_BODY(ufetch_16_null, tc)
 {
 	uint16_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_16(NULL, &res), EFAULT);
 }
+ATF_TC_CLEANUP(ufetch_16_null, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_32_null);
+ATF_TC_WITH_CLEANUP(ufetch_32_null);
 ATF_TC_HEAD(ufetch_32_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -384,11 +466,17 @@ ATF_TC_BODY(ufetch_32_null, tc)
 {
 	uint32_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_32(NULL, &res), EFAULT);
+}
+ATF_TC_CLEANUP(ufetch_32_null, tc)
+{
+	unload_module();
 }
 
 #ifdef _LP64
-ATF_TC(ufetch_64_null);
+ATF_TC_WITH_CLEANUP(ufetch_64_null);
 ATF_TC_HEAD(ufetch_64_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -398,11 +486,17 @@ ATF_TC_BODY(ufetch_64_null, tc)
 {
 	uint64_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_64(NULL, &res), EFAULT);
+}
+ATF_TC_CLEANUP(ufetch_64_null, tc)
+{
+	unload_module();
 }
 #endif /* _LP64 */
 
-ATF_TC(ufetch_8_max);
+ATF_TC_WITH_CLEANUP(ufetch_8_max);
 ATF_TC_HEAD(ufetch_8_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -412,10 +506,16 @@ ATF_TC_BODY(ufetch_8_max, tc)
 {
 	uint8_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_8(vm_max_address(), &res), EFAULT);
 }
+ATF_TC_CLEANUP(ufetch_8_max, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_16_max);
+ATF_TC_WITH_CLEANUP(ufetch_16_max);
 ATF_TC_HEAD(ufetch_16_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -425,10 +525,16 @@ ATF_TC_BODY(ufetch_16_max, tc)
 {
 	uint16_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_16(vm_max_address(), &res), EFAULT);
 }
+ATF_TC_CLEANUP(ufetch_16_max, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ufetch_32_max);
+ATF_TC_WITH_CLEANUP(ufetch_32_max);
 ATF_TC_HEAD(ufetch_32_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -438,11 +544,17 @@ ATF_TC_BODY(ufetch_32_max, tc)
 {
 	uint32_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_32(vm_max_address(), &res), EFAULT);
+}
+ATF_TC_CLEANUP(ufetch_32_max, tc)
+{
+	unload_module();
 }
 
 #ifdef _LP64
-ATF_TC(ufetch_64_max);
+ATF_TC_WITH_CLEANUP(ufetch_64_max);
 ATF_TC_HEAD(ufetch_64_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -452,11 +564,17 @@ ATF_TC_BODY(ufetch_64_max, tc)
 {
 	uint64_t res;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ufetch_64(vm_max_address(), &res), EFAULT);
+}
+ATF_TC_CLEANUP(ufetch_64_max, tc)
+{
+	unload_module();
 }
 #endif /* _LP64 */
 
-ATF_TC(ustore_8);
+ATF_TC_WITH_CLEANUP(ustore_8);
 ATF_TC_HEAD(ustore_8, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -466,12 +584,18 @@ ATF_TC_BODY(ustore_8, tc)
 {
 	struct memory_cell cell = memory_cell_initializer;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_8(&cell.val8[index8], test_pattern8), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(read_test_cell(&cell) == test_cell_val8);
 }
+ATF_TC_CLEANUP(ustore_8, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_16);
+ATF_TC_WITH_CLEANUP(ustore_16);
 ATF_TC_HEAD(ustore_16, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -481,12 +605,18 @@ ATF_TC_BODY(ustore_16, tc)
 {
 	struct memory_cell cell = memory_cell_initializer;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_16(&cell.val16[index16], test_pattern16), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(read_test_cell(&cell) == test_cell_val16);
 }
+ATF_TC_CLEANUP(ustore_16, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_32);
+ATF_TC_WITH_CLEANUP(ustore_32);
 ATF_TC_HEAD(ustore_32, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -496,13 +626,19 @@ ATF_TC_BODY(ustore_32, tc)
 {
 	struct memory_cell cell = memory_cell_initializer;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_32(&cell.val32[index32], test_pattern32), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(read_test_cell(&cell) == test_cell_val32);
 }
+ATF_TC_CLEANUP(ustore_32, tc)
+{
+	unload_module();
+}
 
 #ifdef _LP64
-ATF_TC(ustore_64);
+ATF_TC_WITH_CLEANUP(ustore_64);
 ATF_TC_HEAD(ustore_64, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -512,13 +648,19 @@ ATF_TC_BODY(ustore_64, tc)
 {
 	struct memory_cell cell = memory_cell_initializer;
 
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_64(&cell.val64, test_pattern64), 0);
 	ATF_REQUIRE(memory_cell_check_guard(&cell));
 	ATF_REQUIRE(read_test_cell(&cell) == test_cell_val64);
 }
+ATF_TC_CLEANUP(ustore_64, tc)
+{
+	unload_module();
+}
 #endif /* _LP64 */
 
-ATF_TC(ustore_8_null);
+ATF_TC_WITH_CLEANUP(ustore_8_null);
 ATF_TC_HEAD(ustore_8_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -526,10 +668,16 @@ ATF_TC_HEAD(ustore_8_null, tc)
 }
 ATF_TC_BODY(ustore_8_null, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_8(NULL, 0), EFAULT);
 }
+ATF_TC_CLEANUP(ustore_8_null, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_16_null);
+ATF_TC_WITH_CLEANUP(ustore_16_null);
 ATF_TC_HEAD(ustore_16_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -537,10 +685,16 @@ ATF_TC_HEAD(ustore_16_null, tc)
 }
 ATF_TC_BODY(ustore_16_null, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_16(NULL, 0), EFAULT);
 }
+ATF_TC_CLEANUP(ustore_16_null, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_32_null);
+ATF_TC_WITH_CLEANUP(ustore_32_null);
 ATF_TC_HEAD(ustore_32_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -548,11 +702,17 @@ ATF_TC_HEAD(ustore_32_null, tc)
 }
 ATF_TC_BODY(ustore_32_null, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_32(NULL, 0), EFAULT);
+}
+ATF_TC_CLEANUP(ustore_32_null, tc)
+{
+	unload_module();
 }
 
 #ifdef _LP64
-ATF_TC(ustore_64_null);
+ATF_TC_WITH_CLEANUP(ustore_64_null);
 ATF_TC_HEAD(ustore_64_null, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -560,11 +720,17 @@ ATF_TC_HEAD(ustore_64_null, tc)
 }
 ATF_TC_BODY(ustore_64_null, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_64(NULL, 0), EFAULT);
+}
+ATF_TC_CLEANUP(ustore_64_null, tc)
+{
+	unload_module();
 }
 #endif /* _LP64 */
 
-ATF_TC(ustore_8_max);
+ATF_TC_WITH_CLEANUP(ustore_8_max);
 ATF_TC_HEAD(ustore_8_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -572,10 +738,16 @@ ATF_TC_HEAD(ustore_8_max, tc)
 }
 ATF_TC_BODY(ustore_8_max, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_8(vm_max_address(), 0), EFAULT);
 }
+ATF_TC_CLEANUP(ustore_8_max, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_16_max);
+ATF_TC_WITH_CLEANUP(ustore_16_max);
 ATF_TC_HEAD(ustore_16_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -583,10 +755,16 @@ ATF_TC_HEAD(ustore_16_max, tc)
 }
 ATF_TC_BODY(ustore_16_max, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_16(vm_max_address(), 0), EFAULT);
 }
+ATF_TC_CLEANUP(ustore_16_max, tc)
+{
+	unload_module();
+}
 
-ATF_TC(ustore_32_max);
+ATF_TC_WITH_CLEANUP(ustore_32_max);
 ATF_TC_HEAD(ustore_32_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -594,11 +772,17 @@ ATF_TC_HEAD(ustore_32_max, tc)
 }
 ATF_TC_BODY(ustore_32_max, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_32(vm_max_address(), 0), EFAULT);
+}
+ATF_TC_CLEANUP(ustore_32_max, tc)
+{
+	unload_module();
 }
 
 #ifdef _LP64
-ATF_TC(ustore_64_max);
+ATF_TC_WITH_CLEANUP(ustore_64_max);
 ATF_TC_HEAD(ustore_64_max, tc)
 {
 	atf_tc_set_md_var(tc, "descr",
@@ -606,12 +790,21 @@ ATF_TC_HEAD(ustore_64_max, tc)
 }
 ATF_TC_BODY(ustore_64_max, tc)
 {
+	CHECK_MODULE();
+
 	ATF_REQUIRE_EQ(do_ustore_64(vm_max_address(), 0), EFAULT);
+}
+ATF_TC_CLEANUP(ustore_64_max, tc)
+{
+	unload_module();
 }
 #endif /* _LP64 */
 
 ATF_TP_ADD_TCS(tp)
 {
+
+	load_module();
+
 	ATF_TP_ADD_TC(tp, ufetch_8);
 	ATF_TP_ADD_TC(tp, ufetch_16);
 	ATF_TP_ADD_TC(tp, ufetch_32);
