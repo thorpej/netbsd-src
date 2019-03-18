@@ -22,5 +22,8 @@
 ./usr/tests/modules/t_modctl			tests-sys-tests		atf,rump
 ./usr/tests/modules/t_modload			tests-sys-tests		atf,rump
 ./usr/tests/modules/t_threadpool		tests-sys-tests		atf,rump
+./usr/tests/modules/t_ufetchstore		tests-sys-tests		atf,rump
 ./usr/tests/modules/threadpool_tester		tests-sys-tests		atf,rump
 ./usr/tests/modules/threadpool_tester/threadpool_tester.kmod tests-sys-tests	atf,rump
+./usr/tests/modules/ufetchstore_tester		tests-sys-tests		atf,rump
+./usr/tests/modules/ufetchstore_tester/ufetchstore_tester.kmod tests-sys-tests	atf,rump
