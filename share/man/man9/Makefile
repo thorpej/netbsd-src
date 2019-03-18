@@ -61,7 +61,8 @@ MAN=	accept_filter.9 accf_data.9 accf_http.9 \
 	vattr.9 veriexec.9 vcons.9 vfs.9 vfs_hooks.9 vfsops.9 vfssubr.9 \
 	video.9 vme.9 \
 	vnfileops.9 vnode.9 vnodeops.9 vnsubr.9 \
-	ubc.9 usbd_status.9 usbdi.9 uvm.9 uvm_hotplug.9 uvm_km.9 uvm_map.9 \
+	ubc.9 ufetch.9 usbd_status.9 usbdi.9 ustore.9 uvm.9 uvm_hotplug.9 \
+	uvm_km.9 uvm_map.9 \
 	vmem.9 wapbl.9 wdc.9 workqueue.9 \
 	wsbell.9 wscons.9 wsdisplay.9 wsfont.9 wskbd.9 wsmouse.9 \
 	xcall.9
@@ -928,6 +929,15 @@ MLINKS+=todr.9 todr_gettime.9 todr.9 todr_settime.9 \
 	todr.9 clock_ymdhms_to_secs.9 todr.9 clock_secs_to_ymdhms.9
 
 MLINKS+=ubc.9 ubc_uiomove.9 ubc.9 ubc_zerorange.9 ubc.9 ubc_purge.9
+
+MLINKS+=ufetch.9 ufetch_8.9 ufetch.9 ufetch_16.9 ufetch.9 ufetch_32.9 \
+	ufetch.9 ufetch_64.9 ufetch.9 ufetch_char.9 ufetch.9 ufetch_short.9 \
+	ufetch.9 ufetch_int.9 ufetch.9 ufetch_long.9 ufetch.9 ufetch_ptr.9
+
+MLINKS+=ustore.9 ustore_8.9 ustore.9 ustore_16.9 ustore.9 ustore_32.9 \
+	ustore.9 ustore_64.9 ustore.9 ustore_char.9 ustore.9 ustore_short.9 \
+	ustore.9 ustore_int.9 ustore.9 ustore_long.9 ustore.9 ustore_ptr.9
+
 MLINKS+=uvm.9 uvm_init.9 uvm.9 uvm_init_limits.9 uvm.9 uvm_setpagesize.9 \
 	uvm.9 uvm_swap_init.9 uvm.9 uvm_fault.9 \
 	uvm.9 uvm_vnp_setsize.9 \
