@@ -49,18 +49,7 @@ __RCSID("$NetBSD$");
 
 #define	mib_name	"kern.ufetchstore_test.test"
 
-#ifdef _LP64
-#define	NSIZES		4
-#else
-#define	NSIZES		3
-#endif /* _LP64 */
-
-	/* (8,16,32(,64)) x (normal,null,max) x (fetch,store) */
-#define	NTESTS		((NSIZES * 3) * 2)
-
-static int tests_remaining = NTESTS;
-
-static bool module_load_failed;
+static bool module_loaded;
 
 #define	MODULE_PATH	\
 	"/usr/tests/modules/ufetchstore_tester/ufetchstore_tester.kmod"
@@ -68,7 +57,8 @@ static bool module_load_failed;
 
 #define	CHECK_MODULE()							\
 do {									\
-	if (module_load_failed) {					\
+	load_module();							\
+	if (! module_loaded) {						\
 		atf_tc_skip("loading '%s' module failed.", MODULE_NAME);\
 	}								\
 } while (/*CONSTCOND*/0)
@@ -76,6 +66,9 @@ do {									\
 static void
 load_module(void)
 {
+	if (module_loaded)
+		return;
+
 	modctl_load_t params = {
 		.ml_filename = MODULE_PATH,
 		.ml_flags = MODCTL_NO_PROP,
@@ -83,28 +76,20 @@ load_module(void)
 
 	if (modctl(MODCTL_LOAD, &params) != 0) {
 		warn("failed to load module '%s'", MODULE_PATH);
-		module_load_failed = true;
+	} else {
+		module_loaded = true;
 	}
 }
 
 static void
 unload_module(void)
 {
-	if (module_load_failed)
-		return;
-
-	if (tests_remaining == 0)	/* precautionary; shouldn't happen */
-		return;
-	
-	tests_remaining--;
-
-	if (tests_remaining)
-		return;
-
 	char module_name[] = MODULE_NAME;
 
 	if (modctl(MODCTL_UNLOAD, module_name) != 0) {
 		warn("failed to unload module '%s'", MODULE_NAME);
+	} else {
+		module_loaded = false;
 	}
 }
 
@@ -802,9 +787,6 @@ ATF_TC_CLEANUP(ustore_64_max, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
-
-	load_module();
-
 	ATF_TP_ADD_TC(tp, ufetch_8);
 	ATF_TP_ADD_TC(tp, ufetch_16);
 	ATF_TP_ADD_TC(tp, ufetch_32);
