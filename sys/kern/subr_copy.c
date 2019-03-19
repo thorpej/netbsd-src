@@ -358,6 +358,9 @@ ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len)
  * User-space fetch / store
  */
 
+#ifdef __NO_STRICT_ALIGNMENT
+#define	CHECK_ALIGNMENT(x)	__nothing
+#else /* ! __NO_STRICT_ALIGNMENT */
 static bool
 ufetchstore_aligned(uintptr_t uaddr, size_t size)
 {
@@ -369,6 +372,7 @@ do {									\
 	if (!ufetchstore_aligned((uintptr_t)uaddr, sizeof(x)))		\
 		return EFAULT;						\
 } while (/*CONSTCOND*/0)
+#endif /* __NO_STRICT_ALIGNMENT */
 
 int
 ufetch_8(const uint8_t *uaddr, uint8_t *valp)
