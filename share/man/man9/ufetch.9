@@ -72,10 +72,6 @@ In each case, the value referenced by the user-space address
 is retrieved and stored at the kernel memory location referenced by
 .Ar valp .
 .Pp
-.Ar uaddr
-is required to be aligned according to the size of the type, even if this
-requirement is not imposed by the platform architecture.
-.Pp
 The
 .Nm ufetch_64
 function is only available on systems employing the
