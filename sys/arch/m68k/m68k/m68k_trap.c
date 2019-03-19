@@ -43,8 +43,6 @@ __KERNEL_RCSID(0, "$NetBSD: m68k_trap.c,v 1.1 2019/02/18 01:12:23 thorpej Exp $"
 
 #include "opt_m68k_arch.h"
 
-#define	__UFETCHSTORE_PRIVATE
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/proc.h>
@@ -279,7 +277,7 @@ m68040_writeback(struct frame *fp, int docachepush)
 			if (KDFAULT(f->f_wb1s))
 				*(long *)f->f_wb1a = wb1d;
 			else
-				err = _ustore_32((void *)f->f_wb1a, wb1d);
+				err = ustore_long((void *)f->f_wb1a, wb1d);
 			break;
 		case SSW4_SZB:
 			off = 24 - off;
@@ -288,7 +286,7 @@ m68040_writeback(struct frame *fp, int docachepush)
 			if (KDFAULT(f->f_wb1s))
 				*(char *)f->f_wb1a = wb1d;
 			else
-				err = _ustore_8((void *)f->f_wb1a, wb1d);
+				err = ustore_char((void *)f->f_wb1a, wb1d);
 			break;
 		case SSW4_SZW:
 			off = (off + 16) % 32;
@@ -297,7 +295,7 @@ m68040_writeback(struct frame *fp, int docachepush)
 			if (KDFAULT(f->f_wb1s))
 				*(short *)f->f_wb1a = wb1d;
 			else
-				err = _ustore_16((void *)f->f_wb1a, wb1d);
+				err = ustore_short((void *)f->f_wb1a, wb1d);
 			break;
 		}
 		if (err) {
@@ -329,19 +327,19 @@ m68040_writeback(struct frame *fp, int docachepush)
 			if (KDFAULT(f->f_wb2s))
 				*(long *)f->f_wb2a = f->f_wb2d;
 			else
-				err = _ustore_32((void *)f->f_wb2a, f->f_wb2d);
+				err = ustore_long((void *)f->f_wb2a, f->f_wb2d);
 			break;
 		case SSW4_SZB:
 			if (KDFAULT(f->f_wb2s))
 				*(char *)f->f_wb2a = f->f_wb2d;
 			else
-				err = _ustore_8((void *)f->f_wb2a, f->f_wb2d);
+				err = ustore_char((void *)f->f_wb2a, f->f_wb2d);
 			break;
 		case SSW4_SZW:
 			if (KDFAULT(f->f_wb2s))
 				*(short *)f->f_wb2a = f->f_wb2d;
 			else
-				err = _ustore_16((void *)f->f_wb2a, f->f_wb2d);
+				err = ustore_short((void *)f->f_wb2a, f->f_wb2d);
 			break;
 		}
 		if (err) {
@@ -369,19 +367,19 @@ m68040_writeback(struct frame *fp, int docachepush)
 			if (KDFAULT(f->f_wb3s))
 				*(long *)f->f_wb3a = f->f_wb3d;
 			else
-				err = _ustore_32((void *)f->f_wb3a, f->f_wb3d);
+				err = ustore_long((void *)f->f_wb3a, f->f_wb3d);
 			break;
 		case SSW4_SZB:
 			if (KDFAULT(f->f_wb3s))
 				*(char *)f->f_wb3a = f->f_wb3d;
 			else
-				err = _ustore_8((void *)f->f_wb3a, f->f_wb3d);
+				err = ustore_char((void *)f->f_wb3a, f->f_wb3d);
 			break;
 		case SSW4_SZW:
 			if (KDFAULT(f->f_wb3s))
 				*(short *)f->f_wb3a = f->f_wb3d;
 			else
-				err = _ustore_16((void *)f->f_wb3a, f->f_wb3d);
+				err = ustore_short((void *)f->f_wb3a, f->f_wb3d);
 			break;
 #ifdef DEBUG
 		case SSW4_SZLN:

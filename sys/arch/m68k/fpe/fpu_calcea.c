@@ -36,8 +36,6 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: fpu_calcea.c,v 1.26 2011/07/18 14:11:27 isaki Exp $");
 
-#define	__UFETCHSTORE_PRIVATE
-
 #include <sys/param.h>
 #include <sys/signal.h>
 #include <sys/systm.h>
@@ -220,7 +218,7 @@ decode_ea6(struct frame *frame, struct instruction *insn, struct insn_ea *ea,
 	int sig;
 	unsigned short extword;
 
-	if (_ufetch_16((void *)(insn->is_pc + insn->is_advance), &extword))
+	if (ufetch_short((void *)(insn->is_pc + insn->is_advance), &extword))
 		return SIGSEGV;
 	insn->is_advance += 2;
 
@@ -560,7 +558,7 @@ fetch_immed(struct frame *frame, struct instruction *insn, int *dst)
 	ext_bytes = insn->is_datasize;
 
 	if (0 < ext_bytes) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		data = sval;
@@ -579,7 +577,7 @@ fetch_immed(struct frame *frame, struct instruction *insn, int *dst)
 		dst[0] = data;
 	}
 	if (2 < ext_bytes) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		insn->is_advance += 2;
@@ -587,24 +585,24 @@ fetch_immed(struct frame *frame, struct instruction *insn, int *dst)
 		dst[0] |= sval;
 	}
 	if (4 < ext_bytes) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		data = sval;
 		dst[1] = data << 16;
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance + 2),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance + 2),
 				  &sval))
 			return SIGSEGV;
 		insn->is_advance += 4;
 		dst[1] |= sval;
 	}
 	if (8 < ext_bytes) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		data = sval;
 		dst[2] = data << 16;
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance + 2),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance + 2),
 				  &sval))
 			return SIGSEGV;
 		insn->is_advance += 4;
@@ -624,7 +622,7 @@ fetch_disp(struct frame *frame, struct instruction *insn, int size, int *res)
 	unsigned short sval;
 
 	if (size == 1) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		disp = sval;
@@ -634,12 +632,12 @@ fetch_disp(struct frame *frame, struct instruction *insn, int size, int *res)
 		}
 		insn->is_advance += 2;
 	} else if (size == 2) {
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance),
 				  &sval))
 			return SIGSEGV;
 		word = sval;
 		disp = word << 16;
-		if (_ufetch_16((void *)(insn->is_pc + insn->is_advance + 2),
+		if (ufetch_short((void *)(insn->is_pc + insn->is_advance + 2),
 				  &sval))
 			return SIGSEGV;
 		disp |= sval;
@@ -687,11 +685,11 @@ calc_ea(struct insn_ea *ea, char *ptr, char **eaddr)
 			    __func__, ea->ea_basedisp, ea->ea_outerdisp));
 			DPRINTF(("%s: addr fetched from %p\n", __func__, ptr));
 			/* memory indirect modes */
-			if (_ufetch_16((u_short *)ptr, &sval))
+			if (ufetch_short((u_short *)ptr, &sval))
 				return SIGSEGV;
 			word = sval;
 			word <<= 16;
-			if (_ufetch_16((u_short *)(ptr + 2), &sval))
+			if (ufetch_short((u_short *)(ptr + 2), &sval))
 				return SIGSEGV;
 			word |= sval;
 			DPRINTF(("%s: fetched ptr 0x%08x\n", __func__, word));

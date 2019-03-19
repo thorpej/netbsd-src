@@ -123,7 +123,7 @@ sunos_syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 	 * code assumes the kernel pops the syscall argument the
 	 * glue pushed on the stack. Sigh...
 	 */
-	error = _ufetch_32((void *)frame->f_regs[SP], (u_long *)&code);
+	error = ufetch_long((void *)frame->f_regs[SP], (u_long *)&code);
 	if (error)
 		goto bad;
 
@@ -151,7 +151,7 @@ sunos_syscall_plain(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		error = _ufetch_32((void *)params, (u_long *)&code);
+		error = ufetch_long((void *)params, (u_long *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(int);
@@ -232,7 +232,7 @@ sunos_syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 	 * code assumes the kernel pops the syscall argument the
 	 * glue pushed on the stack. Sigh...
 	 */
-	error = _ufetch_32((void *)frame->f_regs[SP], (u_long *)&code);
+	error = ufetch_long((void *)frame->f_regs[SP], (u_long *)&code);
 	if (error)
 		goto bad;
 
@@ -260,7 +260,7 @@ sunos_syscall_fancy(register_t code, struct lwp *l, struct frame *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		error = _ufetch_32((void *)params, (u_long *)&code);
+		error = ufetch_long((void *)params, (u_long *)&code);
 		if (error)
 			goto bad;
 		params += sizeof(int);
