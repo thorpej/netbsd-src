@@ -323,6 +323,7 @@ user_backtrace_raw(u_int pc, u_int fp)
 {
 	int frame_number;
 	int arg_number;
+	uint32_t val;
 
 	for (frame_number = 0; 
 	     frame_number < 100 && pc > HPPA_PC_PRIV_MASK && fp;
@@ -330,18 +331,21 @@ user_backtrace_raw(u_int pc, u_int fp)
 
 		printf("%3d: pc=%08x%s fp=0x%08x", frame_number, 
 		    pc & ~HPPA_PC_PRIV_MASK, USERMODE(pc) ? "  " : "**", fp);
-		for (arg_number = 0; arg_number < 4; arg_number++)
-			printf(" arg%d=0x%08x", arg_number,
-			    (int) fuword(HPPA_FRAME_CARG(arg_number, fp)));
+		for (arg_number = 0; arg_number < 4; arg_number++) {
+			if (ufetch_32(HPPA_FRAME_CARG(arg_number, fp),
+				      &val) == 0) {
+				printf(" arg%d=0x%08x", arg_number, val);
+			} else {
+				printf(" arg%d=<bad address>", arg_number);
+			}
+		}
 		printf("\n");
-                pc = fuword(((register_t *) fp) - 5);	/* fetch rp */
-		if (pc == -1) { 
-			printf("  fuword for pc failed\n");
+		if (ufetch_int((((uint32_t *) fp) - 5), &pc) != 0) {
+			printf("  ufetch for pc failed\n");
 			break;
 		}
-                fp = fuword(((register_t *) fp) + 0);	/* fetch previous fp */
-		if (fp == -1) { 
-			printf("  fuword for fp failed\n");
+		if (ufetch_int((((uint32_t *) fp) + 0), &fp) != 0) {
+			printf("  ufetch for fp failed\n");
 			break;
 		}
 	}
@@ -380,9 +384,8 @@ user_backtrace(struct trapframe *tf, struct lwp *l, int type)
 	printf("pid %d (%s) backtrace, starting with sp 0x%08x pc 0x%08x\n",
 	    p->p_pid, p->p_comm, tf->tf_sp, pc);
 	for (pc &= ~HPPA_PC_PRIV_MASK; pc > 0; pc -= sizeof(inst)) {
-		inst = fuword((register_t *) pc);
-		if (inst == -1) {
-			printf("  fuword for inst at pc %08x failed\n", pc);
+		if (ufetch_int((u_int *) pc, &inst) != 0) {
+			printf("  ufetch for inst at pc %08x failed\n", pc);
 			break;
 		}
 		/* Check for the prologue instruction that sets sp. */
