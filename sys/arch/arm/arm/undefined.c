@@ -343,7 +343,7 @@ undefinedinstruction(trapframe_t *tf)
 			return;
 		}
 	 	/*
-		 * Should use fuword() here .. but in the interests of
+		 * Should use ufetch_32() here .. but in the interests of
 		 * squeezing every bit of speed we will just use
 		 * read_insn(). We know the instruction can be read
 		 * as was just executed so this will never fail unless
