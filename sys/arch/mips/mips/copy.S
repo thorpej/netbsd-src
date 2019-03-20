@@ -466,19 +466,6 @@ LEAF(badaddr)
 	 move	v0, zero		# made it w/o errors
 END(badaddr)
 
-/*
- * Error routine for {f,s}uswintr.  The fault handler in trap.c
- * checks for pcb_onfault set to this fault handler and
- * "bails out" before calling the VM fault handler.
- * (We can not call VM code from interrupt level.)
- */
-LEAF(fswintrberr)
-	nop
-	PTR_S	a2, PCB_ONFAULT(v1)
-	j	ra
-	 li	v0, -1
-END(fswintrberr)
-
 LEAF(kfetcherr)
 	PTR_S	zero, PCB_ONFAULT(v1)
 	j	ra

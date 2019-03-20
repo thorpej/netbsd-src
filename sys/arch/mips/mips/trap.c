@@ -323,11 +323,6 @@ trap(uint32_t status, uint32_t cause, vaddr_t vaddr, vaddr_t pc,
 		if (pcb->pcb_onfault == NULL) {
 			goto dopanic;
 		}
-		/* check for fuswintr() or suswintr() getting a page fault */
-		if (pcb->pcb_onfault == (void *)fswintrberr) {
-			tf->tf_regs[_R_PC] = (intptr_t)pcb->pcb_onfault;
-			return; /* KERN */
-		}
 		goto pagefault;
 	case T_TLB_LD_MISS+T_USER:
 		ftype = VM_PROT_READ;
