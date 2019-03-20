@@ -258,10 +258,12 @@ sys_profil(struct lwp *l, const struct sys_profil_args *uap, register_t *retval)
 /*
  * Collect user-level profiling statistics; called on a profiling tick,
  * when a process is running in user-mode.  This routine may be called
- * from an interrupt context.  We try to update the user profiling buffers
- * cheaply with fuswintr() and suswintr().  If that fails, we revert to
- * an AST that will vector us to trap() with a context in which copyin
- * and copyout will work.  Trap will then call addupc_task().
+ * from an interrupt context.  We schedule an AST that will vector us
+ * to trap() with a context in which copyin and copyout will work.
+ * Trap will then call addupc_task().
+ *
+ * XXX We could use ufetch/ustore here if the profile buffers were
+ * wired.
  *
  * Note that we may (rarely) not get around to the AST soon enough, and
  * lose profile ticks when the next tick overwrites this one, but in this
