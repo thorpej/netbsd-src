@@ -88,7 +88,9 @@ freebsd_syscall(struct trapframe *frame)
 		/*
 		 * Code is first argument, followed by actual args.
 		 */
-		code = fuword(params);
+		error = ufetch_long((void *)params, (u_long *)&code);
+		if (error)
+			goto bad;
 		params += sizeof(int);
 		break;
 	case SYS___syscall:
@@ -96,7 +98,11 @@ freebsd_syscall(struct trapframe *frame)
 		 * Like syscall, but code is a quad, so as to maintain
 		 * quad alignment for the rest of the arguments.
 		 */
-		code = fuword(params + _QUAD_LOWWORD * sizeof(int));
+		error = ufetch_long((void *)(params +
+					     _QUAD_LOWWORD * sizeof(int)),
+				    &code);
+		if (error)
+			goto bad;
 		params += sizeof(quad_t);
 		break;
 	default:
