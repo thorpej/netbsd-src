@@ -89,7 +89,7 @@
 
 /*
  * This file contains the functions for user-space access:
- * copyin/copyout, fuword/suword, etc.
+ * copyin/copyout, ufetch/ustore, etc.
  */
 
 	.align	NBPG	/* let's fit 'em on a single page */
