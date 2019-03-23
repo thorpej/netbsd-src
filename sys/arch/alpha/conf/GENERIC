@@ -146,7 +146,9 @@ options 	SYSVSHM
 
 # p1003.1b semaphore support
 
-# Loadable Kernel Modules
+# new style module(7) framework
+options 	MODULAR
+options 	MODULAR_DEFAULT_AUTOLOAD
 
 # Disable kernel security.
 #options 	INSECURE
