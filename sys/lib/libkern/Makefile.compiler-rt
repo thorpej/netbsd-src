@@ -72,7 +72,7 @@ GENERIC_SRCS+= \
 	umodsi3.c
 .endif
 
-.if ${MACHINE_CPU} != "aarch64" && ${MACHINE} != "alpha"
+.if ${MACHINE_CPU} != "aarch64"
 GENERIC_SRCS+= \
 	clzdi2.c \
 	ctzdi2.c \
