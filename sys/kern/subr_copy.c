@@ -471,3 +471,164 @@ __strong_alias(ustore_ptr,ustore_64);
 __strong_alias(ustore_long,ustore_32);
 __strong_alias(ustore_ptr,ustore_32);
 #endif /* _LP64 */
+
+#ifdef UFETCHSTORE_TEST
+
+#include <sys/module.h>
+#include <sys/sysctl.h>
+
+static struct tester_ctx {
+	struct sysctllog *ctx_sysctllog;
+} tester_ctx;
+
+/* MUST BE KEPT IN SYNC WITH TEST */
+struct ufetchstore_test_args {
+	void		*uaddr;
+	bool		is_store;
+	int		size;
+	int		fetchstore_error;
+	union {
+		uint8_t  val8;
+		uint16_t val16;
+		uint32_t val32;
+#ifdef _LP64
+		uint64_t val64;
+#endif
+	};
+};
+
+static int
+do_ufetchstore_test(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node;
+	struct ufetchstore_test_args *uargs, args;
+	int error;
+
+	node = *rnode;
+
+	uargs = NULL;
+	node.sysctl_data = &uargs;
+	error = sysctl_lookup(SYSCTLFN_CALL(&node));
+	if (error)
+		return error;
+	if (newp == NULL)
+		return EINVAL;
+
+	error = copyin(uargs, &args, sizeof(args));
+	if (error)
+		return error;
+
+	args.fetchstore_error = EBADF;	/* poison */
+
+	if (args.is_store)
+		goto do_store;
+
+	switch (args.size) {
+	case 8:
+		args.fetchstore_error = ufetch_8(args.uaddr, &args.val8);
+		break;
+	case 16:
+		args.fetchstore_error = ufetch_16(args.uaddr, &args.val16);
+		break;
+	case 32:
+		args.fetchstore_error = ufetch_32(args.uaddr, &args.val32);
+		break;
+#ifdef _LP64
+	case 64:
+		args.fetchstore_error = ufetch_64(args.uaddr, &args.val64);
+		break;
+#endif /* _LP64 */
+	default:
+		error = EINVAL;
+	}
+
+	goto out;
+
+ do_store:
+	switch (args.size) {
+	case 8:
+		args.fetchstore_error = ustore_8(args.uaddr, args.val8);
+		break;
+	case 16:
+		args.fetchstore_error = ustore_16(args.uaddr, args.val16);
+		break;
+	case 32:
+		args.fetchstore_error = ustore_32(args.uaddr, args.val32);
+		break;
+#ifdef _LP64
+	case 64:
+		args.fetchstore_error = ustore_64(args.uaddr, args.val64);
+		break;
+#endif /* _LP64 */
+	default:
+		error = EINVAL;
+	}
+
+ out:
+	if (error == 0)
+		error = copyout(&args, uargs, sizeof(args));
+	return error;
+}
+
+static int
+ufetchstore_test_init(void)
+{
+	struct sysctllog **log = &tester_ctx.ctx_sysctllog;
+	const struct sysctlnode *rnode, *cnode;
+	int error;
+
+	error = sysctl_createv(log, 0, NULL, &rnode, CTLFLAG_PERMANENT,
+	    CTLTYPE_NODE, "ufetchstore_test",
+	    SYSCTL_DESCR("ufetchstore testing interface"),
+	    NULL, 0, NULL, 0, CTL_KERN, CTL_CREATE, CTL_EOL);
+	if (error)
+		goto return_error;
+
+	error = sysctl_createv(log, 0, &rnode, &cnode,
+	    /*
+	     * It's really a pointer to our argument structure, because
+	     * we want to have precise control over when copyin / copyout
+	     * happens.
+	     */
+	    CTLFLAG_PERMANENT|CTLFLAG_READWRITE, CTLTYPE_LONG, "test",
+	    SYSCTL_DESCR("execute a ufetchstore test"),
+	    do_ufetchstore_test, 0,
+	    (void *)&tester_ctx, 0, CTL_CREATE, CTL_EOL);
+
+ return_error:
+ 	if (error)
+		sysctl_teardown(log);
+	return error;
+}
+
+static int
+ufetchstore_test_fini(void)
+{
+	sysctl_teardown(&tester_ctx.ctx_sysctllog);
+	return 0;
+}
+
+static int
+ufetchstore_test_modcmd(modcmd_t cmd, void *arg __unused)
+{
+	int error;
+
+	switch (cmd) {
+	case MODULE_CMD_INIT:
+		error = ufetchstore_test_init();
+		break;
+	
+	case MODULE_CMD_FINI:
+		error = ufetchstore_test_fini();
+		break;
+	
+	case MODULE_CMD_STAT:
+	default:
+		error = ENOTTY;
+	}
+
+	return error;
+}
+
+MODULE(MODULE_CLASS_MISC, ufetchstore_test, NULL);
+#endif /* UFETCHSTORE_TEST */
