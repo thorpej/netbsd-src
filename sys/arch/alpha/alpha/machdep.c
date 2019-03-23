@@ -81,6 +81,7 @@ __KERNEL_RCSID(0, "$NetBSD: machdep.c,v 1.352 2018/11/27 14:09:53 maxv Exp $");
 #include <sys/reboot.h>
 #include <sys/device.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mman.h>
 #include <sys/msgbuf.h>
 #include <sys/ioctl.h>
@@ -794,6 +795,15 @@ nobootinfo:
 			hwrpb->rpb_intr_freq, hz);
 #endif
 }
+
+#ifdef MODULAR
+/* Push any modules loaded by the boot loader */
+void
+module_init_md(void)
+{
+	/* nada. */
+}
+#endif /* MODULAR */
 
 void
 consinit(void)
