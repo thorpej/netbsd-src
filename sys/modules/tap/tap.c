@@ -1,11 +1,11 @@
-/*	$NetBSD: osf1_dirent.h,v 1.1 2008/12/02 13:45:02 njoly Exp $	 */
+/*	$NetBSD: tap.c,v 1.1 2019/03/24 11:20:26 pgoyette Exp $ */
 
 /*-
- * Copyright (c) 1994 The NetBSD Foundation, Inc.
+ * Copyright (c) 2016 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Christos Zoulas.
+ * by Paul Goyette
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,19 +29,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_OSF1_DIRENT_H_
-#define	_OSF1_DIRENT_H_
+#include <sys/cdefs.h>
+__KERNEL_RCSID(0, "$NetBSD: tap.c,v 1.1 2019/03/24 11:20:26 pgoyette Exp $");
 
-#define OSF1_MAXNAMLEN	255
+#include <sys/errno.h>
+#include <sys/module.h>
 
-struct osf1_dirent {
-	osf1_ino_t	d_ino;
-	u_short		d_reclen;
-	u_short		d_namlen;
-	char		d_name[OSF1_MAXNAMLEN + 1];
-};
+MODULE(MODULE_CLASS_DRIVER, tap, "if_tap");
 
-#define OSF1_NAMEOFF(dp)       ((char *)&(dp)->d_name - (char *)dp)
-#define OSF1_RECLEN(de,namlen) ALIGN((OSF1_NAMEOFF(de) + (namlen) + 1))
+static int
+tap_modcmd(modcmd_t cmd, void *arg)  
+{
 
-#endif /* !_OSF1_DIRENT_H_ */
+	switch (cmd) {
+	case MODULE_CMD_INIT:
+	case MODULE_CMD_FINI:
+		return 0;
+	default:
+		return ENOTTY;
+	}
+}
