@@ -47,6 +47,8 @@ __RCSID("$NetBSD$");
 
 #include "common.h"
 
+#define	SKIP_MODULE	/* XXX */
+
 #define	mib_name	"kern.ufetchstore_test.test"
 
 static bool module_loaded;
@@ -66,6 +68,7 @@ do {									\
 static void
 load_module(void)
 {
+#ifndef SKIP_MODULE
 	if (module_loaded)
 		return;
 
@@ -79,11 +82,13 @@ load_module(void)
 	} else {
 		module_loaded = true;
 	}
+#endif /* ! SKIP_MODULE */
 }
 
 static void
 unload_module(void)
 {
+#ifndef SKIP_MODULE
 	char module_name[] = MODULE_NAME;
 
 	if (modctl(MODCTL_UNLOAD, module_name) != 0) {
@@ -91,6 +96,7 @@ unload_module(void)
 	} else {
 		module_loaded = false;
 	}
+#endif /* ! SKIP_MODULE */
 }
 
 static void *
