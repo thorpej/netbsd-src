@@ -148,7 +148,7 @@ options 	MODULAR
 options 	MODULAR_DEFAULT_AUTOLOAD
 
 # Disable kernel security.
-#options 	INSECURE
+options 	INSECURE
 
 # Misc. options
 options 	EISAVERBOSE		# recognize "unknown" EISA devices
@@ -511,7 +511,7 @@ uk*	at	scsibus? target ? lun ?		# SCSI unknown
 atabus* at ata?
 
 # IDE drives
-wd*	at	atabus? drive ?
+wd*	at	atabus? drive ? flags 0x0f00
 
 # ATAPI bus support
 atapibus* at	atapi?
