@@ -377,6 +377,12 @@ do {									\
 
 #ifndef __HAVE_UCAS_FULL
 #if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+#include <sys/atomic.h>
+#include <sys/cpu.h>
+#include <sys/once.h>
+#include <sys/mutex.h>
+#include <sys/ipi.h>
+
 static int ucas_critical_splcookie;
 static kmutex_t ucas_critical_mutex;
 static struct cpu_info *ucas_critical_owning_cpu;
@@ -385,7 +391,7 @@ static u_int ucas_critical_ipi;
 static ONCE_DECL(ucas_critical_init_once)
 
 static void
-ucas_critical_cpu_gate(void * __unused)
+ucas_critical_cpu_gate(void *arg __unused)
 {
 	int count = SPINLOCK_BACKOFF_MIN;
 
@@ -395,11 +401,12 @@ ucas_critical_cpu_gate(void * __unused)
 	}
 }
 
-static void
+static int
 ucas_critical_init(void)
 {
-	mutex_init(&ucas_critical_mutex, MUTEX_DEFAULT);
+	mutex_init(&ucas_critical_mutex, MUTEX_DEFAULT, IPL_NONE);
 	ucas_critical_ipi = ipi_register(ucas_critical_cpu_gate, NULL);
+	return 0;
 }
 
 static void
