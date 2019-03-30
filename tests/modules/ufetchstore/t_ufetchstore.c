@@ -82,6 +82,8 @@ load_module(void)
 	} else {
 		module_loaded = true;
 	}
+#else
+	module_loaded = 1;
 #endif /* ! SKIP_MODULE */
 }
 
