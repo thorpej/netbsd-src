@@ -11,7 +11,7 @@ ARCH:
 	or1k
 	powerpc		-- changes compile, tested (sevan, macppc) -- NEED UCAS
 	riscv		-- initial changes, NOT TESTED -- can't build
-	sh3		-- changes compile, NOT TESTED -- NEED UCAS
+	sh3		-- changes compile, NOT TESTED -- generic UCAS
 	sparc		-- changes done, tested (thorpej, Qemu sparc) -- NEED UCAS
 	sparc64		-- changes compile, NOT TESTED -- UCAS_FULL, needs testing
 	usermode	-- initial changes, NOT TESTED -- can't build -- NEED UCAS
