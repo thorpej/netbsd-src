@@ -300,8 +300,33 @@ int	copyout_vmspace(struct vmspace *, const void *, void *, size_t);
 int	ioctl_copyin(int ioctlflags, const void *src, void *dst, size_t len);
 int	ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len);
 
+int	ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new,
+		uint32_t *ret);
+#ifdef _LP64
+int	ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new,
+		uint64_t *ret);
+#endif /* _LP64 */
+
 int	ucas_ptr(volatile void *, void *, void *, void *);
-int	ucas_int(volatile int *, int, int, int *);
+int	ucas_int(volatile unsigned int *, unsigned int, unsigned int,
+		 unsigned int *);
+
+#ifdef __UCAS_PRIVATE
+int	_ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new,
+		 uint32_t *ret);
+#ifdef __HAVE_UCAS_MP
+int	_ucas_32_mp(volatile uint32_t *uaddr, uint32_t old, uint32_t new,
+		    uint32_t *ret);
+#endif /* __HAVE_UCAS_MP */
+#ifdef _LP64
+int	_ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new,
+		 uint64_t *ret);
+#ifdef __HAVE_UCAS_MP
+int	_ucas_64_mp(volatile uint64_t *uaddr, uint64_t old, uint64_t new,
+		    uint64_t *ret);
+#endif /* __HAVE_UCAS_MP */
+#endif /* _LP64 */
+#endif /* __UCAS_PRIVATE */
 
 int	ufetch_8(const uint8_t *uaddr, uint8_t *valp);
 int	ufetch_16(const uint16_t *uaddr, uint16_t *valp);

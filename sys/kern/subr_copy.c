@@ -83,6 +83,7 @@
 __KERNEL_RCSID(0, "$NetBSD: subr_copy.c,v 1.8 2018/05/28 21:04:41 chs Exp $");
 
 #define	__UFETCHSTORE_PRIVATE
+#define	__UCAS_PRIVATE
 
 #include <sys/param.h>
 #include <sys/fcntl.h>
@@ -355,7 +356,7 @@ ioctl_copyout(int ioctlflags, const void *src, void *dst, size_t len)
 }
 
 /*
- * User-space fetch / store
+ * User-space CAS / fetch / store
  */
 
 #ifdef __NO_STRICT_ALIGNMENT
@@ -373,6 +374,194 @@ do {									\
 		return EFAULT;						\
 } while (/*CONSTCOND*/0)
 #endif /* __NO_STRICT_ALIGNMENT */
+
+#ifndef __HAVE_UCAS_FULL
+#if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+static int ucas_critical_splcookie;
+static kmutex_t ucas_critical_mutex;
+static struct cpu_info *ucas_critical_owning_cpu;
+static int ucas_critical_cpus_paused;
+static u_int ucas_critical_ipi;
+static ONCE_DECL(ucas_critical_init_once)
+
+static void
+ucas_critical_cpu_gate(void * __unused)
+{
+	int count = SPINLOCK_BACKOFF_MIN;
+
+	atomic_inc_uint(&ucas_critical_cpus_paused);
+	while (ucas_critical_owning_cpu != NULL) {
+		SPINLOCK_BACKOFF(count);
+	}
+}
+
+static void
+ucas_critical_init(void)
+{
+	mutex_init(&ucas_critical_mutex, MUTEX_DEFAULT);
+	ucas_critical_ipi = ipi_register(ucas_critical_cpu_gate, NULL);
+}
+
+static void
+ucas_critical_wait(void)
+{
+	int count = SPINLOCK_BACKOFF_MIN;
+
+	while (ucas_critical_cpus_paused < (ncpu - 1)) {
+		SPINLOCK_BACKOFF(count);
+	}
+}
+#endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
+
+static inline void
+ucas_critical_enter(lwp_t * const l)
+{
+
+#if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+	if (ncpu > 1) {
+		CPU_INFO_ITERATOR cii;
+		struct cpu_info *ci;
+
+		RUN_ONCE(&ucas_critical_init_once, ucas_critical_init);
+
+		/*
+		 * Acquire the mutex first, then disable preemption and
+		 * go to splhigh() and broadcast the IPI to lock all of
+		 * the other CPUs behind the gate.
+		 */
+		mutex_enter(&ucas_critical_mutex);
+		KPREEMPT_DISABLE(l);
+		ucas_critical_splcookie = splhigh();
+		ucas_critical_owning_cpu = curcpu();
+		membar_enter();
+
+		/*
+		 * Inline ipi_trigger_multi(), because it seems wasteful
+		 * to allocate a kcpuset_t each time, and we don't want
+		 * to send the IPI to ourself.
+		 */
+		for (CPU_INFO_FOREACH(cii, ci)) {
+			if (ci == ucas_critical_owning_cpu)
+				continue;
+			ipi_trigger(ucas_critical_ipi, ci);
+		}
+		ucas_critical_wait();
+		return;
+	}
+#endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
+
+	KPREEMPT_DISABLE(l);
+}
+
+static inline void
+ucas_critical_exit(lwp_t * const l)
+{
+
+#if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+	if (ncpu > 1) {
+		membar_exit();
+		ucas_critical_owning_cpu = NULL;
+		splx(ucas_critical_splcookie);
+		KPREEMPT_ENABLE(l);
+		mutex_exit(&ucas_critical_mutex);
+		return;
+	}
+#endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
+
+	KPREEMPT_ENABLE(l);
+}
+
+int
+_ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
+{
+	lwp_t * const l = curlwp;
+	int error;
+
+	/*
+	 * Wire the user address down to avoid taking a page fault during
+	 * the critical section.
+	 */
+	error = uvm_vslock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr),
+			   VM_PROT_READ | VM_PROT_WRITE);
+	if (error)
+		return error;
+
+	ucas_critical_enter(l);
+	error = _ufetch_32(uaddr, ret);
+	if (error == 0 && *ret == old) {
+		error = _ustore_32(uaddr, new);
+	}
+	ucas_critical_exit(l);
+
+	uvm_vsunlock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr));
+
+	return error;
+}
+
+#ifdef _LP64
+int
+_ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
+{
+	lwp_t * const l = curlwp;
+	int error;
+
+	/*
+	 * Wire the user address down to avoid taking a page fault during
+	 * the critical section.
+	 */
+	error = uvm_vslock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr),
+			   VM_PROT_READ | VM_PROT_WRITE);
+	if (error)
+		return error;
+
+	ucas_critical_enter(l);
+	error = _ufetch_64(uaddr, ret);
+	if (error == 0 && *ret == old) {
+		error = _ustore_64(uaddr, new);
+	}
+	ucas_critical_exit(l);
+
+	uvm_vsunlock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr));
+
+	return error;
+}
+#endif /* _LP64 */
+#endif /* ! __HAVE_UCAS_FULL */
+
+int
+ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*uaddr);
+#if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+	if (ncpu > 1)
+		return _ucas_32_mp(uaddr, old, new, ret);
+#endif /* __HAVE_UCAS_MP && MULTIPROCESSOR */
+	return _ucas_32(uaddr, old, new, ret);
+}
+
+#ifdef _LP64
+int
+ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
+{
+
+	ASSERT_SLEEPABLE();
+	CHECK_ALIGNMENT(*uaddr);
+#if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
+	if (ncpu > 1)
+		return _ucas_64_mp(uaddr, old, new, ret);
+#endif /* __HAVE_UCAS_MP && MULTIPROCESSOR */
+	return _ucas_64(uaddr, old, new, ret);
+}
+#endif /* _LP64 */
+
+__strong_alias(ucas_int,ucas_32);
+#ifdef _LP64
+__strong_alias(ucas_ptr,ucas_64);
+#else
+__strong_alias(ucas_ptr,ucas_32);
+#endif /* _LP64 */
 
 int
 ufetch_8(const uint8_t *uaddr, uint8_t *valp)
