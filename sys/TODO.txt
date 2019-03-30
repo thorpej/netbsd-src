@@ -6,7 +6,7 @@ ARCH:
 	hppa		-- changes compile, NOT TESTED -- NEED UCAS
 	i386		-- changes done, tested (thorpej, x86 VMware VM) -- UCAS_FULL, needs testing
 	ia64		-- changes compile, NOT TESTED -- NEED UCAS
-	m68k		-- changes compile, NOT TESTED -- NEED UCAS
+	m68k		-- changes compile, NOT TESTED -- generic UCAS
 	mips		-- changes compile, NOT TESTED -- NEED UCAS
 	or1k
 	powerpc		-- changes compile, tested (sevan, macppc) -- NEED UCAS

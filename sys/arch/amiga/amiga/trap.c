@@ -381,9 +381,6 @@ trapmmufault(int type, u_int code, u_int v, struct frame *fp, struct lwp *l, u_q
 		printf("vmfault %s %lx returned %d\n",
 		    map == kernel_map ? "kernel" : "user", va, rv);
 #endif
-	if (map == kernel_map && rv == 0 && ucas_ras_check(&fp->F_t)) {
-		return;
-	}
 
 #ifdef M68060
 	if ((machineid & AMIGA_68060) == 0 && mmutype == MMU_68040) {

@@ -539,9 +539,6 @@ trap(struct trapframe *tf, int type, u_int code, u_int v)
 			if (map != kernel_map && (void *)va >= vm->vm_maxsaddr)
 				uvm_grow(p, va);
 
-			if ((type & T_USER) == 0 && ucas_ras_check(tf)) {
-				return;
-			}
 			goto finish;
 		}
 		if (rv == EACCES) {

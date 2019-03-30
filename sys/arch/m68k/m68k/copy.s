@@ -67,11 +67,6 @@
  * copyin/copyout, ufetch/ustore, etc.
  */
 
-#include "opt_multiprocessor.h"
-#ifdef MULTIPROCESSOR
-#error need to write MP support for ucas_* functions
-#endif
-
 #include <sys/errno.h>
 #include <machine/asm.h>
 
@@ -429,36 +424,3 @@ ENTRY(_ustore_32)
 .Lufetchstore_fault:
 	clrl	PCB_ONFAULT(%a1) 	| clear fault handler
 	rts
-
-/*
- * int ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
- * Atomically compare-and-swap an int32_t in user space.
- */
-	.globl		_C_LABEL(ucas_32_ras_start)
-	.globl		_C_LABEL(ucas_32_ras_end)
-ENTRY(ucas_32)
-	CHECK_SFC
-	CHECK_DFC
-	GETCURPCB(%a1)
-	movl	#.Lucasfault,PCB_ONFAULT(%a1)	| set fault handler
-	movl	4(%sp),%a0		| a0 = uptr
-_C_LABEL(ucas_32_ras_start):
-	movl	8(%sp),%d0		| d0 = old
-	movsl	(%a0),%d1		| d1 = *uptr
-	cmpl	%d0,%d1			| does *uptr == old?
-	jne	.Lucasdiff		| if not, don't change it
-	movl	12(%sp),%d0		| d0 = new
-	movsl	%d0,(%a0)		| *uptr = new
-	nop				| pipeline sync
-_C_LABEL(ucas_32_ras_end):
-.Lucasdiff:
-	movl	16(%sp),%a0		| a0 = ret
-	movl	%d1,(%a0)		| *ret = d1 (old *uptr)
-	clrl	%d0			| return 0
-
-.Lucasfault:
-	clrl	PCB_ONFAULT(%a1)	| clear fault handler
-	rts
-
-STRONG_ALIAS(ucas_int,ucas_32)
-STRONG_ALIAS(ucas_ptr,ucas_32)

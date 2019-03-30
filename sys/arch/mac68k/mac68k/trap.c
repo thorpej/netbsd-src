@@ -554,9 +554,6 @@ copyfault:
 				uvm_grow(p, va);
 
 			if (type == T_MMUFLT) {
-				if (ucas_ras_check(&fp->F_t)) {
-					return;
-				}
 #if defined(M68040)
 				if (mmutype == MMU_68040)
 					(void)m68040_writeback(fp, 1);

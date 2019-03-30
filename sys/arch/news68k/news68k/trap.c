@@ -536,9 +536,6 @@ trap(struct frame *fp, int type, u_int code, u_int v)
 				uvm_grow(p, va);
 
 			if (type == T_MMUFLT) {
-				if (ucas_ras_check(&fp->F_t)) {
-					return;
-				}
 #ifdef M68040
 				if (cputype == CPU_68040)
 					(void) m68040_writeback(fp, 1);

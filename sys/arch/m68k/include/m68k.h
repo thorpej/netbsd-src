@@ -132,8 +132,5 @@ int	kvtop(void *);
 void	physaccess(void *, void *, int, int);
 void	physunaccess(void *, int);
 
-/* m68k_machdep.c */
-bool	ucas_ras_check(struct trapframe *);
-
 #endif /* _KERNEL */
 #endif /* _M68K_M68K_H_ */
