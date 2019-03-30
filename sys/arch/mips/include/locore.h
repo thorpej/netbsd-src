@@ -585,8 +585,10 @@ typedef struct  {
 typedef struct {
 	u_int	(*lav_atomic_cas_uint)(volatile u_int *, u_int, u_int);
 	u_long	(*lav_atomic_cas_ulong)(volatile u_long *, u_long, u_long);
-	int	(*lav_ucas_uint)(volatile u_int *, u_int, u_int, u_int *);
-	int	(*lav_ucas_ulong)(volatile u_long *, u_long, u_long, u_long *);
+	int	(*lav_ucas_32)(volatile uint32_t *, uint32_t, uint32_t,
+			       uint32_t *);
+	int	(*lav_ucas_64)(volatile uint64_t *, uint64_t, uint64_t,
+			       uint64_t *);
 	void	(*lav_mutex_enter)(kmutex_t *);
 	void	(*lav_mutex_exit)(kmutex_t *);
 	void	(*lav_mutex_spin_enter)(kmutex_t *);

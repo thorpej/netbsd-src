@@ -120,10 +120,10 @@ STATIC_LEAF(llsc_atomic_cas_uint)
 END(llsc_atomic_cas_uint)
 
 /*
- * int llsc_ucas_uint(volatile unsigned int *ptr, unsigned int old,
- *	unsigned int new, unsigned int *ret)
+ * int llsc_ucas_32(volatile uint32_t *ptr, uint32_t old,
+ *	uint32_t new, uint32_t *ret)
  */
-STATIC_LEAF(llsc_ucas_uint)
+STATIC_LEAF(llsc_ucas_32)
 	.set at
 	PTR_LA	v0, _C_LABEL(llsc_ucaserr)
 	.set noat
@@ -133,10 +133,10 @@ STATIC_LEAF(llsc_ucas_uint)
 	 nop
 	move	v0, zero
 
-1:	INT_LL	t0, 0(a0)
+1:	ll	t0, 0(a0)
 	bne	t0, a1, 2f
 	 move	t1, a2
-	INT_SC	t1, 0(a0)
+	sc	t1, 0(a0)
 	beqz	t1, 1b
 	 nop
 	SYNC
@@ -144,13 +144,14 @@ STATIC_LEAF(llsc_ucas_uint)
 2:	PTR_S	zero, PCB_ONFAULT(v1)
 	j	ra
 	 INT_S	t0, 0(a3)
-END(llsc_ucas_uint)
+END(llsc_ucas_32)
 
+#ifdef _LP64
 /*
- * int ucas_ulong(volatile unsigned long *ptr, unsigned long old,
- *	unsigned long new, unsigned long *ret)
+ * int llsc_ucas_64(volatile uint64_t *ptr, uint64_t old,
+ *	uint64_t new, uint64_t *ret)
  */
-STATIC_LEAF(llsc_ucas_ulong)
+STATIC_LEAF(llsc_ucas_64)
 	.set at
 	PTR_LA	v0, _C_LABEL(llsc_ucaserr)
 	.set noat
@@ -160,10 +161,10 @@ STATIC_LEAF(llsc_ucas_ulong)
 	 nop
 	move	v0, zero
 
-1:	LONG_LL	t0, 0(a0)
+1:	lld	t0, 0(a0)
 	bne	t0, a1, 2f
 	 move	t1, a2
-	LONG_SC	t1, 0(a0)
+	scd	t1, 0(a0)
 	beqz	t1, 1b
 	 nop
 	SYNC
@@ -171,7 +172,8 @@ STATIC_LEAF(llsc_ucas_ulong)
 2:	PTR_S	zero, PCB_ONFAULT(v1)
 	j	ra
 	 LONG_S	t0, 0(a3)
-END(llsc_ucas_ulong)
+END(llsc_ucas_64)
+#endif /* _LP64 */
 
 STATIC_LEAF_NOPROFILE(llsc_ucaserr)
 	PTR_S	zero, PCB_ONFAULT(v1)		# reset fault handler
@@ -358,8 +360,12 @@ END(llsc_mutex_spin_exit)
 EXPORT(mips_llsc_locore_atomicvec)
 	PTR_WORD 	llsc_atomic_cas_uint
 	PTR_WORD 	llsc_atomic_cas_ulong
-	PTR_WORD	llsc_ucas_uint
-	PTR_WORD	llsc_ucas_ulong
+	PTR_WORD	llsc_ucas_32
+#ifdef _LP64
+	PTR_WORD	llsc_ucas_64
+#else
+			0
+#endif /* _LP64 */
 #ifdef LOCKDEBUG
 	PTR_WORD	mutex_vector_enter
 	PTR_WORD	mutex_vector_exit

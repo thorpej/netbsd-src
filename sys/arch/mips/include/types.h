@@ -163,6 +163,8 @@ typedef __uint32_t tlb_asid_t;
 #define	__HAVE_ATOMIC64_OPS
 #endif
 
+#define	__HAVE_UCAS_FULL
+
 #if defined(_KERNEL)
 #define	__HAVE_RAS
 #if defined(_LP64)

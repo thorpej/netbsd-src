@@ -7,7 +7,7 @@ ARCH:
 	i386		-- changes done, tested (thorpej, x86 VMware VM) -- UCAS_FULL, needs testing
 	ia64		-- changes compile, NOT TESTED -- generic UCAS
 	m68k		-- changes compile, NOT TESTED -- generic UCAS
-	mips		-- changes compile, NOT TESTED -- NEED UCAS
+	mips		-- changes compile, NOT TESTED -- UCAS_FULL, needs testing
 	or1k
 	powerpc		-- changes compile, tested (sevan, macppc) -- UCAS_FULL, needs testing
 	riscv		-- initial changes, NOT TESTED -- generic UCAS
