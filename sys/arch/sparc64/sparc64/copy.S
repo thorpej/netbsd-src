@@ -613,20 +613,13 @@ Lcopyfault:
 	retl
 	 wr	%g0, ASI_PRIMARY_NOFAULT, %asi		! Restore ASI
 
-
-STRONG_ALIAS(ucas_int,ucas_32)
-#ifdef _LP64
-STRONG_ALIAS(ucas_ptr,ucas_64)
-#else
-STRONG_ALIAS(ucas_ptr,ucas_32)
-#endif
-
 /*
  * Compare-and-swap the pointer in the user-space.
  *
- * int	ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
+ * int	_ucas_32(volatile uint32_t *uptr, uint32_t old, uint32_t new,
+ *		 uint32_t *ret);
  */
-ENTRY(ucas_32)
+ENTRY(_ucas_32)
 	sethi	%hi(CPCB), %o4
 	wr	%g0, ASI_AIUS, %asi
 	LDPTR	[%o4 + %lo(CPCB)], %o4
@@ -646,17 +639,14 @@ ENTRY(ucas_32)
 	retl
 	 clr	%o0			! return 0
 
+#ifdef _LP64
 /*
  * Compare-and-swap the 64-bit integer in the user-space.
  *
- * int	ucas_64(volatile int64_t *uptr, int64_t old, int64_t new, int64_t *ret);
+ * int	_ucas_64(volatile uint64_t *uptr, uint64_t old, uint64_t new,
+ *		 uint64_t *ret);
  */
-ENTRY(ucas_64)
-#ifndef _LP64
-	COMBINE(%o1, %o2, %o1)
-	COMBINE(%o3, %o4, %o2)
-	mov	%o5, %o3
-#endif
+ENTRY(_ucas_64)
 	sethi	%hi(CPCB), %o4
 	wr	%g0, ASI_AIUS, %asi
 	LDPTR	[%o4 + %lo(CPCB)], %o4
@@ -675,6 +665,7 @@ ENTRY(ucas_64)
 	stx	%o2, [%o3]		! store the cas result in *result
 	retl
 	 clr	%o0			! return 0
+#endif /* _LP64 */
 
 /**************************************************************************/
 

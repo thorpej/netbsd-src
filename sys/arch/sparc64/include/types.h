@@ -10,5 +10,6 @@
 #endif
 
 #define	__HAVE_COMPAT_NETBSD32
+#define	__HAVE_UCAS_FULL
 
 #endif

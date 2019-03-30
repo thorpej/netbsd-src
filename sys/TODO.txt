@@ -13,6 +13,6 @@ ARCH:
 	riscv		-- initial changes, NOT TESTED -- can't build
 	sh3		-- changes compile, NOT TESTED -- NEED UCAS
 	sparc		-- changes done, tested (thorpej, Qemu sparc) -- NEED UCAS
-	sparc64		-- changes compile, NOT TESTED -- NEED UCAS
+	sparc64		-- changes compile, NOT TESTED -- UCAS_FULL, needs testing
 	usermode	-- initial changes, NOT TESTED -- can't build -- NEED UCAS
 	vax		-- changes done, tested (thorpej, SIMH vax) -- NEED UCAS
