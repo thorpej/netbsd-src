@@ -1096,60 +1096,50 @@ XLEAF(ufetchstoreerr, 0)
 /**************************************************************************/
 
 /*
- * int ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
+ * int _ucas_32(volatile uint32_t *uptr, uint32_t old, uint32_t new,
+ *		uint32_t *ret);
  */
-LEAF_NOPROFILE(ucas_32, 4)
+LEAF_NOPROFILE(_ucas_32, 4)
 	UFETCHSTORE_PROLOGUE
-	and	a0, 3, t1			/* check if addr is aligned. */
-	bne	t1, ufetchstoreerr_efault	/* if it's not, error out.   */
-
 3:
 .Lucas_32_start:
+	mov	a2, t2
 	ldl_l	t0, 0(a0)			/* t0 = *uptr */
 	cmpeq	t0, a1, t1			/* does t0 = old? */
 	beq	t1, 1f				/* if not, skip */
-	mov	a2, t1
-	stl_c	t1, 0(a0)			/* *uptr ~= new */
+	stl_c	t2, 0(a0)			/* *uptr ~= new */
 .Lucas_32_end:
 	beq	t1, 2f				/* did it work? */
 1:
 	stl	t0, 0(a3)			/* *ret = t0 */
 	mov	zero, v0
 	RET
-
 2:
 	br	3b
-END(ucas_32)
-
-STRONG_ALIAS(ucas_int,ucas_32)
+END(_ucas_32)
 
 /*
- * int ucas_64(volatile int64_t *uptr, int64_t old, int64_t new, int64_t *ret);
+ * int _ucas_64(volatile uint64_t *uptr, uint64_t old, uint64_t new,
+ *		uint64_t *ret);
  */
-LEAF_NOPROFILE(ucas_64, 4)
+LEAF_NOPROFILE(_ucas_64, 4)
 	UFETCHSTORE_PROLOGUE
-	and	a0, 7, t1			/* check if addr is aligned. */
-	bne	t1, ufetchstoreerr_efault	/* if it's not, error out.   */
-
 3:
 .Lucas_64_start:
+	mov	a2, t2
 	ldq_l	t0, 0(a0)			/* t0 = *uptr */
 	cmpeq	t0, a1, t1			/* does t0 = old? */
 	beq	t1, 1f				/* if not, skip */
-	mov	a2, t1
-	stq_c	t1, 0(a0)			/* *uptr ~= new */
+	stq_c	t2, 0(a0)			/* *uptr ~= new */
 .Lucas_64_end:
 	beq	t1, 2f				/* did it work? */
 1:
 	stq	t0, 0(a3)			/* *ret = t0 */
 	mov	zero, v0
 	RET
-
 2:
 	br	3b
-END(ucas_64)
-
-STRONG_ALIAS(ucas_ptr,ucas_64)
+END(_ucas_64)
 
 /**************************************************************************/
 
