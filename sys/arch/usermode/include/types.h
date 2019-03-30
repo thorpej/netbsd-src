@@ -94,5 +94,6 @@ typedef register_t	__register_t;
 #define __HAVE_CPU_LWP_SETPRIVATE
 #define __HAVE_MM_MD_KERNACC
 #define	__HAVE_COMPAT_NETBSD32
+#define	__HAVE_UCAS_FULL
 
 #endif /* !_USERMODE_TYPES_H_ */

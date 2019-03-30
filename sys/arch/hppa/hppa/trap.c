@@ -918,15 +918,6 @@ do_onfault:
 				panic("trap: uvm_fault(%p, %lx, %d): %d",
 				    map, va, vftype, ret);
 			}
-		} else if ((type & T_USER) == 0) {
-			extern char ucas_ras_start[];
-			extern char ucas_ras_end[];
-
-			if (frame->tf_iioq_head > (u_int)ucas_ras_start &&
-			    frame->tf_iioq_head < (u_int)ucas_ras_end) {
-				frame->tf_iioq_head = (u_int)ucas_ras_start;
-				frame->tf_iioq_tail = (u_int)ucas_ras_start + 4;
-			}
 		}
 		break;
 

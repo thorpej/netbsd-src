@@ -29,6 +29,9 @@
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: copy.c,v 1.8 2018/09/03 16:29:28 riastradh Exp $");
 
+#define	__UFETCHSTORE_PRIVATE
+#define	__UCAS_PRIVATE
+
 #include <sys/types.h>
 #include <sys/systm.h>
 #include <machine/thunk.h>
@@ -92,6 +95,20 @@ kcopy(const void *src, void *dst, size_t len)
 #endif
 	return 0;
 }
+
+int
+_ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
+{
+	*ret = atomic_cas_32(uaddr, old, new);
+}
+
+#ifdef _LP64
+int
+_ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
+{
+	*ret = atomic_cas_64(uaddr, old, new);
+}
+#endif /* _LP64 */
 
 int
 _ufetch_8(const uint8_t *uaddr, uint8_t *valp)
