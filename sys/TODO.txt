@@ -1,6 +1,6 @@
 ARCH:
 	aarch64		-- changes done, tested (thorpej, Qemu aarch64)
-	alpha		-- changes compile, NOT TESTED
+	alpha		-- changes compile, tested (mrg, API UP1000)
 	amd64		-- changes done, tested (thorpej, x86_64 VMware VM)
 	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4)
 	hppa		-- changes compile, NOT TESTED
@@ -9,7 +9,7 @@ ARCH:
 	m68k		-- changes compile, NOT TESTED
 	mips		-- changes compile, NOT TESTED
 	or1k
-	powerpc		-- changes compile, NOT TESTED
+	powerpc		-- changes compile, tested (sevan, macppc)
 	riscv		-- initial changes, NOT TESTED -- can't build
 	sh3		-- changes compile, NOT TESTED
 	sparc		-- changes done, tested (thorpej, Qemu sparc)

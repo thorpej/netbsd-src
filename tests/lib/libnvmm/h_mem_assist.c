@@ -1,4 +1,4 @@
-/*	$NetBSD: h_mem_assist.c,v 1.7 2019/03/19 19:23:39 maxv Exp $	*/
+/*	$NetBSD: h_mem_assist.c,v 1.9 2019/03/22 01:50:14 htodd Exp $	*/
 
 /*
  * Copyright (c) 2018 The NetBSD Foundation, Inc.
@@ -123,6 +123,7 @@ static void
 map_pages(struct nvmm_machine *mach)
 {
 	pt_entry_t *L4, *L3, *L2, *L1;
+	int ret;
 
 	instbuf = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
 	    -1, 0);
@@ -131,7 +132,9 @@ map_pages(struct nvmm_machine *mach)
 
 	if (nvmm_hva_map(mach, (uintptr_t)instbuf, PAGE_SIZE) == -1)
 		err(errno, "nvmm_hva_map");
-	if (nvmm_gpa_map(mach, (uintptr_t)instbuf, 0x2000, PAGE_SIZE, 0) == -1)
+	ret = nvmm_gpa_map(mach, (uintptr_t)instbuf, 0x2000, PAGE_SIZE,
+	    PROT_READ|PROT_EXEC);
+	if (ret == -1)
 		err(errno, "nvmm_gpa_map");
 
 	L4 = mmap(NULL, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
@@ -160,13 +163,21 @@ map_pages(struct nvmm_machine *mach)
 	if (nvmm_hva_map(mach, (uintptr_t)L1, PAGE_SIZE) == -1)
 		err(errno, "nvmm_hva_map");
 
-	if (nvmm_gpa_map(mach, (uintptr_t)L4, 0x3000, PAGE_SIZE, 0) == -1)
+	ret = nvmm_gpa_map(mach, (uintptr_t)L4, 0x3000, PAGE_SIZE,
+	    PROT_READ|PROT_WRITE);
+	if (ret == -1)
 		err(errno, "nvmm_gpa_map");
-	if (nvmm_gpa_map(mach, (uintptr_t)L3, 0x4000, PAGE_SIZE, 0) == -1)
+	ret = nvmm_gpa_map(mach, (uintptr_t)L3, 0x4000, PAGE_SIZE,
+	    PROT_READ|PROT_WRITE);
+	if (ret == -1)
 		err(errno, "nvmm_gpa_map");
-	if (nvmm_gpa_map(mach, (uintptr_t)L2, 0x5000, PAGE_SIZE, 0) == -1)
+	ret = nvmm_gpa_map(mach, (uintptr_t)L2, 0x5000, PAGE_SIZE,
+	    PROT_READ|PROT_WRITE);
+	if (ret == -1)
 		err(errno, "nvmm_gpa_map");
-	if (nvmm_gpa_map(mach, (uintptr_t)L1, 0x6000, PAGE_SIZE, 0) == -1)
+	ret = nvmm_gpa_map(mach, (uintptr_t)L1, 0x6000, PAGE_SIZE,
+	    PROT_READ|PROT_WRITE);
+	if (ret == -1)
 		err(errno, "nvmm_gpa_map");
 
 	memset(L4, 0, PAGE_SIZE);
