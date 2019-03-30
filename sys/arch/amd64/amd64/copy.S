@@ -528,9 +528,10 @@ END(_ustore_64)
 /*
  * Compare-and-swap the 64-bit integer in the user-space.
  *
- * int	ucas_64(volatile int64_t *uptr, int64_t old, int64_t new, int64_t *ret);
+ * int	_ucas_64(volatile uint64_t *uptr, uint64_t old, uint64_t new,
+ *		 uint64_t *ret);
  */
-ENTRY(ucas_64)
+ENTRY(_ucas_64)
 	DEFERRED_SWITCH_CHECK
 	/* Fail if kernel-space */
 	movq	$VM_MAXUSER_ADDRESS-8,%r8
@@ -554,12 +555,13 @@ ENTRY(ucas_64)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ucas_64)
+END(_ucas_64)
 
 /*
- * int	ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
+ * int	_ucas_32(volatile uint32_t *uptr, uint32_t old, uint32_t new,
+ *		 uint32_t *ret);
  */
-ENTRY(ucas_32)
+ENTRY(_ucas_32)
 	DEFERRED_SWITCH_CHECK
 	/* Fail if kernel-space */
 	movq	$VM_MAXUSER_ADDRESS-4,%r8
@@ -583,7 +585,7 @@ ENTRY(ucas_32)
 	xorq	%rax,%rax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ucas_32)
+END(_ucas_32)
 
 ENTRY(ucas_efault)
 	movq	$EFAULT,%rax
@@ -594,13 +596,6 @@ ENTRY(ucas_fault)
 	SMAP_ENABLE
 	ret
 END(ucas_fault)
-
-/*
- * int	ucas_ptr(volatile void **uptr, void *old, void *new, void **ret);
- * int	ucas_int(volatile int *uptr, int old, intnew, int *ret);
- */
-STRONG_ALIAS(ucas_ptr, ucas_64)
-STRONG_ALIAS(ucas_int, ucas_32)
 
 /*
  * Label must be after all copy functions.

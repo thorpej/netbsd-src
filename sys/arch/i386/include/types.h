@@ -129,6 +129,7 @@ typedef __register_t	register_t;
 #define	__HAVE___LWP_GETPRIVATE_FAST
 #define	__HAVE_TLS_VARIANT_II
 #define	__HAVE_COMMON___TLS_GET_ADDR
+#define	__HAVE_UCAS_FULL
 
 #if defined(_KERNEL)
 #define	__HAVE_RAS

@@ -625,9 +625,10 @@ END(ufetchstore_fault)
 /*
  * Compare-and-swap the 32-bit integer in the user-space.
  *
- * int	ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
+ * int	_ucas_32(volatile uint32_t *uptr, uint32_t old, uint32_t new,
+ *		 uint32_t *ret);
  */
-ENTRY(ucas_32)
+ENTRY(_ucas_32)
 	DEFERRED_SWITCH_CHECK
 	movl	4(%esp),%edx
 	movl	8(%esp),%eax
@@ -653,7 +654,7 @@ ENTRY(ucas_32)
 	xorl	%eax,%eax
 	ret
 	DEFERRED_SWITCH_CALL
-END(ucas_32)
+END(_ucas_32)
 
 ENTRY(ucas_efault)
 	movl	$EFAULT,%eax
@@ -664,13 +665,6 @@ ENTRY(ucas_fault)
 	SMAP_ENABLE
 	ret
 END(ucas_fault)
-
-/*
- * int	ucas_int(volatile int *uptr, int old, int new, int *ret);
- * int	ucas_ptr(volatile void **uptr, void *old, void *new, void **ret);
- */
-STRONG_ALIAS(ucas_ptr, ucas_32)
-STRONG_ALIAS(ucas_int, ucas_32)
 
 /*
  * copyin() optimised for bringing in syscall arguments.

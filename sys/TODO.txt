@@ -1,10 +1,10 @@
 ARCH:
 	aarch64		-- changes done, tested (thorpej, Qemu aarch64) -- NEED UCAS
 	alpha		-- changes compile, tested (mrg, API UP1000) -- UCAS_FULL, needs testing
-	amd64		-- changes done, tested (thorpej, x86_64 VMware VM) -- NEED UCAS
+	amd64		-- changes done, tested (thorpej, x86_64 VMware VM) -- UCAS_FULL, needs testing
 	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4) -- NEED UCAS
 	hppa		-- changes compile, NOT TESTED -- NEED UCAS
-	i386		-- changes done, tested (thorpej, x86 VMware VM) -- NEED UCAS
+	i386		-- changes done, tested (thorpej, x86 VMware VM) -- UCAS_FULL, needs testing
 	ia64		-- changes compile, NOT TESTED -- NEED UCAS
 	m68k		-- changes compile, NOT TESTED -- NEED UCAS
 	mips		-- changes compile, NOT TESTED -- NEED UCAS
