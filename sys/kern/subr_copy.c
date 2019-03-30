@@ -475,25 +475,26 @@ int
 _ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
 {
 	lwp_t * const l = curlwp;
+	uint32_t *uva = ((void *)(uintptr_t)uaddr);
 	int error;
 
 	/*
 	 * Wire the user address down to avoid taking a page fault during
 	 * the critical section.
 	 */
-	error = uvm_vslock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr),
+	error = uvm_vslock(l->l_proc->p_vmspace, uva, sizeof(*uaddr),
 			   VM_PROT_READ | VM_PROT_WRITE);
 	if (error)
 		return error;
 
 	ucas_critical_enter(l);
-	error = _ufetch_32(uaddr, ret);
+	error = _ufetch_32(uva, ret);
 	if (error == 0 && *ret == old) {
-		error = _ustore_32(uaddr, new);
+		error = _ustore_32(uva, new);
 	}
 	ucas_critical_exit(l);
 
-	uvm_vsunlock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr));
+	uvm_vsunlock(l->l_proc->p_vmspace, uva, sizeof(*uaddr));
 
 	return error;
 }
@@ -503,25 +504,26 @@ int
 _ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
 {
 	lwp_t * const l = curlwp;
+	uint64_t *uva = ((void *)(uintptr_t)uaddr);
 	int error;
 
 	/*
 	 * Wire the user address down to avoid taking a page fault during
 	 * the critical section.
 	 */
-	error = uvm_vslock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr),
+	error = uvm_vslock(l->l_proc->p_vmspace, uva, sizeof(*uaddr),
 			   VM_PROT_READ | VM_PROT_WRITE);
 	if (error)
 		return error;
 
 	ucas_critical_enter(l);
-	error = _ufetch_64(uaddr, ret);
+	error = _ufetch_64(uva, ret);
 	if (error == 0 && *ret == old) {
-		error = _ustore_64(uaddr, new);
+		error = _ustore_64(uva, new);
 	}
 	ucas_critical_exit(l);
 
-	uvm_vsunlock(l->l_proc->p_vmspace, uaddr, sizeof(*uaddr));
+	uvm_vsunlock(l->l_proc->p_vmspace, uva, sizeof(*uaddr));
 
 	return error;
 }
