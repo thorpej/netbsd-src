@@ -15,4 +15,4 @@ ARCH:
 	sparc		-- changes done, tested (thorpej, Qemu sparc) -- generic UCAS, needs UP and MP testing
 	sparc64		-- changes compile, NOT TESTED -- UCAS_FULL, needs testing
 	usermode	-- initial changes, NOT TESTED -- can't build -- NEED UCAS
-	vax		-- changes done, tested (thorpej, SIMH vax) -- NEED UCAS
+	vax		-- changes done, tested (thorpej, SIMH vax) -- generic uCAS (will test on sparc)
