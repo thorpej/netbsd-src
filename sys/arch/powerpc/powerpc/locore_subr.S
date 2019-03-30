@@ -580,7 +580,7 @@ ENTRY(cpu_spinstart)
 #endif /*MULTIPROCESSOR + OEA*/
 
 /*
- * int do_ucas_32(int32_t *uptr, int32_t old, int32_t new, int32_t *ret);
+ * int do_ucas_32(uint32_t *uptr, uint32_t old, uint32_t new, uint32_t *ret);
  */
 ENTRY(do_ucas_32)
 1:

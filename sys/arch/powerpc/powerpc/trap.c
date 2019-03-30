@@ -39,6 +39,7 @@ __KERNEL_RCSID(0, "$NetBSD: trap.c,v 1.154 2018/06/15 22:07:14 uwe Exp $");
 #include "opt_multiprocessor.h"
 
 #define	__UFETCHSTORE_PRIVATE
+#define	__UCAS_PRIVATE
 
 #include <sys/param.h>
 
@@ -72,7 +73,6 @@ static inline vaddr_t setusr(vaddr_t, size_t *);
 static inline void unsetusr(void);
 
 extern int do_ucas_32(volatile int32_t *, int32_t, int32_t, int32_t *);
-int ucas_32(volatile int32_t *, int32_t, int32_t, int32_t *);
 
 void trap(struct trapframe *);	/* Called from locore / trap_subr */
 /* Why are these not defined in a header? */
@@ -683,7 +683,7 @@ kcopy(const void *src, void *dst, size_t len)
 }
 
 int
-ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret)
+_ucas_32(volatile uint32_t *uptr, uint32_t old, uint32_t new, uint32_t *ret)
 {
 	vaddr_t uva = (vaddr_t)uptr;
 	vaddr_t p;
@@ -691,9 +691,6 @@ ucas_32(volatile int32_t *uptr, int32_t old, int32_t new, int32_t *ret)
 	size_t seglen;
 	int rv;
 
-	if (uva & 3) {
-		return EFAULT;
-	}
 	if ((rv = setfault(&env)) != 0) {
 		unsetusr();
 		goto out;
@@ -707,8 +704,6 @@ out:
 	curpcb->pcb_onfault = 0;
 	return rv;
 }
-__strong_alias(ucas_ptr,ucas_32);
-__strong_alias(ucas_int,ucas_32);
 
 int
 badaddr(void *addr, size_t size)

@@ -98,6 +98,7 @@ int __openfirmio_open_check_broken(void);
 
 #define	__HAVE_MM_MD_DIRECT_MAPPED_PHYS
 #define	__HAVE_MM_MD_KERNACC
+#define	__HAVE_UCAS_FULL
 #if defined(_KERNEL)
 #define	__HAVE_RAS
 #endif
