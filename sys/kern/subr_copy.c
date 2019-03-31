@@ -368,9 +368,9 @@ ufetchstore_aligned(uintptr_t uaddr, size_t size)
 	return (uaddr & (size - 1)) == 0;
 }
 
-#define	CHECK_ALIGNMENT(x)						\
+#define	CHECK_ALIGNMENT()						\
 do {									\
-	if (!ufetchstore_aligned((uintptr_t)uaddr, sizeof(x)))		\
+	if (!ufetchstore_aligned((uintptr_t)uaddr, sizeof(*uaddr)))	\
 		return EFAULT;						\
 } while (/*CONSTCOND*/0)
 #endif /* __NO_STRICT_ALIGNMENT */
@@ -553,7 +553,7 @@ ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*uaddr);
+	CHECK_ALIGNMENT();
 #if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
 	if (ncpu > 1) {
 		printf("%s: JRT: calling _ucas_32_mp\n", __func__);
@@ -569,7 +569,7 @@ ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*uaddr);
+	CHECK_ALIGNMENT();
 #if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
 	if (ncpu > 1) {
 		return _ucas_64_mp(uaddr, old, new, ret);
@@ -591,7 +591,7 @@ ufetch_8(const uint8_t *uaddr, uint8_t *valp)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*valp);
+	CHECK_ALIGNMENT();
 	return _ufetch_8(uaddr, valp);
 }
 
@@ -600,7 +600,7 @@ ufetch_16(const uint16_t *uaddr, uint16_t *valp)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*valp);
+	CHECK_ALIGNMENT();
 	return _ufetch_16(uaddr, valp);
 }
 
@@ -609,7 +609,7 @@ ufetch_32(const uint32_t *uaddr, uint32_t *valp)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*valp);
+	CHECK_ALIGNMENT();
 	return _ufetch_32(uaddr, valp);
 }
 
@@ -619,7 +619,7 @@ ufetch_64(const uint64_t *uaddr, uint64_t *valp)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(*valp);
+	CHECK_ALIGNMENT();
 	return _ufetch_64(uaddr, valp);
 }
 #endif /* _LP64 */
@@ -640,7 +640,7 @@ ustore_8(uint8_t *uaddr, uint8_t val)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(val);
+	CHECK_ALIGNMENT();
 	return _ustore_8(uaddr, val);
 }
 
@@ -649,7 +649,7 @@ ustore_16(uint16_t *uaddr, uint16_t val)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(val);
+	CHECK_ALIGNMENT();
 	return _ustore_16(uaddr, val);
 }
 
@@ -658,7 +658,7 @@ ustore_32(uint32_t *uaddr, uint32_t val)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(val);
+	CHECK_ALIGNMENT();
 	return _ustore_32(uaddr, val);
 }
 
@@ -668,7 +668,7 @@ ustore_64(uint64_t *uaddr, uint64_t val)
 {
 
 	ASSERT_SLEEPABLE();
-	CHECK_ALIGNMENT(val);
+	CHECK_ALIGNMENT();
 	return _ustore_64(uaddr, val);
 }
 #endif /* _LP64 */
