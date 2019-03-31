@@ -32,9 +32,15 @@
 #ifndef _UFETCHSTORE_TESTER_COMMON_H_
 #define	_UFETCHSTORE_TESTER_COMMON_H_
 
+typedef enum {
+	OP_LOAD		= 0,
+	OP_STORE	= 1,
+	OP_CAS		= 2
+} test_op_t;
+
 struct ufetchstore_test_args {
 	void		*uaddr;
-	bool		is_store;
+	test_op_t	test_op;
 	int		size;
 	int		fetchstore_error;
 	union {
@@ -43,6 +49,14 @@ struct ufetchstore_test_args {
 		uint32_t val32;
 #ifdef _LP64
 		uint64_t val64;
+#endif
+	};
+	union {
+		uint8_t  ea_val8;
+		uint16_t ea_val16;
+		uint32_t ea_val32;
+#ifdef _LP64
+		uint64_t ea_val64;
 #endif
 	};
 };

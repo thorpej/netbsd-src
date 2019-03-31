@@ -142,7 +142,7 @@ do_ufetch_8(const uint8_t *uaddr, uint8_t *res)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = __UNCONST(uaddr),
-		.is_store = false,
+		.test_op = OP_LOAD,
 		.size = 8,
 	};
 
@@ -156,7 +156,7 @@ do_ufetch_16(const uint16_t *uaddr, uint16_t *res)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = __UNCONST(uaddr),
-		.is_store = false,
+		.test_op = OP_LOAD,
 		.size = 16,
 	};
 
@@ -170,7 +170,7 @@ do_ufetch_32(const uint32_t *uaddr, uint32_t *res)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = __UNCONST(uaddr),
-		.is_store = false,
+		.test_op = OP_LOAD,
 		.size = 32,
 	};
 
@@ -185,7 +185,7 @@ do_ufetch_64(const uint64_t *uaddr, uint64_t *res)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = __UNCONST(uaddr),
-		.is_store = false,
+		.test_op = OP_LOAD,
 		.size = 64,
 	};
 
@@ -200,7 +200,7 @@ do_ustore_8(uint8_t *uaddr, uint8_t val)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = uaddr,
-		.is_store = true,
+		.test_op = OP_STORE,
 		.size = 8,
 		.val8 = val,
 	};
@@ -214,7 +214,7 @@ do_ustore_16(uint16_t *uaddr, uint16_t val)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = uaddr,
-		.is_store = true,
+		.test_op = OP_STORE,
 		.size = 16,
 		.val16 = val,
 	};
@@ -228,7 +228,7 @@ do_ustore_32(uint32_t *uaddr, uint32_t val)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = uaddr,
-		.is_store = true,
+		.test_op = OP_STORE,
 		.size = 32,
 		.val32 = val,
 	};
@@ -243,7 +243,7 @@ do_ustore_64(uint64_t *uaddr, uint64_t val)
 {
 	struct ufetchstore_test_args args = {
 		.uaddr = uaddr,
-		.is_store = true,
+		.test_op = OP_STORE,
 		.size = 64,
 		.val64 = val,
 	};
