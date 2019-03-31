@@ -1052,6 +1052,11 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, ucas_64);
 #endif
 
+	ATF_TP_ADD_TC(tp, ucas_32_miscompare);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ucas_64_miscompare);
+#endif
+
 	ATF_TP_ADD_TC(tp, ucas_32_null);
 #ifdef _LP64
 	ATF_TP_ADD_TC(tp, ucas_64_null);
