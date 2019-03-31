@@ -253,6 +253,40 @@ do_ustore_64(uint64_t *uaddr, uint64_t val)
 }
 #endif /* _LP64 */
 
+static int
+do_ucas_32(uint32_t *uaddr, uint32_t expected, uint32_t new, uint32_t *actualp)
+{
+	struct ufetchstore_test_args args = {
+		.uaddr = uaddr,
+		.test_op = OP_CAS,
+		.size = 32,
+		.val32 = new,
+		.ea_val32 = expected,
+	};
+
+	ATF_REQUIRE_EQ(do_sysctl(&args), 0);
+	*actualp = args.ea_val32;
+	return args.fetchstore_error;
+}
+
+#ifdef _LP64
+static int
+do_ucas_64(uint64_t *uaddr, uint64_t expected, uint64_t new, uint64_t *actualp)
+{
+	struct ufetchstore_test_args args = {
+		.uaddr = uaddr,
+		.test_op = OP_CAS,
+		.size = 64,
+		.val64 = new,
+		.ea_val64 = expected,
+	};
+
+	ATF_REQUIRE_EQ(do_sysctl(&args), 0);
+	*actualp = args.ea_val64;
+	return args.fetchstore_error;
+}
+#endif /* _LP64 */
+
 struct memory_cell {
 	unsigned long guard0;
 	union {
@@ -793,6 +827,182 @@ ATF_TC_CLEANUP(ustore_64_max, tc)
 }
 #endif /* _LP64 */
 
+ATF_TC_WITH_CLEANUP(ucas_32);
+ATF_TC_HEAD(ucas_32, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_32 behavior");
+}
+ATF_TC_BODY(ucas_32, tc)
+{
+	uint32_t cell = 0xdeadbeef;
+	uint32_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_32(&cell, 0xdeadbeef, 0xbeefdead, &actual), 0);
+	ATF_REQUIRE(actual == 0xdeadbeef);
+	ATF_REQUIRE(cell == 0xbeefdead);
+}
+ATF_TC_CLEANUP(ucas_32, tc)
+{
+	unload_module();
+}
+
+#ifdef _LP64
+ATF_TC_WITH_CLEANUP(ucas_64);
+ATF_TC_HEAD(ucas_64, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_64 behavior");
+}
+ATF_TC_BODY(ucas_64, tc)
+{
+	uint64_t cell = 0xdeadbeef;
+	uint64_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_64(&cell, 0xdeadbeef, 0xbeefdead, &actual), 0);
+	ATF_REQUIRE(actual == 0xdeadbeef);
+	ATF_REQUIRE(cell == 0xbeefdead);
+}
+ATF_TC_CLEANUP(ucas_64, tc)
+{
+	unload_module();
+}
+#endif /* _LP64 */
+
+ATF_TC_WITH_CLEANUP(ucas_32_miscompare);
+ATF_TC_HEAD(ucas_32_miscompare, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_32 behavior with miscompare");
+}
+ATF_TC_BODY(ucas_32_miscompare, tc)
+{
+	uint32_t cell = 0xa5a5a5a5;
+	uint32_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_32(&cell, 0xdeadbeef, 0xbeefdead, &actual), 0);
+	ATF_REQUIRE(actual == 0xa5a5a5a5);
+	ATF_REQUIRE(cell == 0xa5a5a5a5);
+}
+ATF_TC_CLEANUP(ucas_32_miscompare, tc)
+{
+	unload_module();
+}
+
+#ifdef _LP64
+ATF_TC_WITH_CLEANUP(ucas_64_miscompare);
+ATF_TC_HEAD(ucas_64_miscompare, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_64 behavior with miscompare");
+}
+ATF_TC_BODY(ucas_64_miscompare, tc)
+{
+	uint64_t cell = 0xa5a5a5a5;
+	uint64_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_64(&cell, 0xdeadbeef, 0xbeefdead, &actual), 0);
+	ATF_REQUIRE(actual == 0xa5a5a5a5);
+	ATF_REQUIRE(cell == 0xa5a5a5a5);
+}
+ATF_TC_CLEANUP(ucas_64_miscompare, tc)
+{
+	unload_module();
+}
+#endif /* _LP64 */
+
+ATF_TC_WITH_CLEANUP(ucas_32_null);
+ATF_TC_HEAD(ucas_32_null, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_32 NULL pointer behavior");
+}
+ATF_TC_BODY(ucas_32_null, tc)
+{
+	uint32_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_32(NULL, 0xdeadbeef, 0xbeefdead, &actual),
+	    EFAULT);
+}
+ATF_TC_CLEANUP(ucas_32_null, tc)
+{
+	unload_module();
+}
+
+#ifdef _LP64
+ATF_TC_WITH_CLEANUP(ucas_64_null);
+ATF_TC_HEAD(ucas_64_null, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_64 NULL pointer behavior");
+}
+ATF_TC_BODY(ucas_64_null, tc)
+{
+	uint64_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_64(NULL, 0xdeadbeef, 0xbeefdead, &actual),
+	    EFAULT);
+}
+ATF_TC_CLEANUP(ucas_64_null, tc)
+{
+	unload_module();
+}
+#endif /* _LP64 */
+
+ATF_TC_WITH_CLEANUP(ucas_32_max);
+ATF_TC_HEAD(ucas_32_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_32 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ucas_32_max, tc)
+{
+	uint32_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_32(vm_max_address(), 0xdeadbeef, 0xbeefdead,
+	    &actual), EFAULT);
+}
+ATF_TC_CLEANUP(ucas_32_max, tc)
+{
+	unload_module();
+}
+
+#ifdef _LP64
+ATF_TC_WITH_CLEANUP(ucas_64_max);
+ATF_TC_HEAD(ucas_64_max, tc)
+{
+	atf_tc_set_md_var(tc, "descr",
+	    "test for correct ucas_64 VM_MAX_ADDRESS pointer behavior");
+}
+ATF_TC_BODY(ucas_64_max, tc)
+{
+	uint64_t actual = 0;
+
+	CHECK_MODULE();
+
+	ATF_REQUIRE_EQ(do_ucas_64(vm_max_address(), 0xdeadbeef, 0xbeefdead,
+	    &actual), EFAULT);
+}
+ATF_TC_CLEANUP(ucas_64_max, tc)
+{
+	unload_module();
+}
+#endif /* _LP64 */
+
 ATF_TP_ADD_TCS(tp)
 {
 	ATF_TP_ADD_TC(tp, ufetch_8);
@@ -835,6 +1045,21 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, ustore_32_max);
 #ifdef _LP64
 	ATF_TP_ADD_TC(tp, ustore_64_max);
+#endif
+
+	ATF_TP_ADD_TC(tp, ucas_32);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ucas_64);
+#endif
+
+	ATF_TP_ADD_TC(tp, ucas_32_null);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ucas_64_null);
+#endif
+
+	ATF_TP_ADD_TC(tp, ucas_32_max);
+#ifdef _LP64
+	ATF_TP_ADD_TC(tp, ucas_64_max);
 #endif
 
 	return atf_no_error();
