@@ -104,8 +104,6 @@ void trap_el0_32fiq(struct trapframe *);
 void trap_el0_32error(struct trapframe *);
 void interrupt(struct trapframe *);
 
-void ucas_ras_check(struct trapframe *);
-
 /* cpu_onfault */
 int cpu_set_onfault(struct faultbuf *) __returns_twice;
 void cpu_jump_onfault(struct trapframe *, const struct faultbuf *, int);

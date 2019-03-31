@@ -291,9 +291,6 @@ int	badaddr_read(void *, size_t, void *);
 /* syscall.c */
 void	swi_handler(trapframe_t *);
 
-/* arm_machdep.c */
-void	ucas_ras_check(trapframe_t *);
-
 /* vfp_init.c */
 void	vfp_attach(struct cpu_info *);
 void	vfp_discardcontext(lwp_t *, bool);

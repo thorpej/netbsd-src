@@ -197,8 +197,6 @@ data_abort_handler(struct trapframe *tf, uint32_t eclass)
 	if (__predict_true(error == 0)) {
 		if (user)
 			uvm_grow(p, va);
-		else
-			ucas_ras_check(tf);
 
 		UVMHIST_LOG(pmaphist, "uvm_fault success: va=%016llx",
 		    tf->tf_far, 0, 0, 0);

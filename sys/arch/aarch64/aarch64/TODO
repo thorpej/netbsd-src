@@ -8,7 +8,7 @@ TODO list for NetBSD/aarch64
 
 - not yet
   - kernel preemption
-  - ucas(9), and ucas_ras_check() is not implemented yet
+  - Implement __HAVE_UCAS_FULL or __HAVE_UCAS_MP (don't use full generic impl)
   - crash(8), savecore(8) and libkvm (cpu_kcore_hdr_t)
   - pmap should be work even if PID_MAX >= 65536
   - TLB ASID in pmap should be randomized

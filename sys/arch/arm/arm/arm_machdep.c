@@ -297,18 +297,6 @@ cpu_intr_p(void)
 	return ci->ci_intr_depth != 0;
 }
 
-void
-ucas_ras_check(trapframe_t *tf)
-{
-	extern char ucas_32_ras_start[];
-	extern char ucas_32_ras_end[];
-
-	if (tf->tf_pc > (vaddr_t)ucas_32_ras_start &&
-	    tf->tf_pc < (vaddr_t)ucas_32_ras_end) {
-		tf->tf_pc = (vaddr_t)ucas_32_ras_start;
-	}
-}
-
 #ifdef MODULAR
 struct lwp *
 arm_curlwp(void)

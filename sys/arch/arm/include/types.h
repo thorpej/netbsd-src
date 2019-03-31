@@ -90,6 +90,9 @@ typedef	int		__register_t;
 #if defined(__ARM_EABI__) && defined(_ARM_ARCH_6)
 #define	__HAVE_ATOMIC64_OPS
 #endif
+#if defined(_ARM_ARCH_6)
+#define	__HAVE_UCAS_MP
+#endif
 
 #if defined(_KERNEL) || defined(_KMEMUSER)
 #define	PCU_FPU			0

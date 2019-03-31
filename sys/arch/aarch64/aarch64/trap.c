@@ -432,25 +432,6 @@ cpu_jump_onfault(struct trapframe *tf, const struct faultbuf *fb, int val)
 	tf->tf_reg[0] = val;
 }
 
-void
-ucas_ras_check(struct trapframe *tf)
-{
-#if 0 /* XXX notyet */
-	extern char ucas_32_ras_start[];
-	extern char ucas_32_ras_end[];
-	extern char ucas_64_ras_start[];
-	extern char ucas_64_ras_end[];
-
-	if (tf->tf_pc > (vaddr_t)ucas_32_ras_start &&
-	    tf->tf_pc < (vaddr_t)ucas_32_ras_end) {
-		tf->tf_pc = (vaddr_t)ucas_32_ras_start;
-	} else if (tf->tf_pc > (vaddr_t)ucas_64_ras_start &&
-	    tf->tf_pc < (vaddr_t)ucas_64_ras_end) {
-		tf->tf_pc = (vaddr_t)ucas_64_ras_start;
-	}
-#endif
-}
-
 #ifdef TRAP_SIGDEBUG
 static void
 frame_dump(const struct trapframe *tf)
