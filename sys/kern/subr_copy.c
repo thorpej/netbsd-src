@@ -395,10 +395,16 @@ ucas_critical_cpu_gate(void *arg __unused)
 {
 	int count = SPINLOCK_BACKOFF_MIN;
 
+	printf("%s: JRT cpu %u entering gate\n", __func__,
+	    cpu_index(curcpu()));
+
 	atomic_inc_uint(&ucas_critical_cpus_paused);
 	while (ucas_critical_owning_cpu != NULL) {
 		SPINLOCK_BACKOFF(count);
 	}
+
+	printf("%s: JRT cpu %u leaving gate\n", __func__,
+	    cpu_index(curcpu()));
 }
 
 static int
@@ -414,9 +420,13 @@ ucas_critical_wait(void)
 {
 	int count = SPINLOCK_BACKOFF_MIN;
 
+	printf("%s: JRT waiting for other CPUs to enter gate\n", __func__);
+
 	while (ucas_critical_cpus_paused < (ncpu - 1)) {
 		SPINLOCK_BACKOFF(count);
 	}
+
+	printf("%s: JRT safe to proceed\n", __func__);
 }
 #endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
 
@@ -468,6 +478,7 @@ ucas_critical_exit(lwp_t * const l)
 	if (ncpu > 1) {
 		membar_exit();
 		ucas_critical_owning_cpu = NULL;
+		ucas_critical_cpus_paused = 0;
 		splx(ucas_critical_splcookie);
 		KPREEMPT_ENABLE(l);
 		mutex_exit(&ucas_critical_mutex);
@@ -544,8 +555,10 @@ ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
 	ASSERT_SLEEPABLE();
 	CHECK_ALIGNMENT(*uaddr);
 #if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
-	if (ncpu > 1)
+	if (ncpu > 1) {
+		printf("%s: JRT: calling _ucas_32_mp\n", __func__);
 		return _ucas_32_mp(uaddr, old, new, ret);
+	}
 #endif /* __HAVE_UCAS_MP && MULTIPROCESSOR */
 	return _ucas_32(uaddr, old, new, ret);
 }
@@ -558,8 +571,9 @@ ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
 	ASSERT_SLEEPABLE();
 	CHECK_ALIGNMENT(*uaddr);
 #if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
-	if (ncpu > 1)
+	if (ncpu > 1) {
 		return _ucas_64_mp(uaddr, old, new, ret);
+	}
 #endif /* __HAVE_UCAS_MP && MULTIPROCESSOR */
 	return _ucas_64(uaddr, old, new, ret);
 }
