@@ -117,6 +117,7 @@ ENTRY(_ucas_32_mp)
 	GET_CURPCB(r4)
 	adr	r5, .Lucasfault
 	str	r5, [r4, #PCB_ONFAULT]
+	mov	ip, r0			/* ip = uptr */
 
 1:	ldrex	r5, [ip]		/* we should have access */
 	cmp	r1, r5
