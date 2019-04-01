@@ -556,7 +556,6 @@ ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
 	CHECK_ALIGNMENT();
 #if defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
 	if (ncpu > 1) {
-		printf("%s: JRT: calling _ucas_32_mp\n", __func__);
 		return _ucas_32_mp(uaddr, old, new, ret);
 	}
 #endif /* __HAVE_UCAS_MP && MULTIPROCESSOR */
