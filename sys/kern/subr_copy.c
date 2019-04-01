@@ -393,17 +393,11 @@ ucas_critical_cpu_gate(void *arg __unused)
 {
 	int count = SPINLOCK_BACKOFF_MIN;
 
-	printf("%s: JRT cpu %u entering gate\n", __func__,
-	    cpu_index(curcpu()));
-
 	KASSERT(ucas_critical_pausing_cpus > 0);
 	atomic_dec_uint(&ucas_critical_pausing_cpus);
 	while (ucas_critical_pausing_cpus != (u_int)-1) {
 		SPINLOCK_BACKOFF(count);
 	}
-
-	printf("%s: JRT cpu %u leaving gate\n", __func__,
-	    cpu_index(curcpu()));
 }
 
 static int
@@ -418,13 +412,9 @@ ucas_critical_wait(void)
 {
 	int count = SPINLOCK_BACKOFF_MIN;
 
-	printf("%s: JRT waiting for other CPUs to enter gate\n", __func__);
-
 	while (ucas_critical_pausing_cpus > 0) {
 		SPINLOCK_BACKOFF(count);
 	}
-
-	printf("%s: JRT safe to proceed\n", __func__);
 }
 #endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
 
