@@ -384,8 +384,7 @@ do {									\
 #include <sys/ipi.h>
 
 static int ucas_critical_splcookie;
-static struct cpu_info *ucas_critical_owning_cpu;
-static int ucas_critical_cpus_paused;
+static volatile u_int ucas_critical_pausing_cpus;
 static u_int ucas_critical_ipi;
 static ONCE_DECL(ucas_critical_init_once)
 
@@ -397,8 +396,9 @@ ucas_critical_cpu_gate(void *arg __unused)
 	printf("%s: JRT cpu %u entering gate\n", __func__,
 	    cpu_index(curcpu()));
 
-	atomic_inc_uint(&ucas_critical_cpus_paused);
-	while (ucas_critical_owning_cpu != NULL) {
+	KASSERT(ucas_critical_pausing_cpus > 0);
+	atomic_dec_uint(&ucas_critical_pausing_cpus);
+	while (ucas_critical_pausing_cpus != (u_int)-1) {
 		SPINLOCK_BACKOFF(count);
 	}
 
@@ -420,7 +420,7 @@ ucas_critical_wait(void)
 
 	printf("%s: JRT waiting for other CPUs to enter gate\n", __func__);
 
-	while (ucas_critical_cpus_paused < (ncpu - 1)) {
+	while (ucas_critical_pausing_cpus > 0) {
 		SPINLOCK_BACKOFF(count);
 	}
 
@@ -446,7 +446,7 @@ ucas_critical_enter(lwp_t * const l)
 		 */
 		mutex_enter(&cpu_lock);
 		ucas_critical_splcookie = splhigh();
-		ucas_critical_owning_cpu = curcpu();
+		ucas_critical_pausing_cpus = ncpu - 1;
 		membar_enter();
 
 		ipi_trigger_broadcast(ucas_critical_ipi, true);
@@ -465,8 +465,7 @@ ucas_critical_exit(lwp_t * const l)
 #if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
 	if (ncpu > 1) {
 		membar_exit();
-		ucas_critical_owning_cpu = NULL;
-		ucas_critical_cpus_paused = 0;
+		ucas_critical_pausing_cpus = (u_int)-1;
 		splx(ucas_critical_splcookie);
 		mutex_exit(&cpu_lock);
 		return;
