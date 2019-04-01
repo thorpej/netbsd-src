@@ -384,7 +384,6 @@ do {									\
 #include <sys/ipi.h>
 
 static int ucas_critical_splcookie;
-static kmutex_t ucas_critical_mutex;
 static struct cpu_info *ucas_critical_owning_cpu;
 static int ucas_critical_cpus_paused;
 static u_int ucas_critical_ipi;
@@ -410,7 +409,6 @@ ucas_critical_cpu_gate(void *arg __unused)
 static int
 ucas_critical_init(void)
 {
-	mutex_init(&ucas_critical_mutex, MUTEX_DEFAULT, IPL_NONE);
 	ucas_critical_ipi = ipi_register(ucas_critical_cpu_gate, NULL);
 	return 0;
 }
@@ -436,32 +434,22 @@ ucas_critical_enter(lwp_t * const l)
 
 #if !defined(__HAVE_UCAS_MP) && defined(MULTIPROCESSOR)
 	if (ncpu > 1) {
-		CPU_INFO_ITERATOR cii;
-		struct cpu_info *ci;
-
 		RUN_ONCE(&ucas_critical_init_once, ucas_critical_init);
 
 		/*
-		 * Acquire the mutex first, then disable preemption and
-		 * go to splhigh() and broadcast the IPI to lock all of
-		 * the other CPUs behind the gate.
+		 * Acquire the mutex first, then go to splhigh() and
+		 * broadcast the IPI to lock all of the other CPUs
+		 * behind the gate.
+		 *
+		 * N.B. Going to splhigh() implicitly disables preemption,
+		 * so there's no need to do it explicitly.
 		 */
-		mutex_enter(&ucas_critical_mutex);
-		KPREEMPT_DISABLE(l);
+		mutex_enter(&cpu_lock);
 		ucas_critical_splcookie = splhigh();
 		ucas_critical_owning_cpu = curcpu();
 		membar_enter();
 
-		/*
-		 * Inline ipi_trigger_multi(), because it seems wasteful
-		 * to allocate a kcpuset_t each time, and we don't want
-		 * to send the IPI to ourself.
-		 */
-		for (CPU_INFO_FOREACH(cii, ci)) {
-			if (ci == ucas_critical_owning_cpu)
-				continue;
-			ipi_trigger(ucas_critical_ipi, ci);
-		}
+		ipi_trigger_broadcast(ucas_critical_ipi, true);
 		ucas_critical_wait();
 		return;
 	}
@@ -480,8 +468,7 @@ ucas_critical_exit(lwp_t * const l)
 		ucas_critical_owning_cpu = NULL;
 		ucas_critical_cpus_paused = 0;
 		splx(ucas_critical_splcookie);
-		KPREEMPT_ENABLE(l);
-		mutex_exit(&ucas_critical_mutex);
+		mutex_exit(&cpu_lock);
 		return;
 	}
 #endif /* ! __HAVE_UCAS_MP && MULTIPROCESSOR */
