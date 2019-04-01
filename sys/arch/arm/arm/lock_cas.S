@@ -118,7 +118,6 @@ ENTRY(_ucas_32_mp)
 	adr	r5, .Lucasfault
 	str	r5, [r4, #PCB_ONFAULT]
 	mov	ip, r0			/* ip = uptr */
-	mov	r0, #0			/* return value in case if miscompare */
 
 1:	ldrex	r5, [ip]		/* we should have access */
 	cmp	r1, r5
@@ -128,6 +127,7 @@ ENTRY(_ucas_32_mp)
 	bne	1b
 2:
 	str	r5, [r3]
+	mov	r0, #0			/* return value in case if miscompare */
 .Lucasfault:
 	movs	r3, #0
 	str	r3, [r4, #PCB_ONFAULT]
