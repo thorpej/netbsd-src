@@ -68,11 +68,12 @@ u_int	ipi_register(ipi_func_t, void *);
 void	ipi_unregister(u_int);
 void	ipi_trigger(u_int, struct cpu_info *);
 void	ipi_trigger_multi(u_int, const kcpuset_t *);
+void	ipi_trigger_broadcast(u_int, bool);
 
 /* Public interface: synchronous IPIs. */
 void	ipi_unicast(ipi_msg_t *, struct cpu_info *);
 void	ipi_multicast(ipi_msg_t *, const kcpuset_t *);
-void	ipi_broadcast(ipi_msg_t *);
+void	ipi_broadcast(ipi_msg_t *, bool);
 void	ipi_wait(ipi_msg_t *);
 
 #endif
