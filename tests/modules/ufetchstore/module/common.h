@@ -32,17 +32,16 @@
 #ifndef _UFETCHSTORE_TESTER_COMMON_H_
 #define	_UFETCHSTORE_TESTER_COMMON_H_
 
-typedef enum {
-	OP_LOAD		= 0,
-	OP_STORE	= 1,
-	OP_CAS		= 2
-} test_op_t;
+#define	OP_LOAD		0
+#define	OP_STORE	1
+#define	OP_CAS		2
 
 struct ufetchstore_test_args {
-	void		*uaddr;
-	test_op_t	test_op;
+	int		pointer_size;
+	int		test_op;
 	int		size;
 	int		fetchstore_error;
+	uint64_t	uaddr64;
 	union {
 		uint8_t  val8;
 		uint16_t val16;

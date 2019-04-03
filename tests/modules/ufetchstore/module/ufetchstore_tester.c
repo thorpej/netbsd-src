@@ -41,23 +41,23 @@ static struct tester_ctx {
 } tester_ctx;
 
 static int
-test_ufetch(struct ufetchstore_test_args * const args)
+test_ufetch(void * const uaddr, struct ufetchstore_test_args * const args)
 {
 	int error = 0;
 
 	switch (args->size) {
 	case 8:
-		args->fetchstore_error = ufetch_8(args->uaddr, &args->val8);
+		args->fetchstore_error = ufetch_8(uaddr, &args->val8);
 		break;
 	case 16:
-		args->fetchstore_error = ufetch_16(args->uaddr, &args->val16);
+		args->fetchstore_error = ufetch_16(uaddr, &args->val16);
 		break;
 	case 32:
-		args->fetchstore_error = ufetch_32(args->uaddr, &args->val32);
+		args->fetchstore_error = ufetch_32(uaddr, &args->val32);
 		break;
 #ifdef _LP64
 	case 64:
-		args->fetchstore_error = ufetch_64(args->uaddr, &args->val64);
+		args->fetchstore_error = ufetch_64(uaddr, &args->val64);
 		break;
 #endif /* _LP64 */
 	default:
@@ -68,23 +68,23 @@ test_ufetch(struct ufetchstore_test_args * const args)
 }
 
 static int
-test_ustore(struct ufetchstore_test_args * const args)
+test_ustore(void * const uaddr, struct ufetchstore_test_args * const args)
 {
 	int error = 0;
 
 	switch (args->size) {
 	case 8:
-		args->fetchstore_error = ustore_8(args->uaddr, args->val8);
+		args->fetchstore_error = ustore_8(uaddr, args->val8);
 		break;
 	case 16:
-		args->fetchstore_error = ustore_16(args->uaddr, args->val16);
+		args->fetchstore_error = ustore_16(uaddr, args->val16);
 		break;
 	case 32:
-		args->fetchstore_error = ustore_32(args->uaddr, args->val32);
+		args->fetchstore_error = ustore_32(uaddr, args->val32);
 		break;
 #ifdef _LP64
 	case 64:
-		args->fetchstore_error = ustore_64(args->uaddr, args->val64);
+		args->fetchstore_error = ustore_64(uaddr, args->val64);
 		break;
 #endif /* _LP64 */
 	default:
@@ -95,18 +95,18 @@ test_ustore(struct ufetchstore_test_args * const args)
 }
 
 static int
-test_ucas(struct ufetchstore_test_args * const args)
+test_ucas(void * const uaddr, struct ufetchstore_test_args * const args)
 {
 	int error = 0;
 
 	switch (args->size) {
 	case 32:
-		args->fetchstore_error = ucas_32(args->uaddr,
+		args->fetchstore_error = ucas_32(uaddr,
 		    args->ea_val32, args->val32, &args->ea_val32);
 		break;
 #ifdef _LP64
 	case 64:
-		args->fetchstore_error = ucas_64(args->uaddr,
+		args->fetchstore_error = ucas_64(uaddr,
 		    args->ea_val64, args->val64, &args->ea_val64);
 		break;
 #endif /* _LP64 */
@@ -140,19 +140,21 @@ do_ufetchstore_test(SYSCTLFN_ARGS)
 
 	args.fetchstore_error = EBADF;	/* poison */
 
+	void *uaddr = (void *)(uintptr_t)args.uaddr64;
+
 	switch (args.test_op) {
 	case OP_LOAD:
-		error = test_ufetch(&args);
+		error = test_ufetch(uaddr, &args);
 		break;
-	
+
 	case OP_STORE:
-		error = test_ustore(&args);
+		error = test_ustore(uaddr, &args);
 		break;
-	
+
 	case OP_CAS:
-		error = test_ucas(&args);
+		error = test_ucas(uaddr, &args);
 		break;
-	
+
 	default:
 		error = EINVAL;
 	}
