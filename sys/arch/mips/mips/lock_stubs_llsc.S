@@ -143,7 +143,7 @@ STATIC_LEAF(llsc_ucas_32)
 
 2:	PTR_S	zero, PCB_ONFAULT(v1)
 	j	ra
-	 INT_S	t0, 0(a3)
+	 sw	t0, 0(a3)
 END(llsc_ucas_32)
 
 #ifdef _LP64
@@ -171,7 +171,7 @@ STATIC_LEAF(llsc_ucas_64)
 
 2:	PTR_S	zero, PCB_ONFAULT(v1)
 	j	ra
-	 LONG_S	t0, 0(a3)
+	 sd	t0, 0(a3)
 END(llsc_ucas_64)
 #endif /* _LP64 */
 

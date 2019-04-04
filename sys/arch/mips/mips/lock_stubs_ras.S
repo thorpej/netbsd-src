@@ -162,7 +162,7 @@ _ucas_32_ras_start:
 _ucas_32_ras_end:
 	PTR_S	zero, PCB_ONFAULT(v1)
 	J_RA
-	 LONG_S	t0, 0(a3)
+	 sw	t0, 0(a3)
 END(_ucas_32_ras)
 
 #ifdef _LP64
@@ -183,7 +183,7 @@ _ucas_64_ras_start:
 _ucas_64_ras_end:
 	PTR_S	zero, PCB_ONFAULT(v1)
 	J_RA
-	 INT_S	t0, 0(a3)
+	 sd	t0, 0(a3)
 END(_ucas_64_ras)
 #endif /* _LP64 */
 
