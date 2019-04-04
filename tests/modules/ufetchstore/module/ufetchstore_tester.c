@@ -122,17 +122,20 @@ do_ufetchstore_test(SYSCTLFN_ARGS)
 {
 	struct sysctlnode node;
 	struct ufetchstore_test_args *uargs, args;
+	uint64_t args64;
 	int error;
 
 	node = *rnode;
 
 	uargs = NULL;
-	node.sysctl_data = &uargs;
+	node.sysctl_data = &args64;
 	error = sysctl_lookup(SYSCTLFN_CALL(&node));
 	if (error)
 		return error;
 	if (newp == NULL)
 		return EINVAL;
+
+	uargs = (void *)(uintptr_t)args64;
 
 	error = copyin(uargs, &args, sizeof(args));
 	if (error)
@@ -184,7 +187,7 @@ ufetchstore_tester_init(void)
 	     * we want to have precise control over when copyin / copyout
 	     * happens.
 	     */
-	    CTLFLAG_PERMANENT|CTLFLAG_READWRITE, CTLTYPE_LONG, "test",
+	    CTLFLAG_PERMANENT|CTLFLAG_READWRITE, CTLTYPE_QUAD, "test",
 	    SYSCTL_DESCR("execute a ufetchstore test"),
 	    do_ufetchstore_test, 0,
 	    (void *)&tester_ctx, 0, CTL_CREATE, CTL_EOL);

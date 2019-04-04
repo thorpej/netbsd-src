@@ -46,17 +46,13 @@ struct ufetchstore_test_args {
 		uint8_t  val8;
 		uint16_t val16;
 		uint32_t val32;
-#ifdef _LP64
 		uint64_t val64;
-#endif
 	};
 	union {
 		uint8_t  ea_val8;
 		uint16_t ea_val16;
 		uint32_t ea_val32;
-#ifdef _LP64
 		uint64_t ea_val64;
-#endif
 	};
 };
 

@@ -122,6 +122,7 @@ vm_max_address(void)
 static int
 do_sysctl(struct ufetchstore_test_args *args)
 {
+	uint64_t arg_addr64 = (uintptr_t)args;
 	int rv;
 
 	args->fetchstore_error = EBADF;	/* poison */
@@ -131,7 +132,8 @@ do_sysctl(struct ufetchstore_test_args *args)
 	 * Yes, the intent is to provide the pointer, not the structure,
 	 * to the kernel side of the test harness.
 	 */
-	rv = sysctlbyname(mib_name, NULL, NULL, &args, sizeof(args));
+	rv = sysctlbyname(mib_name, NULL, NULL, &arg_addr64,
+			  sizeof(arg_addr64));
 	if (rv != 0) {
 		rv = errno;
 		warn("sysctlbyname('%s') -> %d", mib_name, rv);
