@@ -29,6 +29,7 @@
 __KERNEL_RCSID(0, "$NetBSD: rumpcopy.c,v 1.22 2016/05/25 17:43:58 christos Exp $");
 
 #define	__UFETCHSTORE_PRIVATE
+#define	__UCAS_PRIVATE
 
 #include <sys/param.h>
 #include <sys/lwp.h>
@@ -202,6 +203,44 @@ uvm_io(struct vm_map *vm, struct uio *uio, int flag)
 
 	return error;
 }
+
+int
+_ucas_32(volatile uint32_t *uaddr, uint32_t old, uint32_t new, uint32_t *ret)
+{
+	uint32_t *uva = ((void *)(uintptr_t)uaddr);
+	int error;
+
+	/* XXXXJRT do we need a MP CPU gate? */
+
+	kpreempt_disable();
+	error = _ufetch_32(uva, ret);
+	if (error == 0 && *ret == old) {
+		error = _ustore_32(uva, new);
+	}
+	kpreempt_enable();
+
+	return error;
+}
+
+#ifdef _LP64
+int
+_ucas_64(volatile uint64_t *uaddr, uint64_t old, uint64_t new, uint64_t *ret)
+{
+	uint64_t *uva = ((void *)(uintptr_t)uaddr);
+	int error;
+
+	/* XXXXJRT do we need a MP CPU gate? */
+
+	kpreempt_disable();
+	error = _ufetch_64(uva, ret);
+	if (error == 0 && *ret == old) {
+		error = _ustore_64(uva, new);
+	}
+	kpreempt_enable();
+
+	return error;
+}
+#endif /* _LP64 */
 
 #define	UFETCH(sz)							\
 int									\
