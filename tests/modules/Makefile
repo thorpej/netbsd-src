@@ -28,4 +28,6 @@ SUBDIR+=	k_uvm
 SUBDIR+=	threadpool_tester
 SUBDIR+=	ufetchstore
 
+ATFFILE_EXTRA_SUBDIRS= t_ufetchstore
+
 .include <bsd.test.mk>
