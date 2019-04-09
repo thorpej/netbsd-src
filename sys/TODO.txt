@@ -3,7 +3,7 @@ ARCH:
 	alpha		-- changes compile, tested (mrg, API UP1000) -- UCAS_FULL, needs testing
 	amd64		-- changes done, tested (thorpej, x86_64 VMware VM) -- UCAS_FULL, needs testing
 	arm		-- changes done, tested (thorpej, Qemu arm, v2 and v4) -- UCAS_MP
-	hppa		-- changes compile, NOT TESTED -- generic UCAS
+	hppa		-- changes compile, tested (nick, real HW) -- generic UCAS
 	i386		-- changes done, tested (thorpej, x86 VMware VM) -- UCAS_FULL
 	ia64		-- changes compile, NOT TESTED -- generic UCAS
 	m68k		-- changes compile, NOT TESTED -- generic UCAS
