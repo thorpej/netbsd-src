@@ -2374,6 +2374,11 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 2;
 		break;
 	}
+	/* sys__lwp_gettid */
+	case 326: {
+		*n_args = 0;
+		break;
+	}
 	/* sys_sa_register */
 	case 330: {
 		const struct compat_60_sys_sa_register_args *p = params;
@@ -7585,6 +7590,9 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* sys__lwp_gettid */
+	case 326:
+		break;
 	/* sys_sa_register */
 	case 330:
 		switch(ndx) {
@@ -11348,6 +11356,8 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* sys__lwp_gettid */
+	case 326:
 	/* sys_sa_register */
 	case 330:
 		if (ndx == 0 || ndx == 1)

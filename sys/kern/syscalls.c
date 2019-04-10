@@ -369,7 +369,7 @@ const char *const syscallnames[] = {
 	/* 323 */	"_lwp_setname",
 	/* 324 */	"_lwp_getname",
 	/* 325 */	"_lwp_ctl",
-	/* 326 */	"#326 (unimplemented)",
+	/* 326 */	"_lwp_gettid",
 	/* 327 */	"#327 (unimplemented)",
 	/* 328 */	"#328 (unimplemented)",
 	/* 329 */	"#329 (unimplemented)",
@@ -906,7 +906,7 @@ const char *const altsyscallnames[] = {
 	/* 323 */	NULL, /* _lwp_setname */
 	/* 324 */	NULL, /* _lwp_getname */
 	/* 325 */	NULL, /* _lwp_ctl */
-	/* 326 */	NULL, /* unimplemented */
+	/* 326 */	NULL, /* _lwp_gettid */
 	/* 327 */	NULL, /* unimplemented */
 	/* 328 */	NULL, /* unimplemented */
 	/* 329 */	NULL, /* unimplemented */
