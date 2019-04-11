@@ -1,7 +1,8 @@
 /*	$NetBSD: kern_lwp.c,v 1.202 2019/06/04 11:54:03 kamil Exp $	*/
 
 /*-
- * Copyright (c) 2001, 2006, 2007, 2008, 2009 The NetBSD Foundation, Inc.
+ * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2019
+ *	The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation

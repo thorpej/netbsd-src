@@ -1,7 +1,7 @@
 /*	$NetBSD: lwp.h,v 1.186 2019/06/19 21:39:53 kamil Exp $	*/
 
 /*
- * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2010
+ * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2010, 2019
  *    The NetBSD Foundation, Inc.
  * All rights reserved.
  *
