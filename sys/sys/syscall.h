@@ -1332,14 +1332,14 @@
 /* syscall: "clock_getcpuclockid2" ret: "int" args: "idtype_t" "id_t" "clockid_t *" */
 #define	SYS_clock_getcpuclockid2	482
 
-/* syscall: "_futex" ret: "int" args: "int *" "int" "int" "const struct timespec *" "int *" "int" "int" */
-#define	SYS__futex	483
+/* syscall: "__futex" ret: "int" args: "int *" "int" "int" "const struct timespec *" "int *" "int" "int" */
+#define	SYS___futex	483
 
-/* syscall: "_futex_set_robust_list" ret: "int" args: "struct futex_robust_list_head *" "size_t" */
-#define	SYS__futex_set_robust_list	484
+/* syscall: "__futex_set_robust_list" ret: "int" args: "struct futex_robust_list_head *" "size_t" */
+#define	SYS___futex_set_robust_list	484
 
-/* syscall: "_futex_get_robust_list" ret: "int" args: "int" "struct futex_robust_list_head **" "size_t *" */
-#define	SYS__futex_get_robust_list	485
+/* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "struct futex_robust_list_head **" "size_t *" */
+#define	SYS___futex_get_robust_list	485
 
 #define	SYS_MAXSYSCALL	486
 #define	SYS_NSYSENT	512

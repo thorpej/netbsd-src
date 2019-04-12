@@ -3669,9 +3669,9 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 3;
 		break;
 	}
-	/* sys__futex */
+	/* sys___futex */
 	case 483: {
-		const struct sys__futex_args *p = params;
+		const struct sys___futex_args *p = params;
 		uarg[0] = (intptr_t) SCARG(p, uaddr); /* int * */
 		iarg[1] = SCARG(p, op); /* int */
 		iarg[2] = SCARG(p, val); /* int */
@@ -3682,18 +3682,18 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 7;
 		break;
 	}
-	/* sys__futex_set_robust_list */
+	/* sys___futex_set_robust_list */
 	case 484: {
-		const struct sys__futex_set_robust_list_args *p = params;
+		const struct sys___futex_set_robust_list_args *p = params;
 		uarg[0] = (intptr_t) SCARG(p, head); /* struct futex_robust_list_head * */
 		uarg[1] = SCARG(p, len); /* size_t */
 		*n_args = 2;
 		break;
 	}
-	/* sys__futex_get_robust_list */
+	/* sys___futex_get_robust_list */
 	case 485: {
-		const struct sys__futex_get_robust_list_args *p = params;
-		iarg[0] = SCARG(p, pid); /* int */
+		const struct sys___futex_get_robust_list_args *p = params;
+		iarg[0] = SCARG(p, lwpid); /* lwpid_t */
 		uarg[1] = (intptr_t) SCARG(p, head); /* struct futex_robust_list_head ** */
 		uarg[2] = (intptr_t) SCARG(p, len); /* size_t * */
 		*n_args = 3;
@@ -9913,7 +9913,7 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
-	/* sys__futex */
+	/* sys___futex */
 	case 483:
 		switch(ndx) {
 		case 0:
@@ -9941,7 +9941,7 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
-	/* sys__futex_set_robust_list */
+	/* sys___futex_set_robust_list */
 	case 484:
 		switch(ndx) {
 		case 0:
@@ -9954,11 +9954,11 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
-	/* sys__futex_get_robust_list */
+	/* sys___futex_get_robust_list */
 	case 485:
 		switch(ndx) {
 		case 0:
-			p = "int";
+			p = "lwpid_t";
 			break;
 		case 1:
 			p = "struct futex_robust_list_head **";
@@ -12049,17 +12049,17 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
-	/* sys__futex */
+	/* sys___futex */
 	case 483:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
-	/* sys__futex_set_robust_list */
+	/* sys___futex_set_robust_list */
 	case 484:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
-	/* sys__futex_get_robust_list */
+	/* sys___futex_get_robust_list */
 	case 485:
 		if (ndx == 0 || ndx == 1)
 			p = "int";

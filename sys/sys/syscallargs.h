@@ -3139,7 +3139,7 @@ check_syscall_args(sys_clock_getcpuclockid2)
 #endif /* !RUMP_CLIENT */
 
 #ifndef RUMP_CLIENT
-struct sys__futex_args {
+struct sys___futex_args {
 	syscallarg(int *) uaddr;
 	syscallarg(int) op;
 	syscallarg(int) val;
@@ -3148,24 +3148,24 @@ struct sys__futex_args {
 	syscallarg(int) val2;
 	syscallarg(int) val3;
 };
-check_syscall_args(sys__futex)
+check_syscall_args(sys___futex)
 #endif /* !RUMP_CLIENT */
 
 #ifndef RUMP_CLIENT
-struct sys__futex_set_robust_list_args {
+struct sys___futex_set_robust_list_args {
 	syscallarg(struct futex_robust_list_head *) head;
 	syscallarg(size_t) len;
 };
-check_syscall_args(sys__futex_set_robust_list)
+check_syscall_args(sys___futex_set_robust_list)
 #endif /* !RUMP_CLIENT */
 
 #ifndef RUMP_CLIENT
-struct sys__futex_get_robust_list_args {
-	syscallarg(int) pid;
+struct sys___futex_get_robust_list_args {
+	syscallarg(lwpid_t) lwpid;
 	syscallarg(struct futex_robust_list_head **) head;
 	syscallarg(size_t *) len;
 };
-check_syscall_args(sys__futex_get_robust_list)
+check_syscall_args(sys___futex_get_robust_list)
 #endif /* !RUMP_CLIENT */
 
 /*
@@ -4044,11 +4044,11 @@ int	sys_wait6(struct lwp *, const struct sys_wait6_args *, register_t *);
 
 int	sys_clock_getcpuclockid2(struct lwp *, const struct sys_clock_getcpuclockid2_args *, register_t *);
 
-int	sys__futex(struct lwp *, const struct sys__futex_args *, register_t *);
+int	sys___futex(struct lwp *, const struct sys___futex_args *, register_t *);
 
-int	sys__futex_set_robust_list(struct lwp *, const struct sys__futex_set_robust_list_args *, register_t *);
+int	sys___futex_set_robust_list(struct lwp *, const struct sys___futex_set_robust_list_args *, register_t *);
 
-int	sys__futex_get_robust_list(struct lwp *, const struct sys__futex_get_robust_list_args *, register_t *);
+int	sys___futex_get_robust_list(struct lwp *, const struct sys___futex_get_robust_list_args *, register_t *);
 
 #endif /* !RUMP_CLIENT */
 #endif /* _SYS_SYSCALLARGS_H_ */

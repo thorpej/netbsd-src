@@ -8429,13 +8429,13 @@ struct sysent rump_sysent[] = {
 },		/* 482 = clock_getcpuclockid2 */
 	{
 		.sy_call = (sy_call_t *)rumpns_enosys,
-},		/* 483 = _futex */
+},		/* 483 = __futex */
 	{
 		.sy_call = (sy_call_t *)rumpns_enosys,
-},		/* 484 = _futex_set_robust_list */
+},		/* 484 = __futex_set_robust_list */
 	{
 		.sy_call = (sy_call_t *)rumpns_enosys,
-},		/* 485 = _futex_get_robust_list */
+},		/* 485 = __futex_get_robust_list */
 	{
 		.sy_flags = SYCALL_NOSYS,
 		.sy_call = (sy_call_t *)rumpns_enosys,

@@ -530,9 +530,9 @@ const char *const syscallnames[] = {
 	/* 480 */	"fdiscard",
 	/* 481 */	"wait6",
 	/* 482 */	"clock_getcpuclockid2",
-	/* 483 */	"_futex",
-	/* 484 */	"_futex_set_robust_list",
-	/* 485 */	"_futex_get_robust_list",
+	/* 483 */	"__futex",
+	/* 484 */	"__futex_set_robust_list",
+	/* 485 */	"__futex_get_robust_list",
 	/* 486 */	"# filler",
 	/* 487 */	"# filler",
 	/* 488 */	"# filler",
@@ -1067,9 +1067,9 @@ const char *const altsyscallnames[] = {
 	/* 480 */	NULL, /* fdiscard */
 	/* 481 */	NULL, /* wait6 */
 	/* 482 */	NULL, /* clock_getcpuclockid2 */
-	/* 483 */	NULL, /* _futex */
-	/* 484 */	NULL, /* _futex_set_robust_list */
-	/* 485 */	NULL, /* _futex_get_robust_list */
+	/* 483 */	NULL, /* __futex */
+	/* 484 */	NULL, /* __futex_set_robust_list */
+	/* 485 */	NULL, /* __futex_get_robust_list */
 	/* 486 */	NULL, /* filler */
 	/* 487 */	NULL, /* filler */
 	/* 488 */	NULL, /* filler */
