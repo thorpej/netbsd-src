@@ -1004,8 +1004,7 @@
 483	STD		{ int|sys||__futex(int *uaddr, int op, int val, \
 			    const struct timespec *timeout, \
 			    int *uaddr2, int val2, int val3); }
-484	STD		{ int|sys||__futex_set_robust_list( \
-			    struct futex_robust_list_head *head, size_t len); }
+484	STD		{ int|sys||__futex_set_robust_list(void *head, \
+			    size_t len); }
 485	STD		{ int|sys||__futex_get_robust_list(lwpid_t lwpid, \
-			    struct futex_robust_list_head **head, \
-			    size_t *len); }
+			    void **headp, size_t *lenp); }

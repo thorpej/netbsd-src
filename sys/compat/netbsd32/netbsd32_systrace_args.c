@@ -1,4 +1,4 @@
-/* $NetBSD: netbsd32_systrace_args.c,v 1.32 2019/06/18 16:24:32 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call argument to DTrace register array converstion.
@@ -2321,6 +2321,11 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		*n_args = 2;
 		break;
 	}
+	/* sys__lwp_gettid */
+	case 326: {
+		*n_args = 0;
+		break;
+	}
 	/* netbsd32___sigaction_sigtramp */
 	case 340: {
 		const struct netbsd32___sigaction_sigtramp_args *p = params;
@@ -3489,6 +3494,36 @@ systrace_args(register_t sysnum, const void *params, uintptr_t *uarg, size_t *n_
 		iarg[0] = SCARG(p, idtype); /* idtype_t */
 		iarg[1] = SCARG(p, id); /* id_t */
 		uarg[2] = (intptr_t) SCARG(p, clock_id).i32; /* netbsd32_clockidp_t */
+		*n_args = 3;
+		break;
+	}
+	/* netbsd32___futex */
+	case 483: {
+		const struct netbsd32___futex_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, uaddr).i32; /* netbsd32_intp */
+		iarg[1] = SCARG(p, op); /* int */
+		iarg[2] = SCARG(p, val); /* int */
+		uarg[3] = (intptr_t) SCARG(p, timeout).i32; /* const netbsd32_timespecp_t */
+		uarg[4] = (intptr_t) SCARG(p, uaddr2).i32; /* netbsd32_intp */
+		iarg[5] = SCARG(p, val2); /* int */
+		iarg[6] = SCARG(p, val3); /* int */
+		*n_args = 7;
+		break;
+	}
+	/* netbsd32___futex_set_robust_list */
+	case 484: {
+		const struct netbsd32___futex_set_robust_list_args *p = params;
+		uarg[0] = (intptr_t) SCARG(p, head).i32; /* netbsd32_voidp */
+		iarg[1] = SCARG(p, len); /* netbsd32_size_t */
+		*n_args = 2;
+		break;
+	}
+	/* netbsd32___futex_get_robust_list */
+	case 485: {
+		const struct netbsd32___futex_get_robust_list_args *p = params;
+		iarg[0] = SCARG(p, lwpid); /* lwpid_t */
+		uarg[1] = (intptr_t) SCARG(p, headp).i32; /* netbsd32_voidp */
+		uarg[2] = (intptr_t) SCARG(p, lenp).i32; /* netbsd32_size_tp */
 		*n_args = 3;
 		break;
 	}
@@ -7291,6 +7326,9 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* sys__lwp_gettid */
+	case 326:
+		break;
 	/* netbsd32___sigaction_sigtramp */
 	case 340:
 		switch(ndx) {
@@ -9426,6 +9464,63 @@ systrace_entry_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 			break;
 		};
 		break;
+	/* netbsd32___futex */
+	case 483:
+		switch(ndx) {
+		case 0:
+			p = "netbsd32_intp";
+			break;
+		case 1:
+			p = "int";
+			break;
+		case 2:
+			p = "int";
+			break;
+		case 3:
+			p = "const netbsd32_timespecp_t";
+			break;
+		case 4:
+			p = "netbsd32_intp";
+			break;
+		case 5:
+			p = "int";
+			break;
+		case 6:
+			p = "int";
+			break;
+		default:
+			break;
+		};
+		break;
+	/* netbsd32___futex_set_robust_list */
+	case 484:
+		switch(ndx) {
+		case 0:
+			p = "netbsd32_voidp";
+			break;
+		case 1:
+			p = "netbsd32_size_t";
+			break;
+		default:
+			break;
+		};
+		break;
+	/* netbsd32___futex_get_robust_list */
+	case 485:
+		switch(ndx) {
+		case 0:
+			p = "lwpid_t";
+			break;
+		case 1:
+			p = "netbsd32_voidp";
+			break;
+		case 2:
+			p = "netbsd32_size_tp";
+			break;
+		default:
+			break;
+		};
+		break;
 	default:
 		break;
 	};
@@ -10781,6 +10876,8 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;
+	/* sys__lwp_gettid */
+	case 326:
 	/* netbsd32___sigaction_sigtramp */
 	case 340:
 		if (ndx == 0 || ndx == 1)
@@ -11398,6 +11495,21 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		break;
 	/* netbsd32_clock_getcpuclockid2 */
 	case 482:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* netbsd32___futex */
+	case 483:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* netbsd32___futex_set_robust_list */
+	case 484:
+		if (ndx == 0 || ndx == 1)
+			p = "int";
+		break;
+	/* netbsd32___futex_get_robust_list */
+	case 485:
 		if (ndx == 0 || ndx == 1)
 			p = "int";
 		break;

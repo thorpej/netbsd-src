@@ -753,7 +753,7 @@
 				netbsd32_charp name, netbsd32_size_t len); }
 325	STD 		{ int|netbsd32||_lwp_ctl(int features, \
 				netbsd32_pointer_t address); }
-326	UNIMPL
+326	NOARGS		{ int|sys||_lwp_gettid(void); }
 327	UNIMPL
 328	UNIMPL
 329	UNIMPL
@@ -1163,3 +1163,10 @@
 			    netbsd32_wrusagep_t wru, netbsd32_siginfop_t info); }
 482	STD		{ int|netbsd32||clock_getcpuclockid2(idtype_t idtype, \
 			    id_t id, netbsd32_clockidp_t clock_id); }
+483	STD		{ int|netbsd32||__futex(netbsd32_intp uaddr, int op, \
+			    int val, const netbsd32_timespecp_t timeout, \
+			    netbsd32_intp uaddr2, int val2, int val3); }
+484	STD		{ int|netbsd32||__futex_set_robust_list( \
+			    netbsd32_voidp head, netbsd32_size_t len); }
+485	STD		{ int|netbsd32||__futex_get_robust_list(lwpid_t lwpid, \
+			    netbsd32_voidp headp, netbsd32_size_tp lenp); }

@@ -1335,10 +1335,10 @@
 /* syscall: "__futex" ret: "int" args: "int *" "int" "int" "const struct timespec *" "int *" "int" "int" */
 #define	SYS___futex	483
 
-/* syscall: "__futex_set_robust_list" ret: "int" args: "struct futex_robust_list_head *" "size_t" */
+/* syscall: "__futex_set_robust_list" ret: "int" args: "void *" "size_t" */
 #define	SYS___futex_set_robust_list	484
 
-/* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "struct futex_robust_list_head **" "size_t *" */
+/* syscall: "__futex_get_robust_list" ret: "int" args: "lwpid_t" "void **" "size_t *" */
 #define	SYS___futex_get_robust_list	485
 
 #define	SYS_MAXSYSCALL	486

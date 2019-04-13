@@ -1,4 +1,4 @@
-/* $NetBSD: netbsd32_syscall.h,v 1.142 2019/06/18 16:24:32 christos Exp $ */
+/* $NetBSD$ */
 
 /*
  * System call numbers.
@@ -882,6 +882,9 @@
 /* syscall: "netbsd32__lwp_ctl" ret: "int" args: "int" "netbsd32_pointer_t" */
 #define	NETBSD32_SYS_netbsd32__lwp_ctl	325
 
+/* syscall: "_lwp_gettid" ret: "int" args: */
+#define	NETBSD32_SYS__lwp_gettid	326
+
 				/* 330 is obsolete netbsd32_sa_register */
 				/* 331 is obsolete netbsd32_sa_stacks */
 				/* 332 is obsolete sa_enable */
@@ -1274,6 +1277,15 @@
 /* syscall: "netbsd32_clock_getcpuclockid2" ret: "int" args: "idtype_t" "id_t" "netbsd32_clockidp_t" */
 #define	NETBSD32_SYS_netbsd32_clock_getcpuclockid2	482
 
-#define	NETBSD32_SYS_MAXSYSCALL	483
+/* syscall: "netbsd32___futex" ret: "int" args: "netbsd32_intp" "int" "int" "const netbsd32_timespecp_t" "netbsd32_intp" "int" "int" */
+#define	NETBSD32_SYS_netbsd32___futex	483
+
+/* syscall: "netbsd32___futex_set_robust_list" ret: "int" args: "netbsd32_voidp" "netbsd32_size_t" */
+#define	NETBSD32_SYS_netbsd32___futex_set_robust_list	484
+
+/* syscall: "netbsd32___futex_get_robust_list" ret: "int" args: "lwpid_t" "netbsd32_voidp" "netbsd32_size_tp" */
+#define	NETBSD32_SYS_netbsd32___futex_get_robust_list	485
+
+#define	NETBSD32_SYS_MAXSYSCALL	486
 #define	NETBSD32_SYS_NSYSENT	512
 #endif /* _NETBSD32_SYS_SYSCALL_H_ */
