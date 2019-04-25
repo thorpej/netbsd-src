@@ -1,0 +1,30 @@
+== 1 ==
+Add new "board" option.  "board" takes a board name like "bananapi-r2"
+or "orangepi-zero-plus".  This provides defaults for the path to the
+u-boot loader as well as the SoC type.  The name mappings come from
+a plist file, that also provides a nice descriptive name of the board.
+
+== 2 ==
+Add new "soc" option.  This selects the SoC-specific method for writing
+u-boot to the media.
+
+== 3 ==
+Allow the path to the primary bootstrap to be optional.  If not specified,
+inferred from "board" option (/usr/pkg/share/u-boot/<board>).
+
+== 4 ==
+Allow the path to the primary bootstrap to be a directory rather than
+just a regular file.
+
+== 5 ==
+Add new "media" option.  This optionally selects which u-boot loader to
+write to the media, in an SoC/board-specific way, if, for example, the
+SoC requires different u-boot images for sdmmc vs emmc media.
+
+
+Board / SoC write methods are selected in a more-to-less-specific fashion:
+
+	-- First search for a method corresponding to <soc>-<board>
+	   (e.g. sunxi-orangepi-zero-plus).
+
+	-- If not found, search just by <soc> (e.g. sunxi).
