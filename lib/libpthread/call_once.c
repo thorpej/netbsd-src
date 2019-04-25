@@ -1,11 +1,11 @@
-/*	$NetBSD: common.h,v 1.1 2019/04/06 03:06:29 thorpej Exp $	*/
+/*	$NetBSD: call_once.c,v 1.2 2019/04/24 21:41:15 kamil Exp $	*/
 
 /*-
- * Copyright (c) 2019 The NetBSD Foundation, Inc.
+ * Copyright (c) 2016 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Jason R. Thorpe.
+ * by Kamil Rytarowski.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,31 +29,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _UFETCHSTORE_TESTER_COMMON_H_
-#define	_UFETCHSTORE_TESTER_COMMON_H_
+#include <sys/cdefs.h>
+__RCSID("$NetBSD: call_once.c,v 1.2 2019/04/24 21:41:15 kamil Exp $");
 
-#define	OP_LOAD		0
-#define	OP_STORE	1
-#define	OP_CAS		2
+#include <assert.h>
+#include <pthread.h>
+#include <threads.h>
 
-struct ufetchstore_test_args {
-	int		pointer_size;
-	int		test_op;
-	int		size;
-	int		fetchstore_error;
-	uint64_t	uaddr64;
-	union {
-		uint8_t  val8;
-		uint16_t val16;
-		uint32_t val32;
-		uint64_t val64;
-	};
-	union {
-		uint8_t  ea_val8;
-		uint16_t ea_val16;
-		uint32_t ea_val32;
-		uint64_t ea_val64;
-	};
-};
+void
+call_once(once_flag *flag, void (*func)(void))
+{
 
-#endif /* _UFETCHSTORE_TESTER_COMMON_H_ */
+	_DIAGASSERT(flag != NULL);
+	_DIAGASSERT(func != NULL);
+
+	/*
+	 * The call_once(3) function that conforms to C11 returns no value.
+	 */
+	(void)pthread_once(flag, func);
+}

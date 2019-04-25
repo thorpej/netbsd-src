@@ -151,7 +151,7 @@
 /* #undef JEMALLOC_MUTEX_INIT_CB */
 
 /* Non-empty if the tls_model attribute is supported. */
-#ifndef __vax__
+#if !defined(__vax__) && !defined(__mc68010__)
 #define JEMALLOC_TLS_MODEL __attribute__((tls_model("initial-exec")))
 #endif
 
@@ -204,8 +204,8 @@
 #include <machine/vmparam.h>
 #if defined(PAGE_SHIFT)
 #define LG_PAGE PAGE_SHIFT
-#elif defined(MAX_PAGE_SHIFT)
-#define LG_PAGE MAX_PAGE_SHIFT
+#elif defined(MIN_PAGE_SHIFT)
+#define LG_PAGE MIN_PAGE_SHIFT
 #else
 #error "PAGE_SHIFT is not defined"
 #endif
@@ -235,7 +235,7 @@
 /* #undef JEMALLOC_RETAIN */
 
 /* TLS is used to map arenas and magazine caches to threads. */
-#ifndef __vax__
+#if !defined(__vax__) && !defined(__mc68010__)
 #define JEMALLOC_TLS 
 #endif
 
