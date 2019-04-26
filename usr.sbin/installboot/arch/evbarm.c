@@ -1,11 +1,11 @@
-/*	$NetBSD: machines.c,v 1.39 2014/02/24 07:23:44 skrll Exp $	*/
+/*	$NetBSD$	*/
 
 /*-
- * Copyright (c) 2002-2005 The NetBSD Foundation, Inc.
+ * Copyright (c) 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Luke Mewburn of Wasabi Systems.
+ * by Jason R. Thorpe.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,65 +35,29 @@
 
 #include <sys/cdefs.h>
 #if !defined(__lint)
-__RCSID("$NetBSD: machines.c,v 1.39 2014/02/24 07:23:44 skrll Exp $");
-#endif	/* !__lint */
+__RCSID("$NetBSD$");
+#endif  /* !__lint */
 
-#include <sys/types.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
 #include "installboot.h"
+#include "evboards.h"
 
-/*
- * Define these here so they end up as zero-filled bss if installboot
- * isn't built with all the architectures defined.
- * A lot simpler that conditionally including the definitions themselves.
- */
-struct ib_mach
-    ib_mach_alpha,
-    ib_mach_amd64,
-    ib_mach_amiga,
-    ib_mach_emips,
-    ib_mach_evbarm,
-    ib_mach_ews4800mips,
-    ib_mach_hp300,
-    ib_mach_hppa,
-    ib_mach_i386,
-    ib_mach_landisk,
-    ib_mach_macppc,
-    ib_mach_news68k,
-    ib_mach_newsmips,
-    ib_mach_next68k,
-    ib_mach_pmax,
-    ib_mach_sparc,
-    ib_mach_sparc64,
-    ib_mach_sun2,
-    ib_mach_sun3,
-    ib_mach_vax,
-    ib_mach_x68k;
+static int	evbarm_setboot(ib_params *);
 
-struct ib_mach * const machines[] = {
-    &ib_mach_alpha,
-    &ib_mach_amd64,
-    &ib_mach_amiga,
-    &ib_mach_emips,
-    &ib_mach_evbarm,
-    &ib_mach_ews4800mips,
-    &ib_mach_hp300,
-    &ib_mach_hppa,
-    &ib_mach_i386,
-    &ib_mach_landisk,
-    &ib_mach_macppc,
-    &ib_mach_news68k,
-    &ib_mach_newsmips,
-    &ib_mach_next68k,
-    &ib_mach_pmax,
-    &ib_mach_sparc,
-    &ib_mach_sparc64,
-    &ib_mach_sun2,
-    &ib_mach_sun3,
-    &ib_mach_vax,
-    &ib_mach_x68k,
-    NULL
+struct ib_mach ib_mach_evbarm = {
+	.name		=	"evbarm",
+	.setboot	=	evbarm_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	0,
 };
 
-#if 0
-	{ "shark",	no_setboot,	no_clearboot,	no_editboot, 0 },
-#endif
+static int
+evbarm_setboot(ib_params *params)
+{
+
+	return 0;
+}

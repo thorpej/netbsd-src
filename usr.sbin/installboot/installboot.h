@@ -165,6 +165,7 @@ int		ext2fs_findstage2(ib_params *, uint32_t *, ib_block *);
 extern struct ib_mach ib_mach_alpha;
 extern struct ib_mach ib_mach_amd64;
 extern struct ib_mach ib_mach_amiga;
+extern struct ib_mach ib_mach_evbarm;
 extern struct ib_mach ib_mach_ews4800mips;
 extern struct ib_mach ib_mach_hp300;
 extern struct ib_mach ib_mach_hppa;

@@ -56,6 +56,7 @@ __RCSID("$NetBSD: installboot.c,v 1.39 2015/07/25 10:37:22 mlelstv Exp $");
 #endif
 
 #include "installboot.h"
+#include "evboards.h"
 
 static	void	getmachine(ib_params *, const char *, const char *);
 static	void	getfstype(ib_params *, const char *, const char *);
@@ -571,6 +572,21 @@ fstype_usage(void)
 }
 
 static void
+boards_usage(void)
+{
+	if (installboot_params.machine == NULL)
+		return;
+
+	prop_dictionary_t evb_plist = evb_plist_load(&installboot_params, NULL);
+	if (evb_plist == NULL)
+		return;
+
+	warnx("Known board types:");
+	evb_plist_list_boards(evb_plist, stderr);
+	prop_object_release(evb_plist);
+}
+
+static void
 usage(void)
 {
 	const char	*prog;
@@ -585,5 +601,6 @@ usage(void)
 	machine_usage();
 	fstype_usage();
 	options_usage();
+	boards_usage();
 	exit(1);
 }
