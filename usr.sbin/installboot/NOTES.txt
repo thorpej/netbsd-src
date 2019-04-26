@@ -28,3 +28,60 @@ Board / SoC write methods are selected in a more-to-less-specific fashion:
 	   (e.g. sunxi-orangepi-zero-plus).
 
 	-- If not found, search just by <soc> (e.g. sunxi).
+
+
+Board plist schema:
+
+	- Top level is a dictionary, keyed by SoC type, ("sunxi", "rk3328",
+	  "mesongxl", etc.)  Each entry is an array of board dictionaries.
+
+	- Each board dictionary contains:
+	  - board-name: the name of the board as entered in the "board"
+	    option (string).
+	  - description: a human-meaningful description of the board (string)
+
+Example:
+
+<plist>
+<dict>
+	<key>sunxi</key>
+	<array>
+		<dict>
+			<key>board-name</key>
+			<string>orangepi-zero-plus</string>
+			<key>description</key>
+			<string>Xunlong Orange Pi Zero</string>
+		</dict>
+		<dict>
+			<key>board-name</key>
+			<string>sopine-baseboard</key>
+			<key>description</key>
+			<string>PINE A64-LTS / SoPine with baseboard</string>
+		</dict>
+		<dict>
+			<key>board-name<key>
+			<string>pinebook</string>
+			<key>description</key>
+			<string>Pinebook</string>
+		</dict>
+	</array>
+	<key>mesongxl<key>
+	<array>
+		<dict>
+			<key>board-name</key>
+			<string>libretech-cc</string>
+			<key>description</key>
+			<string>Libre Computer AML-S905X-CC (Le Potato)</string>
+		</dict>
+	</array>
+	<key>rk3328</key>
+	<array>
+		<dict>
+			<key>board-name</key>
+			<string>rock64</string>
+			<key>description</key>
+			<string>ROCK64</string>
+		</dict>
+	</array>
+</dict>
+</plist>
