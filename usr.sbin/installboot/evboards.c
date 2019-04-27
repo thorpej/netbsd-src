@@ -52,15 +52,15 @@ __RCSID("$NetBSD$");
 static const char evb_plist_default_location[] =
     EVBOARDS_PLIST_BASE "/share/installboot";
 
-static bool
+static const char *
 evb_plist_default_path(ib_params *params, char *buf, size_t bufsize)
 {
 	int ret = snprintf(buf, bufsize, "%s/%s_boards.plist",
 			   evb_plist_default_location, params->machine->name);
 	if (ret < 0 || (size_t)ret >= bufsize)
-		return false;
+		return NULL;
 
-	return true;
+	return buf;
 }
 
 prop_dictionary_t
@@ -69,12 +69,11 @@ evb_plist_load(ib_params *params, const char *path)
 	char default_path[PATH_MAX+1];
 
 	if (path == NULL) {
-		if (! evb_plist_default_path(params, default_path,
-					     sizeof(default_path)))
+		if ((path = evb_plist_default_path(params, default_path,
+					sizeof(default_path))) == NULL) {
 			return NULL;
-		path = default_path;
+		}
 	}
-	fprintf(stderr, "PATH = '%s'\n", path);
 
 	return prop_dictionary_internalize_from_file(path);
 }
