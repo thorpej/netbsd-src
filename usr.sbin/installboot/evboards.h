@@ -50,4 +50,7 @@ prop_dictionary_t	evb_plist_lookup_board(prop_dictionary_t plist,
 void			evb_plist_list_boards(prop_dictionary_t plist,
 					      FILE *out);
 
+const char *		evb_uboot_base(ib_params *params, char *buf,
+				       size_t bufsize);
+
 #endif /* installboot_evboards_h_included */

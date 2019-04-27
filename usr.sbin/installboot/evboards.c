@@ -38,6 +38,7 @@
 __RCSID("$NetBSD$");
 #endif  /* !__lint */
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -212,4 +213,59 @@ evb_plist_list_boards(prop_dictionary_t plist, FILE *out)
 	}
 
 	prop_object_iterator_release(top_iter);
+}
+
+/*
+ * U-boot helpers.
+ */
+static const char evb_uboot_default_location[] = "/usr/pkg/share";
+
+const char *
+evb_uboot_base(ib_params *params, char *buf, size_t bufsize)
+{
+	struct stat sb;
+	int ret;
+
+	/*
+	 * If the user specified a stage1, and it's a directory,
+	 * then that's where the u-boot binaries are.
+	 */
+	if (params->stage1 != NULL) {
+		if (!S_ISDIR(params->s1stat.st_mode)) {
+			warnx("%s: %s", params->stage1, strerror(ENOTDIR));
+			return NULL;
+		}
+		ret = snprintf(buf, bufsize, "%s", params->stage1);
+		if (ret < 0 || (size_t)ret > bufsize)
+			return NULL;
+		return buf;
+	}
+
+	/*
+	 * User must specify a board type if the u-boot location was
+	 * not specified.
+	 */
+	if (!(params->flags & IB_BOARD)) {
+		errx(EXIT_FAILURE, "Must specify either the u-boot location "
+		     "or the board type");
+	}
+
+	ret = snprintf(buf, bufsize, "%s/u-boot-%s",
+	    evb_uboot_default_location, params->board);
+
+	if (stat(buf, &sb) < 0) {
+		if (errno == ENOENT) {
+			warnx("Please install sysutils/u-boot-%s from pkgsrc.",
+			    params->board);
+		} else {
+			warn("%s", buf);
+		}
+		return NULL;
+	}
+	if (!S_ISDIR(sb.st_mode)) {
+		warnx("%s: %s", buf, strerror(ENOTDIR));
+		return NULL;
+	}
+
+	return buf;
 }
