@@ -52,7 +52,8 @@ struct ib_mach ib_mach_evbarm = {
 	.setboot	=	evbarm_setboot,
 	.clearboot	=	no_clearboot,
 	.editboot	=	no_editboot,
-	.valid_flags	=	0,
+	.valid_flags	=	IB_BOARD | IB_SOC,
+	.mach_flags	=	MF_UBOOT,
 };
 
 static int

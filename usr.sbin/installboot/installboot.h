@@ -67,7 +67,16 @@ typedef enum {
 	IB_CONSADDR = 	1<<20,		/* i386 console io address */
 	IB_MODULES =	1<<21,		/* i386: load modules */
 	IB_BOOTCONF = 	1<<22,		/* i386: read boot.conf */
+
+	/* IB_BOARD and IB_SOC are mutually-exclusive */
+	IB_BOARD =	1<<23,		/* evb*: board specification */
+	IB_SOC =	1<<24,		/* evb*: soc specification */
 } ib_flags;
+
+typedef enum {
+
+	MF_UBOOT =	1<<0,		/* platform (maybe) uses u-boot */
+} m_flags;
 
 typedef struct {
 	ib_flags	 flags;		/* flags (see above) */
@@ -91,6 +100,10 @@ typedef struct {
 	const char	*password;	/* boot password */
 	int		 timeout;	/* interactive boot timeout */
 	const char	*keymap;	/* keyboard translations */
+	union {
+		const char *board;	/* board specification */
+		const char *soc;	/* soc specification */
+	};
 } ib_params;
 
 typedef struct {
@@ -104,6 +117,7 @@ struct ib_mach {
 	int		(*clearboot)	(ib_params *);
 	int		(*editboot)	(ib_params *);
 	ib_flags	valid_flags;
+	m_flags		mach_flags;
 };
 
 struct ib_fs {
