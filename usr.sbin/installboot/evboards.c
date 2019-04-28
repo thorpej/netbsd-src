@@ -412,7 +412,7 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 			memset(blockbuf, 0, params->sectorsize);
 			if (params->flags & UB_PRESERVE) {
 				if (params->flags & IB_VERBOSE) {
-					printf("Reading '%s' -- %u @ %lld\n",
+					printf("(Reading '%s' -- %u @ %lld)\n",
 					    params->filesystem,
 					    params->sectorsize,
 					    (long long)curoffset);
