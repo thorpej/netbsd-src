@@ -369,7 +369,7 @@ main(int argc, char *argv[])
 	}
 	if (close(params->fsfd) == -1)
 		err(1, "Closing file system `%s'", params->filesystem);
-	if (argc == 2)
+	if (params->s1fd != -1)
 		if (close(params->s1fd) == -1)
 			err(1, "Closing primary bootstrap `%s'",
 			    params->stage1);
