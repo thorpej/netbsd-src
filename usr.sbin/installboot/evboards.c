@@ -407,7 +407,7 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 		thisblock = params->sectorsize;
 		if (thisblock > remaining)
 			thisblock = (size_t)remaining;
-		if ((thisblock & params->sectorsize) != 0) {
+		if ((thisblock % params->sectorsize) != 0) {
 			memset(blockbuf, 0, params->sectorsize);
 			if (params->flags & UB_PRESERVE) {
 				if (pread(params->fsfd, blockbuf,
