@@ -364,14 +364,27 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 	int rv = 0;
 	size_t thisblock;
 	off_t curoffset;
+	off_t remaining;
 
 	blockbuf = malloc(params->sectorsize);
 	if (blockbuf == NULL)
 		goto out;
 
+	if (desc->file_size)
+		remaining = desc->file_size;
+	else
+		remaining = sb.st_size - desc->file_offset;
+
 	if (params->flags & IB_VERBOSE) {
-		printf("Writing '%s' -- %lld @ %lld\n", desc->filename,
-		    (long long)sb.st_size, (long long)desc->offset);
+		if (desc->file_offset) {
+			printf("Writing '%s' -- %lld @ %lld ==> %lld\n",
+			    desc->filename, (long long)remaining,
+			    desc->file_offset, (long long)desc->image_offset);
+		} else {
+			printf("Writing '%s' -- %lld ==> %lld\n",
+			    desc->filename, (long long)remaining,
+			    (long long)desc->image_offset);
+		}
 	}
 
 	ifd = open(uboot_file, O_RDONLY);
@@ -383,12 +396,17 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 		warn("fstat '%s'", uboot_file);
 		goto out;
 	}
+	if (lseek(ifd, desc->file_offset, SEEK_SET) < 0) {
+		warn("lseek '%s' @ %lld", uboot_file,
+		    (long long)desc->file_offset);
+		goto out;
+	}
 
-	for (curoffset = desc->offset; sb.st_size != 0;
-	     sb.st_size -= thisblock, curoffset += params->sectorsize) {
+	for (curoffset = desc->image_offset; remaining != 0;
+	     remaining -= thisblock, curoffset += params->sectorsize) {
 		thisblock = params->sectorsize;
-		if (thisblock > sb.st_size)
-			thisblock = (size_t)sb.st_size;
+		if (thisblock > remaining)
+			thisblock = (size_t)remaining;
 		if ((thisblock & params->sectorsize) != 0) {
 			memset(blockbuf, 0, params->sectorsize);
 			if (params->flags & UB_PRESERVE) {
@@ -454,8 +472,10 @@ evb_uboot_setboot(ib_params *params, const struct evboard_uboot_desc *descs)
 			warnx("%s: %s", uboot_file, strerror(EFTYPE));
 			return 0;
 		}
-		if (max_offset < descs[i].offset + sb.st_size)
-			max_offset = descs[i].offset + sb.st_size;
+		off_t this_max = (sb.st_size - descs[i].file_offset) +
+		    descs[i].image_offset;
+		if (max_offset < this_max)
+			max_offset = this_max;
 	}
 
 	/*

@@ -49,7 +49,9 @@ typedef enum {
 
 struct evboard_uboot_desc {
 	const char	*filename;
-	off_t		offset;
+	off_t		file_offset;
+	off_t		file_size;
+	off_t		image_offset;
 	ub_flags	flags;
 };
 
