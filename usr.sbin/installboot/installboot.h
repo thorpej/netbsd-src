@@ -71,6 +71,9 @@ typedef enum {
 	/* IB_BOARD and IB_SOC are mutually-exclusive */
 	IB_BOARD =	1<<23,		/* evb*: board specification */
 	IB_SOC =	1<<24,		/* evb*: soc specification */
+
+	/* IB_MEDIA is required for some evb*, but not all. */
+	IB_MEDIA =	1<<25,		/* evb*: boot media type */
 } ib_flags;
 
 typedef enum {
@@ -100,10 +103,12 @@ typedef struct {
 	const char	*password;	/* boot password */
 	int		 timeout;	/* interactive boot timeout */
 	const char	*keymap;	/* keyboard translations */
-	union {
-		const char *board;	/* board specification */
-		const char *soc;	/* soc specification */
-	};
+	const char	*board;		/* board specification */
+	const char	*soc;		/* soc specification */
+	const char	*media;		/* boot media type */
+
+		/* temporary working data */
+	void		*mach_data;	/* platform-specific data */
 } ib_params;
 
 typedef struct {

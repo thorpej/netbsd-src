@@ -95,6 +95,7 @@ const struct option {
 	{ "bootconf",	IB_BOOTCONF,	OPT_BOOL,	0 },
 	{ "board",	IB_BOARD,	OPT_WORD,	OFFSET(board) },
 	{ "soc",	IB_SOC,		OPT_WORD,	OFFSET(soc) },
+	{ "media",	IB_MEDIA,	OPT_WORD,	OFFSET(media) },
 	{ .name = NULL },
 };
 #undef OFFSET

@@ -106,12 +106,24 @@ static int
 evbarm_setboot(ib_params *params)
 {
 	const struct evboard_methods *m;
+	int rv = 0;
+
+	params->mach_data = evb_plist_load(params, NULL);
+	if (params->mach_data == NULL)
+		warnx("Unable to load board<->soc mappings.");
 
 	m = evb_methods_lookup(params, evbarm_methods);
 	if (m == NULL)
-		return 0;
+		goto out;
 
 	return m->setboot(params);
+
+ out:
+	if (params->mach_data) {
+		prop_object_release(params->mach_data);
+		params->mach_data = NULL;
+	}
+	return rv;
 }
 
 static int

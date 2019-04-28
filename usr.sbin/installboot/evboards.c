@@ -38,6 +38,7 @@
 __RCSID("$NetBSD$");
 #endif  /* !__lint */
 
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -104,6 +105,46 @@ evb_plist_soc_boards(prop_dictionary_t plist, const char *socname)
 		return NULL;
 	
 	return ret;
+}
+
+static const char *
+evb_plist_soc_for_board(ib_params *params)
+{
+	const char *socname;
+
+	assert(params->flags & IB_BOARD);
+
+	if (params->mach_data == NULL) {
+		warnx("Unable to map board '%s' to an SoC.", params->board);
+		return NULL;
+	}
+
+	prop_dictionary_t board = evb_plist_lookup_board(params->mach_data,
+							 params->board,
+							 &socname);
+	if (board == NULL) {
+		warnx("Unknown board '%s'.", params->board);
+		return NULL;
+	}
+
+	assert(socname != NULL);
+	return socname;
+}
+
+static const char *
+evb_plist_soc_from_params(ib_params *params)
+{
+	const char *socname = NULL;
+
+	if (params->flags & IB_SOC) {
+		socname = params->soc;
+	} else if (params->flags & IB_BOARD) {
+		socname = evb_plist_soc_for_board(params);
+	} else {
+		warnx("Must specify board or soc.");
+	}
+
+	return socname;
 }
 
 /*
@@ -245,29 +286,17 @@ evb_methods_lookup(ib_params *params,
 	const struct evboard_methods *m = NULL;
 	int ret;
 
+	socname = evb_plist_soc_from_params(params);
+	if (socname == NULL)
+		return NULL;
+
 	if (params->flags & IB_SOC) {
-		if ((m = evb_methods_lookup_byname(params->soc, tab)) == NULL)
+		if ((m = evb_methods_lookup_byname(socname, tab)) == NULL)
 			warnx("No methods for SoC '%s'.", params->soc);
 		return m;
 	}
 
-	if (!(params->flags & IB_BOARD)) {
-		warnx("Must specify board or soc.");
-		return NULL;
-	}
-
-	prop_dictionary_t plist = evb_plist_load(params, NULL);
-	if (plist == NULL) {
-		warnx("Unable to map board '%s' to an SoC.", params->board);
-		return NULL;
-	}
-
-	prop_dictionary_t board = evb_plist_lookup_board(plist, params->board,
-							 &socname);
-	if (board == NULL) {
-		warnx("Unknown board '%s'.", params->board);
-		goto out;
-	}
+	assert(params->flags & IB_BOARD);
 
 	/* First -- try <soc>-<board>. */
 	ret = snprintf(compound_name, sizeof(compound_name), "%s-%s",
@@ -282,7 +311,6 @@ evb_methods_lookup(ib_params *params,
 		warnx("No methods for '%s' or '%s'.", compound_name, socname);
 
  out:
-	prop_object_release(plist);
 	return m;
 }
 
