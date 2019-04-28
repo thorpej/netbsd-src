@@ -46,6 +46,8 @@ __RCSID("$NetBSD$");
 #include "evboards.h"
 
 static int	evbarm_setboot(ib_params *);
+static int	evbarm_clearboot(ib_params *);
+static int	evbarm_editboot(ib_params *);
 
 struct ib_mach ib_mach_evbarm = {
 	.name		=	"evbarm",
@@ -56,9 +58,69 @@ struct ib_mach ib_mach_evbarm = {
 	.mach_flags	=	MF_UBOOT,
 };
 
+static int sunxi_setboot(ib_params *);
+
+static const struct evboard_methods sunxi_methods = {
+	.name		=	"sunxi",
+	.setboot	=	sunxi_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	no_editboot,
+};
+
+static const struct evboard_methods * const evbarm_methods[] = {
+	&sunxi_methods,
+	NULL,
+};
+
 static int
 evbarm_setboot(ib_params *params)
 {
+	const struct evboard_methods *m;
+
+	m = evb_methods_lookup(params, evbarm_methods);
+	if (m == NULL)
+		return 0;
+
+	return m->setboot(params);
+}
+
+static int
+evbarm_clearboot(ib_params *params)
+{
+	const struct evboard_methods *m;
+
+	m = evb_methods_lookup(params, evbarm_methods);
+	if (m == NULL)
+		return 0;
+
+	return m->clearboot(params);
+}
+
+static int
+evbarm_editboot(ib_params *params)
+{
+	const struct evboard_methods *m;
+
+	m = evb_methods_lookup(params, evbarm_methods);
+	if (m == NULL)
+		return 0;
+
+	return m->editboot(params);
+}
+
+/*
+ * sunxi methods
+ */
+static int
+sunxi_setboot(ib_params *params)
+{
+	char uboot_base_buf[PATH_MAX+1];
+	const char *uboot_base;
+
+	uboot_base = evb_uboot_base(params, uboot_base_buf,
+				    sizeof(uboot_base_buf));
+	if (uboot_base != NULL)
+		printf("UBOOT_BASE = '%s'\n", uboot_base);
 
 	return 0;
 }

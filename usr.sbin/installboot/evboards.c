@@ -166,6 +166,7 @@ evb_plist_lookup_board(prop_dictionary_t plist, const char * const boardname,
 			    strcmp(boardname, curboard) == 0) {
 				if (socnamep != NULL)
 					*socnamep = cursoc;
+				ret = board;
 				break;
 			}
 		}
@@ -213,6 +214,74 @@ evb_plist_list_boards(prop_dictionary_t plist, FILE *out)
 	}
 
 	prop_object_iterator_release(top_iter);
+}
+
+/*
+ * Board method helpers.
+ */
+static const struct evboard_methods *
+evb_methods_lookup_byname(const char *name,
+    const struct evboard_methods * const * tab)
+{
+	const struct evboard_methods *m;
+	int i;
+
+	for (i = 0; tab[i] != NULL; i++) {
+		m = tab[i];
+		if (strcmp(name, m->name) == 0)
+			return m;
+	}
+	return NULL;
+}
+
+const struct evboard_methods *
+evb_methods_lookup(ib_params *params,
+    const struct evboard_methods * const * tab)
+{
+	char compound_name[128];
+	const char *socname = NULL;
+	const struct evboard_methods *m = NULL;
+	int ret;
+
+	if (params->flags & IB_SOC) {
+		if ((m = evb_methods_lookup_byname(params->soc, tab)) == NULL)
+			warnx("No methods for SoC '%s'.", params->soc);
+		return m;
+	}
+
+	if (!(params->flags & IB_BOARD)) {
+		warnx("Must specify board or soc.");
+		return NULL;
+	}
+
+	prop_dictionary_t plist = evb_plist_load(params, NULL);
+	if (plist == NULL) {
+		warnx("Unable to map board '%s' to an SoC.", params->board);
+		return NULL;
+	}
+
+	prop_dictionary_t board = evb_plist_lookup_board(plist, params->board,
+							 &socname);
+	if (board == NULL) {
+		warnx("Unknown board '%s'.", params->board);
+		goto out;
+	}
+
+	/* First -- try <soc>-<board>. */
+	ret = snprintf(compound_name, sizeof(compound_name), "%s-%s",
+	    socname, params->board);
+	if (ret < 0 || (size_t)ret >= sizeof(compound_name))
+		goto out;
+	if ((m = evb_methods_lookup_byname(compound_name, tab)) != NULL)
+		goto out;
+
+	/* And now just <soc>. */
+	if ((m = evb_methods_lookup_byname(socname, tab)) == NULL)
+		warnx("No methods for '%s' or '%s'.", compound_name, socname);
+
+ out:
+	prop_object_release(plist);
+	return m;
 }
 
 /*

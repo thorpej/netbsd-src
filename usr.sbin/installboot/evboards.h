@@ -35,6 +35,13 @@
 #include <stdio.h>
 #include <prop/proplib.h>
 
+struct evboard_methods {
+	const char	*name;
+	int		(*setboot)(ib_params *);
+	int		(*clearboot)(ib_params *);
+	int		(*editboot)(ib_params *);
+};
+
 prop_dictionary_t	evb_plist_load(ib_params *params, const char *path);
 
 const char *		evb_plist_soc_name(prop_dictionary_keysym_t key);
@@ -49,6 +56,10 @@ prop_dictionary_t	evb_plist_lookup_board(prop_dictionary_t plist,
 					       const char **socnamep);
 void			evb_plist_list_boards(prop_dictionary_t plist,
 					      FILE *out);
+
+const struct evboard_methods *
+			evb_methods_lookup(ib_params *params,
+				     const struct evboard_methods * const *tab);
 
 const char *		evb_uboot_base(ib_params *params, char *buf,
 				       size_t bufsize);
