@@ -359,7 +359,7 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
     const struct evboard_uboot_desc *desc)
 {
 	struct stat sb;
-	int ifd;
+	int ifd = -1;
 	char *blockbuf;
 	int rv = 0;
 	size_t thisblock;
@@ -369,6 +369,16 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 	blockbuf = malloc(params->sectorsize);
 	if (blockbuf == NULL)
 		goto out;
+
+	ifd = open(uboot_file, O_RDONLY);
+	if (ifd < 0) {
+		warn("open '%s'", uboot_file);
+		goto out;
+	}
+	if (fstat(ifd, &sb) < 0) {
+		warn("fstat '%s'", uboot_file);
+		goto out;
+	}
 
 	if (desc->file_size)
 		remaining = desc->file_size;
@@ -387,15 +397,6 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 		}
 	}
 
-	ifd = open(uboot_file, O_RDONLY);
-	if (ifd < 0) {
-		warn("open '%s'", uboot_file);
-		goto out;
-	}
-	if (fstat(ifd, &sb) < 0) {
-		warn("fstat '%s'", uboot_file);
-		goto out;
-	}
 	if (lseek(ifd, desc->file_offset, SEEK_SET) < 0) {
 		warn("lseek '%s' @ %lld", uboot_file,
 		    (long long)desc->file_offset);
@@ -410,6 +411,12 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 		if ((thisblock % params->sectorsize) != 0) {
 			memset(blockbuf, 0, params->sectorsize);
 			if (params->flags & UB_PRESERVE) {
+				if (params->flags & IB_VERBOSE) {
+					printf("Reading '%s' -- %u @ %lld\n",
+					    params->filesystem,
+					    params->sectorsize,
+					    (long long)curoffset);
+				}
 				if (pread(params->fsfd, blockbuf,
 					  params->sectorsize, curoffset) < 0) {
 					warn("pread '%s'", params->filesystem);
@@ -432,6 +439,8 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 	rv = 1;
 
  out:
+	if (ifd != -1 && close(ifd) == -1)
+		warn("close '%s'", uboot_file);
 	if (blockbuf)
 		free(blockbuf);
 	return rv;
