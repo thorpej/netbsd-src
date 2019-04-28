@@ -42,6 +42,17 @@ struct evboard_methods {
 	int		(*editboot)(ib_params *);
 };
 
+typedef enum {
+
+	UB_PRESERVE =		1<<0,	/* preserve contents of disk block */
+} ub_flags;
+
+struct evboard_uboot_desc {
+	const char	*filename;
+	off_t		offset;
+	ub_flags	flags;
+};
+
 prop_dictionary_t	evb_plist_load(ib_params *params, const char *path);
 
 const char *		evb_plist_soc_name(prop_dictionary_keysym_t key);
@@ -63,5 +74,7 @@ const struct evboard_methods *
 
 const char *		evb_uboot_base(ib_params *params, char *buf,
 				       size_t bufsize);
+int			evb_uboot_setboot(ib_params *params,
+					const struct evboard_uboot_desc *descs);
 
 #endif /* installboot_evboards_h_included */

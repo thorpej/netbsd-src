@@ -39,9 +39,11 @@ __RCSID("$NetBSD$");
 #endif  /* !__lint */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "installboot.h"
 #include "evboards.h"
@@ -337,4 +339,146 @@ evb_uboot_base(ib_params *params, char *buf, size_t bufsize)
 	}
 
 	return buf;
+}
+
+static const char *
+evb_uboot_file_path(const char *uboot_base, const char *filename,
+		    char *buf, size_t bufsize)
+{
+	int ret;
+
+	ret = snprintf(buf, bufsize, "%s/%s", uboot_base, filename);
+	if (ret < 0 || (size_t)ret >= bufsize)
+		return NULL;
+
+	return buf;
+}
+
+static int
+evb_uboot_write_blob(ib_params *params, const char *uboot_file,
+    const struct evboard_uboot_desc *desc)
+{
+	struct stat sb;
+	int ifd;
+	char *blockbuf;
+	int rv = 0;
+	size_t thisblock;
+	off_t curoffset;
+
+	blockbuf = malloc(params->sectorsize);
+	if (blockbuf == NULL)
+		goto out;
+
+	if (params->flags & IB_VERBOSE) {
+		printf("Writing '%s' -- %lld @ %lld\n", desc->filename,
+		    (long long)sb.st_size, (long long)desc->offset);
+	}
+
+	ifd = open(uboot_file, O_RDONLY);
+	if (ifd < 0) {
+		warn("open '%s'", uboot_file);
+		goto out;
+	}
+	if (fstat(ifd, &sb) < 0) {
+		warn("fstat '%s'", uboot_file);
+		goto out;
+	}
+
+	for (curoffset = desc->offset; sb.st_size != 0;
+	     sb.st_size -= thisblock, curoffset += params->sectorsize) {
+		thisblock = params->sectorsize;
+		if (thisblock > sb.st_size)
+			thisblock = (size_t)sb.st_size;
+		if ((thisblock & params->sectorsize) != 0) {
+			memset(blockbuf, 0, params->sectorsize);
+			if (params->flags & UB_PRESERVE) {
+				if (pread(params->fsfd, blockbuf,
+					  params->sectorsize, curoffset) < 0) {
+					warn("pread '%s'", params->filesystem);
+					goto out;
+				}
+			}
+		}
+		if (read(ifd, blockbuf, thisblock) != (ssize_t)thisblock) {
+			warn("read '%s'", uboot_file);
+			goto out;
+		}
+		if (pwrite(params->fsfd, blockbuf, params->sectorsize,
+			   curoffset) != (ssize_t)params->sectorsize) {
+			warn("pwrite '%s'", params->filesystem);
+			goto out;
+		}
+	}
+
+	/* Success! */
+	rv = 1;
+
+ out:
+	if (blockbuf)
+		free(blockbuf);
+	return rv;
+}
+
+int
+evb_uboot_setboot(ib_params *params, const struct evboard_uboot_desc *descs)
+{
+	char uboot_base_pathbuf[PATH_MAX+1];
+	const char *uboot_base;
+	char uboot_file_pathbuf[PATH_MAX+1];
+	const char *uboot_file;
+	struct stat sb;
+	off_t max_offset = 0;
+	int i;
+
+	uboot_base = evb_uboot_base(params, uboot_base_pathbuf,
+				    sizeof(uboot_base_pathbuf));
+	if (uboot_base == NULL)
+		return 0;
+
+	/*
+	 * First, make sure the files are all there.  While we're
+	 * at it, calculate the largest byte offset that we will
+	 * be writing.
+	 */
+	for (i = 0; descs[i].filename != NULL; i++) {
+		uboot_file = evb_uboot_file_path(uboot_base,
+		    descs[i].filename, uboot_file_pathbuf,
+		    sizeof(uboot_file_pathbuf));
+		if (uboot_file == NULL)
+			return 0;
+		if (stat(uboot_file, &sb) < 0) {
+			warn("%s", uboot_file);
+			return 0;
+		}
+		if (!S_ISREG(sb.st_mode)) {
+			warnx("%s: %s", uboot_file, strerror(EFTYPE));
+			return 0;
+		}
+		if (max_offset < descs[i].offset + sb.st_size)
+			max_offset = descs[i].offset + sb.st_size;
+	}
+
+	/*
+	 * Ok, we've verified that all of the files are there, and now
+	 * max_offset points to the first byte that's available for a
+	 * partition containing a file system.
+	 */
+
+	/* XXX Check MBR table for overlapping partitions. */
+
+	/*
+	 * Now write each binary component to the appropriate location
+	 * on disk.
+	 */
+	for (i = 0; descs[i].filename != NULL; i++) {
+		uboot_file = evb_uboot_file_path(uboot_base,
+		    descs[i].filename, uboot_file_pathbuf,
+		    sizeof(uboot_file_pathbuf));
+		if (uboot_file == NULL)
+			return 0;
+		if (!evb_uboot_write_blob(params, uboot_file, &descs[i]))
+			return 0;
+	}
+
+	return 1;
 }

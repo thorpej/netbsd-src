@@ -52,8 +52,8 @@ static int	evbarm_editboot(ib_params *);
 struct ib_mach ib_mach_evbarm = {
 	.name		=	"evbarm",
 	.setboot	=	evbarm_setboot,
-	.clearboot	=	no_clearboot,
-	.editboot	=	no_editboot,
+	.clearboot	=	evbarm_clearboot,
+	.editboot	=	evbarm_editboot,
 	.valid_flags	=	IB_BOARD | IB_SOC,
 	.mach_flags	=	MF_UBOOT,
 };
@@ -111,16 +111,17 @@ evbarm_editboot(ib_params *params)
 /*
  * sunxi methods
  */
+static const struct evboard_uboot_desc sunxi_uboot_description[] = {
+	{ .filename = "u-boot-sunxi-with-spl.bin",
+	  .offset = (8 * 1024),
+	  .flags = 0,
+	},
+	{ .filename = NULL }
+};
+
 static int
 sunxi_setboot(ib_params *params)
 {
-	char uboot_base_buf[PATH_MAX+1];
-	const char *uboot_base;
 
-	uboot_base = evb_uboot_base(params, uboot_base_buf,
-				    sizeof(uboot_base_buf));
-	if (uboot_base != NULL)
-		printf("UBOOT_BASE = '%s'\n", uboot_base);
-
-	return 0;
+	return evb_uboot_setboot(params, sunxi_uboot_description);
 }
