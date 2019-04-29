@@ -30,17 +30,97 @@ Board / SoC write methods are selected in a more-to-less-specific fashion:
 	-- If not found, search just by <soc> (e.g. sunxi).
 
 
-Board plist schema:
+SoC plist schema:
 
-	- Top level is a dictionary, keyed by SoC type, ("sunxi", "rk3328",
-	  "mesongxl", etc.)  Each entry is an array of board dictionaries.
+Top-level:
+	Dictionary, keyed by SoC type.  Value is a SoC object dictionary.
 
-	- Each board dictionary contains:
-	  - board-name: the name of the board as entered in the "board"
-	    option (string).
-	  - description: a human-meaningful description of the board (string)
+SoC object dictionary:
+	Key: "u-boot-methods", value: u-boot methods dictionary.
+
+U-boot methods dictionary:
+	Key: method type (default method keyed "default").  Value is a
+	u-boot method object.
+
+U-boot method object: An array of u-boot operation objects.
+
+U-boot operation object:
+	Key: filename - string with the blob file name (required)
+	Key: file-size - integer with the max bytes to copy from file
+	     (optional) -- not present means "copy entire file"
+	Key: file-offset - integer with the offset in file to start
+	     copying from -- not present means "from start of file"
+	Key: image-offset - integer with the offset into the disk image
+	     where to write the file -- not present means "offset 0".
+	Key: preserve -- bool indicating that a partial sector should
+	     have non-written contents preserved if true. (optional)
 
 Example:
+
+<plist>
+<dict>
+	<key>meson-gxl</key>
+	<dict>
+		<key>u-boot-methods</key>
+		<dict>
+			<key>sd</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>u-boot.bin.sd.bin</string>
+					<key>file-size</key>
+					<integer>442</integer>
+					<key>preserve</key>
+					<true/>
+				</dict>
+				<dict>
+					<key>filename</key>
+					<string>u-boot.bin.sd.bin</string>
+					<key>file-offset<key>
+					<integer>512</integer>
+					<key>image-offset</key>
+					<integer>512</integer>
+				</dict>
+			</array>
+			<!-- Presumably there's an emmc method. -->
+			<!-- ...and a usb method. -->
+		</dict>
+		<key>boards</key>
+		<dict>
+			<-- Board objects loaded at run-time. -->
+			<-- Key is equal to board-name property of
+			    board object. -->
+		</dict>
+	</dict>
+	<key>sunxi</key>
+	<dict>
+		<key>u-boot-methods</key>
+		<dict>
+			<key>default</key>
+			<array>
+				<dict>
+					<key>filename</key>
+					<string>u-boot-sunxi-with-spl.bin</string>
+					<key>image-offset</key>
+					<integer>8192</integer>
+				</dict>
+			</array>
+		</dict>
+		<key>boards</key>
+		<dict>
+			<-- Board objects loaded at run-time. -->
+			<-- Key is equal to board-name property of
+			    board object. -->
+		</dict>
+	</dict>
+</dict>
+</plist>
+
+
+
+
+
+IGNORE BELOW, changing.
 
 <plist>
 <dict>

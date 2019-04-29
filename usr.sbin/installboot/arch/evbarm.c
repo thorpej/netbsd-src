@@ -108,7 +108,7 @@ evbarm_setboot(ib_params *params)
 	const struct evboard_methods *m;
 	int rv = 0;
 
-	params->mach_data = evb_plist_load(params, NULL);
+	params->mach_data = evb_plist_load(params);
 	if (params->mach_data == NULL)
 		warnx("Unable to load board<->soc mappings.");
 

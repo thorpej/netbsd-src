@@ -55,20 +55,17 @@ struct evboard_uboot_desc {
 	ub_flags	flags;
 };
 
-prop_dictionary_t	evb_plist_load(ib_params *params, const char *path);
+prop_dictionary_t	evb_plist_load(ib_params *params);
 
 const char *		evb_plist_soc_name(prop_dictionary_keysym_t key);
-prop_array_t		evb_plist_soc_boards(prop_dictionary_t plist,
-					     const char *socname);
 
-const char *		evb_plist_board_name(prop_dictionary_t board);
+const char *		evb_plist_board_name(prop_dictionary_keysym_t key);
 const char *		evb_plist_board_description(prop_dictionary_t board);
 
-prop_dictionary_t	evb_plist_lookup_board(prop_dictionary_t plist,
+prop_dictionary_t	evb_plist_lookup_board(ib_params *params,
 					       const char * const boardname,
 					       const char **socnamep);
-void			evb_plist_list_boards(prop_dictionary_t plist,
-					      FILE *out);
+void			evb_plist_list_boards(ib_params *params, FILE *out);
 
 const struct evboard_methods *
 			evb_methods_lookup(ib_params *params,

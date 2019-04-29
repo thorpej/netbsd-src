@@ -614,13 +614,14 @@ boards_usage(void)
 	if (installboot_params.machine == NULL)
 		return;
 
-	prop_dictionary_t evb_plist = evb_plist_load(&installboot_params, NULL);
-	if (evb_plist == NULL)
+	installboot_params.mach_data = evb_plist_load(&installboot_params);
+	if (installboot_params.mach_data == NULL)
 		return;
 
 	warnx("Known board types:");
-	evb_plist_list_boards(evb_plist, stderr);
-	prop_object_release(evb_plist);
+	evb_plist_list_boards(&installboot_params, stderr);
+	prop_object_release(installboot_params.mach_data);
+	installboot_params.mach_data = NULL;
 }
 
 static void
