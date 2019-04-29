@@ -230,14 +230,12 @@ evb_plist_load_defns(ib_params *params, prop_dictionary_t plist,
 static bool
 evb_plist_load_socs(ib_params *params, prop_dictionary_t plist)
 {
-
 	return evb_plist_load_defns(params, plist, "soc", evb_plist_load_soc);
 }
 
 static bool
 evb_plist_load_boards(ib_params *params, prop_dictionary_t plist)
 {
-
 	return evb_plist_load_defns(params, plist, "board",
 	    evb_plist_load_boards_for_soc);
 }
@@ -327,7 +325,6 @@ evb_plist_soc_for_board(ib_params *params)
 	}
 
 	prop_dictionary_t board = evb_plist_lookup_board(params->mach_data,
-							 params->board,
 							 &socname);
 	if (board == NULL) {
 		warnx("Unknown board '%s'.", params->board);
@@ -335,22 +332,6 @@ evb_plist_soc_for_board(ib_params *params)
 	}
 
 	assert(socname != NULL);
-	return socname;
-}
-
-static const char *
-evb_plist_soc_from_params(ib_params *params)
-{
-	const char *socname = NULL;
-
-	if (params->flags & IB_SOC) {
-		socname = params->soc;
-	} else if (params->flags & IB_BOARD) {
-		socname = evb_plist_soc_for_board(params);
-	} else {
-		warnx("Must specify board or soc.");
-	}
-
 	return socname;
 }
 
@@ -386,12 +367,33 @@ evb_plist_board_description(prop_dictionary_t board)
  * High-level helpers.
  */
 prop_dictionary_t
-evb_plist_lookup_board(ib_params *params, const char * const boardname,
-    const char **socnamep)
+evb_plist_lookup_soc(ib_params *params)
 {
+	prop_dictionary_t soc_plist = evb_plist_get_socs(params);
+	const char *socname = NULL;
+
+	if (params->flags & IB_SOC)
+		return prop_dictionary_get(soc_plist, params->soc);
+
+	if (!(params->flags & IB_BOARD)) {
+		warnx("Must specify board or soc.");
+		return NULL;
+	}
+
+	if (evb_plist_lookup_board(params, &socname) != NULL)
+		return prop_dictionary_get(soc_plist, socname);
+
+	return NULL;
+}
+
+prop_dictionary_t
+evb_plist_lookup_board(ib_params *params, const char **socnamep)
+{
+	prop_dictionary_t board_plist = evb_plist_get_boards(params);
 	prop_dictionary_t ret = NULL;
 
-	prop_dictionary_t board_plist = evb_plist_get_boards(params);
+	if (!(params->flags & IB_BOARD))
+		return NULL;
 
 	prop_object_iterator_t soc_iter = prop_dictionary_iterator(board_plist);
 	if (soc_iter == NULL)
@@ -406,7 +408,7 @@ evb_plist_lookup_board(ib_params *params, const char * const boardname,
 		prop_dictionary_t boards_for_soc =
 		    prop_dictionary_get_keysym(board_plist, soc_key);
 		
-		ret = prop_dictionary_get(boards_for_soc, boardname);
+		ret = prop_dictionary_get(boards_for_soc, params->board);
 		if (ret) {
 			*socnamep = cursoc;
 			break;
@@ -469,56 +471,88 @@ evb_plist_list_boards(ib_params *params, FILE *out)
 /*
  * Board method helpers.
  */
-static const struct evboard_methods *
-evb_methods_lookup_byname(const char *name,
-    const struct evboard_methods * const * tab)
-{
-	const struct evboard_methods *m;
-	int i;
+static const char evb_plist_uboot_methods_key[] = "u-boot-methods";
 
-	for (i = 0; tab[i] != NULL; i++) {
-		m = tab[i];
-		if (strcmp(name, m->name) == 0)
-			return m;
+static prop_dictionary_t
+evb_board_uboot_methods(ib_params *params)
+{
+	prop_dictionary_t dict;
+	prop_dictionary_t methods;
+
+	dict = evb_plist_lookup_board(params, NULL);
+	if (dict != NULL) {
+		methods = prop_dictionary_get(dict,
+					      evb_plist_uboot_methods_key);
+		if (methods != NULL)
+			return methods;
 	}
+
+	dict = evb_plist_lookup_soc(params);
+	if (dict != NULL) {
+		methods = prop_dictionary_get(dict,
+					      evb_plist_uboot_methods_key);
+		if (methods != NULL)
+			return methods;
+	}
+
 	return NULL;
 }
 
-const struct evboard_methods *
-evb_methods_lookup(ib_params *params,
-    const struct evboard_methods * const * tab)
+bool
+evb_board_uses_uboot(ib_params *params)
 {
-	char compound_name[128];
-	const char *socname = NULL;
-	const struct evboard_methods *m = NULL;
-	int ret;
+	return evb_board_uboot_methods(params) != NULL;
+}
 
-	socname = evb_plist_soc_from_params(params);
-	if (socname == NULL)
+prop_array_t
+evb_board_uboot_method(ib_params *params)
+{
+	prop_dictionary_t methods = evb_board_uboot_methods(params);
+	if (methods)
 		return NULL;
 
-	if (params->flags & IB_SOC) {
-		if ((m = evb_methods_lookup_byname(socname, tab)) == NULL)
-			warnx("No methods for SoC '%s'.", params->soc);
-		return m;
+	prop_array_t method = prop_dictionary_get(methods, "default");
+
+	/*
+	 * If there is a "default" method, that's the one we're going
+	 * to use, and the -o media=... option is disallowed in this
+	 * case.
+	 * XXX Improve error message.
+	 */
+	if (method != NULL) {
+		if (params->flags & IB_MEDIA) {
+			warnx("media=... is not supported for this board/soc");
+			return NULL;
+		}
+		return method;
 	}
 
-	assert(params->flags & IB_BOARD);
+	/*
+	 * ...and if there's not a "default" media, then the user needs
+	 * to specify which one they want.
+	 */
+	if (!(params->flags & IB_MEDIA)) {
+		warnx("media=... is required for this board/soc");
+		goto print_supported_media_types;
+	}
 
-	/* First -- try <soc>-<board>. */
-	ret = snprintf(compound_name, sizeof(compound_name), "%s-%s",
-	    socname, params->board);
-	if (ret < 0 || (size_t)ret >= sizeof(compound_name))
-		goto out;
-	if ((m = evb_methods_lookup_byname(compound_name, tab)) != NULL)
-		goto out;
+	method = prop_dictionary_get(methods, params->media);
+	if (method != NULL)
+		return method;
 
-	/* And now just <soc>. */
-	if ((m = evb_methods_lookup_byname(socname, tab)) == NULL)
-		warnx("No methods for '%s' or '%s'.", compound_name, socname);
+	warnx("media=%s is not valid for this board/soc", params->media);
 
- out:
-	return m;
+ print_supported_media_types:
+	fprintf(stderr, "Valid media types:");
+	prop_object_iterator_t iter = prop_dictionary_iterator(methods);
+	prop_dictionary_keysym_t key;
+	while ((key = prop_object_iterator_next(iter)) != NULL) {
+		fprintf(stderr, " %s",
+		    prop_dictionary_keysym_cstring_nocopy(key));
+	}
+	fprintf(stderr, "\n");
+
+ 	return NULL;
 }
 
 /*

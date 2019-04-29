@@ -35,13 +35,6 @@
 #include <stdio.h>
 #include <prop/proplib.h>
 
-struct evboard_methods {
-	const char	*name;
-	int		(*setboot)(ib_params *);
-	int		(*clearboot)(ib_params *);
-	int		(*editboot)(ib_params *);
-};
-
 typedef enum {
 
 	UB_PRESERVE =		1<<0,	/* preserve contents of disk block */
@@ -62,14 +55,12 @@ const char *		evb_plist_soc_name(prop_dictionary_keysym_t key);
 const char *		evb_plist_board_name(prop_dictionary_keysym_t key);
 const char *		evb_plist_board_description(prop_dictionary_t board);
 
+prop_dictionary_t	evb_plist_lookup_soc(ib_params *params);
 prop_dictionary_t	evb_plist_lookup_board(ib_params *params,
-					       const char * const boardname,
 					       const char **socnamep);
 void			evb_plist_list_boards(ib_params *params, FILE *out);
 
-const struct evboard_methods *
-			evb_methods_lookup(ib_params *params,
-				     const struct evboard_methods * const *tab);
+bool			evb_board_uses_uboot(ib_params *params);
 
 const char *		evb_uboot_base(ib_params *params, char *buf,
 				       size_t bufsize);
