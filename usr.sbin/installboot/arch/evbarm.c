@@ -76,7 +76,7 @@ evbarm_setboot(ib_params *params)
 
 	board = evb_db_get_board(params, params->board);
 	if (board == NULL) {
-		warnx("Unknown board '%s'\n", params->board);
+		warnx("Unknown board '%s'", params->board);
 		goto out;
 	}
 

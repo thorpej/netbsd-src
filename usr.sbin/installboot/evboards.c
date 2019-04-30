@@ -1133,6 +1133,21 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	off_t max_offset = 0;
 	int i;
 
+	/*
+	 * If we don't have a u-boot path for this board, it means
+	 * that a u-boot package wasn't found.  Prompt the user to
+	 * install it.
+	 */
+	if (evb_board_get_uboot_path(params, board) == NULL) {
+		warnx("No u-boot package found for board '%s'",
+		    params->board);
+		uboot_file = evb_board_get_uboot_pkg(params, board);
+		if (uboot_file != NULL)
+			warnx("Please install the sysutils/u-boot-%s package.",
+			    uboot_file);
+		return 0;
+	}
+
 	evb_ubinstall install = evb_board_get_uboot_install(params, board);
 	evb_ubsteps steps;
 	evb_ubstep step;
