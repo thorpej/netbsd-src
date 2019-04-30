@@ -611,6 +611,7 @@ fstype_usage(void)
 static void
 boards_usage(void)
 {
+#if 0
 	if (installboot_params.machine == NULL)
 		return;
 
@@ -622,6 +623,7 @@ boards_usage(void)
 	evb_plist_list_boards(&installboot_params, stderr);
 	prop_object_release(installboot_params.mach_data);
 	installboot_params.mach_data = NULL;
+#endif
 }
 
 static void

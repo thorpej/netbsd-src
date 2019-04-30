@@ -54,24 +54,36 @@ struct ib_mach ib_mach_evbarm = {
 	.setboot	=	evbarm_setboot,
 	.clearboot	=	evbarm_clearboot,
 	.editboot	=	evbarm_editboot,
-	.valid_flags	=	IB_BOARD | IB_SOC,
+	.valid_flags	=	IB_BOARD,
 	.mach_flags	=	MF_UBOOT,
 };
 
 static int
 evbarm_setboot(ib_params *params)
 {
-	const struct evboard_methods *m;
+	evb_board board;
 	int rv = 0;
 
-	params->mach_data = evb_plist_load(params);
-	if (params->mach_data == NULL)
-		warnx("Unable to load board<->soc mappings.");
-
-	if (!evb_board_uses_uboot(params)) {
-		warnx("Only u-boot is supported for %s.",
-		    params->machine->name);
+	if (!evb_db_load(params)) {
+		warnx("Unable to load board db.");
+		return 0;
 	}
+
+	if (!(params->flags & IB_BOARD)) {
+		warnx("Must specify board=...");
+		goto out;
+	}
+
+	board = evb_db_get_board(params, params->board);
+	if (board == NULL) {
+		warnx("Unknown board '%s'\n", params->board);
+		goto out;
+	}
+
+	if (params->flags & IB_VERBOSE)
+		printf("Board: %s\n", evb_board_get_description(params, board));
+
+	rv = evb_uboot_setboot(params, board);
 
  out:
 	if (params->mach_data) {

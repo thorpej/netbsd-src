@@ -488,7 +488,7 @@ validate_ubinstall_object(evb_ubinstall obj)
 		return false;
 
 	prop_object_t v;
-	prop_object_iterator iter = prop_array_iterator(obj);
+	prop_object_iterator_t iter = prop_array_iterator(obj);
 
 	while ((v = prop_object_iterator_next(iter)) != NULL) {
 		if (!validate_ubstep_object(v))
@@ -582,7 +582,7 @@ static void
 evb_db_load_overlay(ib_params *params, const char *path,
     const char *runtime_uboot_path)
 {
-	prop_dictionary_t ovarlay;
+	prop_dictionary_t overlay;
 	struct stat sb;
 
 	if (params->flags & IB_VERBOSE)
@@ -607,7 +607,7 @@ evb_db_load_overlay(ib_params *params, const char *path,
 	prop_dictionary_keysym_t key;
 	prop_dictionary_t board;
 	while ((key = prop_object_iterator_next(iter)) != NULL) {
-		board = prop_dictionary_get_keysym(board_db, key);
+		board = prop_dictionary_get_keysym(overlay, key);
 		assert(board != NULL);
 		if (!validate_board_object(board, false)) {
 			warnx("invalid board object in '%s': '%s'\n", path,
@@ -623,7 +623,7 @@ evb_db_load_overlay(ib_params *params, const char *path,
 		prop_object_release(string);
 
 		/* Insert into board db. */
-		prop_dictionary_set(params->mach_data, board, key);
+		prop_dictionary_set_keysym(params->mach_data, key, board);
 	}
 	prop_object_iterator_release(iter);
 	prop_object_release(overlay);
@@ -731,7 +731,7 @@ evb_db_load_base(ib_params *params)
 		if (!validate_board_object(board, false)) {
 			warnx("invalid board object in '%s': '%s'\n", path,
 			    prop_dictionary_keysym_cstring_nocopy(key));
-			prop_dictionary_remove(board_db, key);
+			prop_dictionary_remove_keysym(board_db, key);
 		}
 	}
 	prop_object_iterator_release(iter);
@@ -854,13 +854,13 @@ evb_board_get_uboot_install(ib_params *params, evb_board board)
  invalid_media:
 	warnx("invalid media specification: '%s'", params->media);
  list_media:
-	prop_array_t array = evb_board_get_uboot_media(params, board);
-	assert(array != NULL);
 	fprintf(stderr, "Valid media types:");
+	prop_array_t array = evb_board_copy_uboot_media(params, board);
+	assert(array != NULL);
 	prop_object_iterator_t iter = prop_array_iterator(array);
 	prop_string_t string;
 	while ((string = prop_object_iterator_next(iter)) != NULL)
-		fprintf(stderr, " %s", prop_string_cstring_nocopy(string);
+		fprintf(stderr, " %s", prop_string_cstring_nocopy(string));
 	fprintf(stderr, "\n");
 	prop_object_iterator_release(iter);
 	prop_object_release(array);
@@ -877,10 +877,10 @@ evb_board_get_uboot_install(ib_params *params, evb_board board)
  *	the array.
  */
 prop_array_t
-evb_board_get_uboot_media(ib_params *params, evb_board board)
+evb_board_copy_uboot_media(ib_params *params, evb_board board)
 {
 	prop_array_t array = prop_array_create();
-	prop_dictionary_iterator_t iter = prop_dictionary_iterator(board);
+	prop_object_iterator_t iter = prop_dictionary_iterator(board);
 	prop_string_t string;
 	prop_dictionary_keysym_t key;
 	const char *cp;
@@ -1012,7 +1012,7 @@ evb_uboot_file_path(ib_params *params, evb_board board, evb_ubstep step,
 	if (base_path == NULL || file_name == NULL)
 		return NULL;
 
-	return make_path(buf, bufsize, "%s/%s", base_path, file_path);
+	return make_path(buf, bufsize, "%s/%s", base_path, file_name);
 }
 
 /*
@@ -1049,19 +1049,19 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	}
 
 	if (file_size)
-		remaining = (off_t)desc->file_size;
+		remaining = (off_t)file_size;
 	else
-		remaining = sb.st_size - (off_t)desc->file_offset;
+		remaining = sb.st_size - (off_t)file_offset;
 
 	if (params->flags & IB_VERBOSE) {
 		if (file_offset) {
 			printf("Writing '%s' -- %lld @ %" PRIu64 " ==> %" PRIu64 "\n",
-			    desc->filename, (long long)remaining,
-			    file_offset, image_offset);
+			    evb_ubstep_get_file_name(params, step),
+			    (long long)remaining, file_offset, image_offset);
 		} else {
 			printf("Writing '%s' -- %lld ==> %" PRIu64 "\n",
-			    desc->filename, (long long)remaining,
-			    image_offset);
+			    evb_ubstep_get_file_name(params, step),
+			    (long long)remaining, image_offset);
 		}
 	}
 
@@ -1117,28 +1117,31 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 int
 evb_uboot_setboot(ib_params *params, evb_board board)
 {
-	char uboot_base_pathbuf[PATH_MAX+1];
-	const char *uboot_base;
-	char uboot_file_pathbuf[PATH_MAX+1];
+	char uboot_filebuf[PATH_MAX+1];
 	const char *uboot_file;
 	struct stat sb;
 	off_t max_offset = 0;
 	int i;
 
-	uboot_base = evb_uboot_base(params, uboot_base_pathbuf,
-				    sizeof(uboot_base_pathbuf));
-	if (uboot_base == NULL)
-		return 0;
+	evb_ubinstall install = evb_board_get_uboot_install(params, board);
+	evb_ubsteps steps;
+	evb_ubstep step;
 
 	/*
 	 * First, make sure the files are all there.  While we're
 	 * at it, calculate the largest byte offset that we will
 	 * be writing.
 	 */
-	for (i = 0; descs[i].filename != NULL; i++) {
-		uboot_file = evb_uboot_file_path(uboot_base,
-		    descs[i].filename, uboot_file_pathbuf,
-		    sizeof(uboot_file_pathbuf));
+	steps = evb_ubinstall_get_steps(params, install);
+	while ((step = evb_ubsteps_next_step(params, steps)) != NULL) {
+		uint64_t file_offset = evb_ubstep_get_file_offset(params, step);
+		uint64_t file_size = evb_ubstep_get_file_size(params, step);
+		uint64_t image_offset =
+		    evb_ubstep_get_image_offset(params, step);
+		uboot_file = make_path(uboot_filebuf,
+		    sizeof(uboot_filebuf), "%s/%s",
+		    evb_board_get_uboot_path(params, board),
+		    evb_ubstep_get_file_name(params, step));
 		if (uboot_file == NULL)
 			return 0;
 		if (stat(uboot_file, &sb) < 0) {
@@ -1149,8 +1152,7 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 			warnx("%s: %s", uboot_file, strerror(EFTYPE));
 			return 0;
 		}
-		off_t this_max = (sb.st_size - descs[i].file_offset) +
-		    descs[i].image_offset;
+		off_t this_max = (sb.st_size - file_offset) + image_offset;
 		if (max_offset < this_max)
 			max_offset = this_max;
 	}
@@ -1167,13 +1169,15 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	 * Now write each binary component to the appropriate location
 	 * on disk.
 	 */
-	for (i = 0; descs[i].filename != NULL; i++) {
-		uboot_file = evb_uboot_file_path(uboot_base,
-		    descs[i].filename, uboot_file_pathbuf,
-		    sizeof(uboot_file_pathbuf));
+	steps = evb_ubinstall_get_steps(params, install);
+	while ((step = evb_ubsteps_next_step(params, steps)) != NULL) {
+		uboot_file = make_path(uboot_filebuf,
+		    sizeof(uboot_filebuf), "%s/%s",
+		    evb_board_get_uboot_path(params, board),
+		    evb_ubstep_get_file_name(params, step));
 		if (uboot_file == NULL)
 			return 0;
-		if (!evb_uboot_write_blob(params, uboot_file, &descs[i]))
+		if (!evb_uboot_do_step(params, uboot_file, step))
 			return 0;
 	}
 

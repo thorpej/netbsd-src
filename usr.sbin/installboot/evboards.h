@@ -59,4 +59,6 @@ uint64_t	evb_ubstep_get_file_size(ib_params *, evb_ubstep);
 uint64_t	evb_ubstep_get_image_offset(ib_params *, evb_ubstep);
 bool		evb_ubstep_preserves_partial_block(ib_params *, evb_ubstep);
 
+int		evb_uboot_setboot(ib_params *, evb_board);
+
 #endif /* installboot_evboards_h_included */
