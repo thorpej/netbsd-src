@@ -44,6 +44,7 @@ __RCSID("$NetBSD$");
 #include <errno.h>
 #include <fcntl.h>
 #include <fts.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -308,179 +309,116 @@ __RCSID("$NetBSD$");
  *	</array>
  */
 
-#ifndef EVBOARDS_PLIST_BASE
-#define	EVBOARDS_PLIST_BASE	"/usr"
-#endif
-
-static const char evb_plist_default_location[] =
-    EVBOARDS_PLIST_BASE "/share/installboot";
-
-static char *
-evb_plist_location(ib_params *params, const char *which, char *buf,
-    size_t bufsize)
+/*
+ * make_path --
+ *	Build a path into the given buffer with the specified
+ *	format.  Returns NULL if the path won't fit.
+ */
+const char *
+make_path(char *buf, size_t bufsize, const char *fmt, ...)
 {
-	int ret = snprintf(buf, bufsize, "%s/%s/%ss",
-			   evb_plist_default_location, params->machine->name,
-			   which);
+	va_list ap;
+	int ret;
+
+	va_start(ap, fmt);
+	ret = vsnprintf(buf, bufsize, fmt, ap);
+	va_end(ap);
+
 	if (ret < 0 || (size_t)ret >= bufsize)
 		return NULL;
 
 	return buf;
 }
 
-typedef bool (*evb_plist_defn_loader)(ib_params *, prop_dictionary_t,
-				      prop_dictionary_t,
-				      prop_dictionary_keysym_t,
-				      const char *);
+#ifndef EVBOARDS_PLIST_BASE
+#define	EVBOARDS_PLIST_BASE	"/usr"
+#endif
 
-static bool
-evb_plist_load_soc(ib_params *params, prop_dictionary_t plist,
-    prop_dictionary_t soc_plist, prop_dictionary_keysym_t key,
-    const char *filename)
+static const char evb_db_base_location[] =
+    EVBOARDS_PLIST_BASE "/share/installboot";
+
+#ifndef DEFAULT_UBOOT_PKG_PATH
+#define	DEFAULT_UBOOT_PKG_PATH	"/usr/pkg/share/u-boot"
+#endif
+
+#ifndef UBOOT_PATHS_ENV_VAR
+#define	UBOOT_PATHS_ENV_VAR	"INSTALLBOOT_UBOOT_PATHS"
+#endif
+
+static const char evb_uboot_pkg_path[] = DEFAULT_UBOOT_PKG_PATH;
+
+/*
+ * evb_db_base_path --
+ *	Returns the path to the base board db file.
+ */
+static const char *
+evb_db_base_path(ib_params *params, char *buf, size_t bufsize)
 {
-	prop_dictionary_t soc;
 
-	soc = prop_dictionary_get_keysym(soc_plist, key);
-	if (soc == NULL)
-		return false;
-
-	if (prop_dictionary_get_keysym(plist, key) != NULL) {
-		warnx("Overriding soc '%s' with '%s'",
-		    prop_dictionary_keysym_cstring_nocopy(key),
-		    filename);
-	}
-	if (!prop_dictionary_set_keysym(plist, key, soc))
-		return false;
-	
-	return true;
+	return make_path(buf, bufsize, "%s/%s/boards.plist",
+	    evb_db_base_location, params->machine->name);
 }
 
-static bool
-evb_plist_load_boards_for_soc(ib_params *params, prop_dictionary_t plist,
-    prop_dictionary_t import_plist, prop_dictionary_keysym_t key,
-    const char *filename)
+/*
+ * evb_uboot_pkg_paths --
+ *	Returns an array of u-boot package paths to scan for
+ *	installboot.plist files.
+ *
+ *	Number of array elements, not including the NULL terminator,
+ *	is returned in *countp.
+ *
+ *	The working buffer is returned in *bufp so that the caller
+ *	can free it.
+ */
+char **
+evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 {
-	prop_dictionary_t import_boards;
-	prop_dictionary_t soc_boards;
-	prop_dictionary_t board;
+	char **ret_array = NULL;
+	char *buf = NULL;
+	const char *pathspec;
+	int i, count = 0;
+	char *cp;
 
-	import_boards = prop_dictionary_get_keysym(import_plist, key);
-	if (import_boards == NULL)
-		return false;
+	pathspec = getenv(UBOOT_PATHS_ENV_VAR);
+	if (pathspec == NULL)
+		pathspec = evb_uboot_pkg_path;
 
-	soc_boards = prop_dictionary_get_keysym(plist, key);
-	if (soc_boards == NULL) {
-		if ((soc_boards = prop_dictionary_create()) == NULL)
-			return false;
-		if (!prop_dictionary_set_keysym(plist, key, soc_boards)) {
-			prop_object_release(soc_boards);
-			return false;
-		}
-		/* Reference now owned by plist. */
-		prop_object_release(soc_boards);
-	}
-
-	prop_dictionary_keysym_t board_key;
-	prop_object_iterator_t iter = prop_dictionary_iterator(import_boards);
-	while ((board_key = prop_object_iterator_next(iter)) != NULL) {
-		board = prop_dictionary_get_keysym(import_boards, board_key);
-		if (board == NULL)
-			continue;
-		if (prop_dictionary_get_keysym(soc_boards, board_key) != NULL) {
-			warnx("Overriding board '%s' with '%s'",
-			    prop_dictionary_keysym_cstring_nocopy(board_key),
-			    filename);
-		}
-		if (!prop_dictionary_set_keysym(soc_boards, board_key, board)) {
-			prop_object_iterator_release(iter);
-			return false;
-		}
-	}
-	prop_object_iterator_release(iter);
-
-	return true;
-}
-
-static bool
-evb_plist_load_defns(ib_params *params, prop_dictionary_t plist,
-    const char *which, evb_plist_defn_loader loader_func)
-{
-	char location[PATH_MAX+1], *path;
-	FTS *fts;
-	FTSENT *chp, *p;
-	char *fts_args[2], *cp, *cp_dot;
-	prop_dictionary_t defn_plist, soc;
-	bool rv = false;
-
-	if ((path = evb_plist_location(params, which, location,
-				       sizeof(location))) == NULL) {
-		return false;
-	}
-
-	fts_args[0] = path;
-	fts_args[1] = NULL;
-
-	fts = fts_open(fts_args, FTS_COMFOLLOW | FTS_LOGICAL | FTS_NOCHDIR,
-	    NULL);
-	if (fts == NULL)
-		return false;
-
-	chp = fts_children(fts, 0);
-	if (chp == NULL)
+	if (strlen(pathspec) == 0)
 		goto out;
 
-	while ((p = fts_read(fts)) != NULL) {
-		switch (p->fts_info) {
-		case FTS_F:
-			if ((cp = basename(p->fts_path)) == NULL)
-				goto bad_plist;
-			cp_dot = strrchr(cp, '.');
-			if (cp_dot == NULL || strcmp(cp_dot, ".plist") != 0) {
-				/* skip non-plist files. */
-				continue;
-			}
+	/* Count the path elements. */
+	for (cp = __UNCONST(pathspec); cp != NULL;
+	     cp = strchr(cp, ':'), count++);
 
-			if (params->flags & IB_VERBOSE) {
-				printf("Loading %s definitions '%s'.\n",
-				    which, p->fts_path);
-			}
-			defn_plist =
-			    prop_dictionary_internalize_from_file(p->fts_path);
-			if (defn_plist == NULL) {
- bad_plist:
-				warnx("Unable to read %s definitions '%s'",
-				    which, p->fts_path);
-				continue;
-			}
+	buf = malloc((sizeof(char *) * (count + 1)) +
+		     strlen(pathspec) + 1);
+	if (buf == NULL)
+		goto out;
 
-			prop_object_iterator_t iter =
-			    prop_dictionary_iterator(defn_plist);
-			prop_dictionary_keysym_t key;
-			if (iter == NULL) {
-				goto bad_plist;
-			}
-			while ((key =
-			    prop_object_iterator_next(iter)) != NULL) {
-				if (!(*loader_func)(params, plist, defn_plist,
-						    key, p->fts_path)) {
-					prop_object_iterator_release(iter);
-					goto bad_plist;
-				}
-			}
-			prop_object_iterator_release(iter);
+	ret_array = (char **)buf;
+	cp = buf + (sizeof(char *) * (count + 1));
+	strcpy(cp, pathspec); /* this is a safe strcpy(); don't replace it. */
+	for (i = 0;;) {
+		ret_array[i++] = cp;
+		cp = strchr(cp, ':');
+		if (cp == NULL)
 			break;
-
-		default:
-			break;
-		}
+		*cp = '\0';
 	}
-
-	rv = true;
+	assert(i == count);
+	ret_array[i] = NULL;
 
  out:
-	if (fts != NULL)
-		fts_close(fts);
-	return rv;
+	if (ret_array == NULL) {
+		if (buf != NULL)
+			free(buf);
+	} else {
+		if (countp != NULL)
+			*countp = count;
+		if (bufp != NULL)
+			*bufp = buf;
+	}
+	return ret_array;
 }
 
 static const char step_file_name_key[] = "file-name";
@@ -602,15 +540,14 @@ validate_board_object(evb_board obj, bool is_overlay)
 	    (is_overlay || prop_object_type(v) != PROP_TYPE_STRING))
 	    	return false;
 
+	/*
+	 * "runtime-u-boot-path" is added to an overlay after we've
+	 * validated the board object, so simply make sure it's not
+	 * present.
+	 */
 	v = prop_dictionary_get(obj, board_u_boot_path_key);
-	if (is_overlay) {
-		if (v == NULL ||
-		    prop_object_type(v) != PROP_TYPE_STRING)
-		    	return false;
-	} else {
-		if (v != NULL)
-			return false;
-	}
+	if (v != NULL)
+		return false;
 
 	prop_object_iterator_t iter = prop_dictionary_iterator(obj);
 	prop_dictionary_keysym_t key;
@@ -638,12 +575,190 @@ validate_board_object(evb_board obj, bool is_overlay)
 }
 
 /*
+ * evb_db_load_overlay --
+ *	Load boards from an overlay file into the db.
+ */
+static void
+evb_db_load_overlay(ib_params *params, const char *path,
+    const char *runtime_uboot_path)
+{
+	prop_dictionary_t ovarlay;
+	struct stat sb;
+
+	if (params->flags & IB_VERBOSE)
+		printf("Loading '%s'.\n", path);
+
+	if (stat(path, &sb) < 0) {
+		warn("'%s'", path);
+		return;
+	} else {
+		overlay = prop_dictionary_internalize_from_file(path);
+		if (overlay == NULL) {
+			warnx("unable to parse overlay '%s'", path);
+			return;
+		}
+	}
+
+	/*
+	 * Validate all of the board objects and add them to the board
+	 * db, replacing any existing entries as we go.
+	 */
+	prop_object_iterator_t iter = prop_dictionary_iterator(overlay);
+	prop_dictionary_keysym_t key;
+	prop_dictionary_t board;
+	while ((key = prop_object_iterator_next(iter)) != NULL) {
+		board = prop_dictionary_get_keysym(board_db, key);
+		assert(board != NULL);
+		if (!validate_board_object(board, false)) {
+			warnx("invalid board object in '%s': '%s'\n", path,
+			    prop_dictionary_keysym_cstring_nocopy(key));
+			continue;
+		}
+
+		/* Add "runtime-u-boot-path". */
+		prop_string_t string =
+		    prop_string_create_cstring(runtime_uboot_path);
+		assert(string != NULL);
+		prop_dictionary_set(overlay, board_u_boot_path_key, string);
+		prop_object_release(string);
+
+		/* Insert into board db. */
+		prop_dictionary_set(params->mach_data, board, key);
+	}
+	prop_object_iterator_release(iter);
+	prop_object_release(overlay);
+}
+
+/*
+ * evb_db_load_overlays --
+ *	Load the overlays from the search path.
+ */
+static void
+evb_db_load_overlays(ib_params *params)
+{
+	char overlay_pathbuf[PATH_MAX+1];
+	const char *overlay_path;
+	char **paths;
+	void *pathsbuf = NULL;
+	FTS *fts;
+	FTSENT *chp, *p;
+	struct stat sb;
+
+	paths = evb_uboot_pkg_paths(params, NULL, &pathsbuf);
+	if (paths == NULL) {
+		warnx("No u-boot search path?");
+		return;
+	}
+
+	fts = fts_open(paths, FTS_COMFOLLOW | FTS_LOGICAL | FTS_NOCHDIR, NULL);
+	if (fts == NULL ||
+	    (chp = fts_children(fts, 0)) == NULL) {
+		warn("Unable to search u-boot path");
+		if (fts != NULL)
+			fts_close(fts);
+		return;
+	}
+
+	chp = fts_children(fts, 0);
+
+	while ((p = fts_read(fts)) != NULL) {
+		if (p->fts_info != FTS_D)
+			continue;
+		overlay_path = make_path(overlay_pathbuf,
+		    sizeof(overlay_pathbuf), "%s/installboot.plist",
+		    p->fts_path);
+		if (overlay_path == NULL)
+			continue;
+		if (stat(overlay_path, &sb) < 0)
+			continue;
+		evb_db_load_overlay(params, overlay_path, p->fts_path);
+	}
+
+	fts_close(fts);
+}
+
+/*
+ * evb_db_load_base --
+ *	Load the base board db.
+ */
+static bool
+evb_db_load_base(ib_params *params)
+{
+	char buf[PATH_MAX+1];
+	const char *path;
+	prop_dictionary_t board_db;
+	struct stat sb;
+
+	path = evb_db_base_path(params, buf, sizeof(buf));
+	if (path == NULL)
+		return false;
+
+	if (params->flags & IB_VERBOSE)
+		printf("Loading '%s'.\n", path);
+
+	if (stat(path, &sb) < 0) {
+		if (errno != ENOENT) {
+			warn("'%s'", path);
+			return false;
+		}
+		board_db = prop_dictionary_create();
+		assert(board_db != NULL);
+	} else {
+		board_db = prop_dictionary_internalize_from_file(path);
+		if (board_db == NULL) {
+			warnx("unable to parse board db '%s'", path);
+			return false;
+		}
+	}
+
+	if (prop_dictionary_count(board_db) == 0) {
+		/*
+		 * Oh well, maybe we'll load some overlays.
+		 */
+		goto done;
+	}
+
+	/*
+	 * Validate all of the board objects and remove any bad ones.
+	 */
+	prop_array_t all_board_keys = prop_dictionary_all_keys(board_db);
+	prop_object_iterator_t iter = prop_array_iterator(all_board_keys);
+	prop_dictionary_keysym_t key;
+	prop_dictionary_t board;
+	while ((key = prop_object_iterator_next(iter)) != NULL) {
+		board = prop_dictionary_get_keysym(board_db, key);
+		assert(board != NULL);
+		if (!validate_board_object(board, false)) {
+			warnx("invalid board object in '%s': '%s'\n", path,
+			    prop_dictionary_keysym_cstring_nocopy(key));
+			prop_dictionary_remove(board_db, key);
+		}
+	}
+	prop_object_iterator_release(iter);
+	prop_object_release(all_board_keys);
+
+ done:
+	params->mach_data = board_db;
+	return true;
+
+ bad:
+	if (board_db != NULL)
+		prop_object_release(board_db);
+	return false;
+}
+
+/*
  * evb_db_load --
  *	Load the board database.
  */
 bool
 evb_db_load(ib_params *params)
 {
+	if (!evb_db_load_base(params))
+		return false;
+	evb_db_load_overlays(params);
+
+	return true;
 }
 
 /*
@@ -886,7 +1001,7 @@ evb_ubstep_preserves_partial_block(ib_params *params, evb_ubstep step)
  *	Build a file path from the u-boot base path in the board object
  *	and the file name in the step object.
  */
-const char *
+static const char *
 evb_uboot_file_path(ib_params *params, evb_board board, evb_ubstep step,
     char *buf, size_t bufsize)
 {
@@ -897,11 +1012,7 @@ evb_uboot_file_path(ib_params *params, evb_board board, evb_ubstep step,
 	if (base_path == NULL || file_name == NULL)
 		return NULL;
 
-	ret = snprintf(buf, bufsize, "%s/%s", base_path, file_path);
-	if (ret < 0 || (size_t)ret >= bufsize)
-		return NULL;
-
-	return buf;
+	return make_path(buf, bufsize, "%s/%s", base_path, file_path);
 }
 
 /*
