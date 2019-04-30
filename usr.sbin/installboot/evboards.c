@@ -619,7 +619,7 @@ evb_db_load_overlay(ib_params *params, const char *path,
 	while ((key = prop_object_iterator_next(iter)) != NULL) {
 		board = prop_dictionary_get_keysym(overlay, key);
 		assert(board != NULL);
-		if (!validate_board_object(board, false)) {
+		if (!validate_board_object(board, true)) {
 			warnx("invalid board object in '%s': '%s'", path,
 			    prop_dictionary_keysym_cstring_nocopy(key));
 			continue;
@@ -629,7 +629,7 @@ evb_db_load_overlay(ib_params *params, const char *path,
 		prop_string_t string =
 		    prop_string_create_cstring(runtime_uboot_path);
 		assert(string != NULL);
-		prop_dictionary_set(overlay, board_u_boot_path_key, string);
+		prop_dictionary_set(board, board_u_boot_path_key, string);
 		prop_object_release(string);
 
 		/* Insert into board db. */
