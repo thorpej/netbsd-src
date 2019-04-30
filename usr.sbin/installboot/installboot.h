@@ -68,12 +68,10 @@ typedef enum {
 	IB_MODULES =	1<<21,		/* i386: load modules */
 	IB_BOOTCONF = 	1<<22,		/* i386: read boot.conf */
 
-	/* IB_BOARD and IB_SOC are mutually-exclusive */
 	IB_BOARD =	1<<23,		/* evb*: board specification */
-	IB_SOC =	1<<24,		/* evb*: soc specification */
 
 	/* IB_MEDIA is required for some evb*, but not all. */
-	IB_MEDIA =	1<<25,		/* evb*: boot media type */
+	IB_MEDIA =	1<<24,		/* evb*: boot media type */
 } ib_flags;
 
 typedef enum {

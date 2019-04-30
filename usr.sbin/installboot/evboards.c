@@ -568,10 +568,20 @@ validate_board_object(evb_board obj, bool is_overlay)
 			break;
 	}
 	prop_object_iterator_release(iter);
-	if (v != NULL)
+	if (key != NULL)
 		return false;
 
-	return has_default_install ^ has_media_install;
+	/*
+	 * Overlays must have only a default install key OR one or more
+	 * media install keys.
+	 */
+	if (is_overlay)
+		return has_default_install ^ has_media_install;
+
+	/*
+	 * Base board objects must have neither.
+	 */
+	return (has_default_install | has_media_install) == false;
 }
 
 /*
@@ -610,7 +620,7 @@ evb_db_load_overlay(ib_params *params, const char *path,
 		board = prop_dictionary_get_keysym(overlay, key);
 		assert(board != NULL);
 		if (!validate_board_object(board, false)) {
-			warnx("invalid board object in '%s': '%s'\n", path,
+			warnx("invalid board object in '%s': '%s'", path,
 			    prop_dictionary_keysym_cstring_nocopy(key));
 			continue;
 		}
@@ -729,7 +739,7 @@ evb_db_load_base(ib_params *params)
 		board = prop_dictionary_get_keysym(board_db, key);
 		assert(board != NULL);
 		if (!validate_board_object(board, false)) {
-			warnx("invalid board object in '%s': '%s'\n", path,
+			warnx("invalid board object in '%s': '%s'", path,
 			    prop_dictionary_keysym_cstring_nocopy(key));
 			prop_dictionary_remove_keysym(board_db, key);
 		}

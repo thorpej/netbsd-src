@@ -93,8 +93,7 @@ const struct option {
 	{ "timeout",	IB_TIMEOUT,	OPT_INT,	OFFSET(timeout) },
 	{ "modules",	IB_MODULES,	OPT_BOOL,	0 },
 	{ "bootconf",	IB_BOOTCONF,	OPT_BOOL,	0 },
-	{ "board",	IB_BOARD,	OPT_WORD,	OFFSET(board) },
-	{ "soc",	IB_SOC,		OPT_WORD,	OFFSET(soc) },
+	{ "board",	IB_BOARD,	OPT_STRING,	OFFSET(board) },
 	{ "media",	IB_MEDIA,	OPT_WORD,	OFFSET(media) },
 	{ .name = NULL },
 };
@@ -191,8 +190,6 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (params->flags & IB_CLEAR && params->flags & IB_EDIT)
-		usage();
-	if (params->flags & IB_BOARD && params->flags & IB_SOC)
 		usage();
 	if (argc < 1 || argc + 2 * !!(params->flags & (IB_CLEAR | IB_EDIT)) > 3)
 		usage();
