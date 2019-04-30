@@ -35,36 +35,28 @@
 #include <stdio.h>
 #include <prop/proplib.h>
 
-typedef enum {
+typedef prop_dictionary_t      evb_board;
+typedef prop_array_t           evb_ubinstall;
+typedef prop_object_iterator_t evb_ubsteps;
+typedef prop_dictionary_t      evb_ubstep;
 
-	UB_PRESERVE =		1<<0,	/* preserve contents of disk block */
-} ub_flags;
+bool		evb_db_load(ib_params *);
+evb_board	evb_db_get_board(ib_params *, const char *);
 
-struct evboard_uboot_desc {
-	const char	*filename;
-	off_t		file_offset;
-	off_t		file_size;
-	off_t		image_offset;
-	ub_flags	flags;
-};
+const char *	evb_board_get_description(ib_params *, evb_board);
+const char *	evb_board_get_uboot_pkg(ib_params *, evb_board);
+const char *	evb_board_get_uboot_path(ib_params *, evb_board);
+evb_ubinstall	evb_board_get_uboot_install(ib_params *, evb_board);
+prop_array_t	evb_board_copy_uboot_media(ib_params *, evb_board);
 
-prop_dictionary_t	evb_plist_load(ib_params *params);
+evb_ubsteps	evb_ubinstall_get_steps(ib_params *, evb_ubinstall);
 
-const char *		evb_plist_soc_name(prop_dictionary_keysym_t key);
+evb_ubstep	evb_ubsteps_next_step(ib_params *, evb_ubsteps);
 
-const char *		evb_plist_board_name(prop_dictionary_keysym_t key);
-const char *		evb_plist_board_description(prop_dictionary_t board);
-
-prop_dictionary_t	evb_plist_lookup_soc(ib_params *params);
-prop_dictionary_t	evb_plist_lookup_board(ib_params *params,
-					       const char **socnamep);
-void			evb_plist_list_boards(ib_params *params, FILE *out);
-
-bool			evb_board_uses_uboot(ib_params *params);
-
-const char *		evb_uboot_base(ib_params *params, char *buf,
-				       size_t bufsize);
-int			evb_uboot_setboot(ib_params *params,
-					const struct evboard_uboot_desc *descs);
+const char *	evb_ubstep_get_file_name(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_file_offset(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_file_size(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_image_offset(ib_params *, evb_ubstep);
+bool		evb_ubstep_preserves_partial_block(ib_params *, evb_ubstep);
 
 #endif /* installboot_evboards_h_included */

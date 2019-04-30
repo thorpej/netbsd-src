@@ -52,6 +52,262 @@ __RCSID("$NetBSD$");
 #include "installboot.h"
 #include "evboards.h"
 
+/*
+ * The board database is implemented as a property list.  The base
+ * system provides a set of known boards, keyed by their "compatible"
+ * device tree property.
+ *
+ * The database provided by the base system is meant to help guide
+ * the user as to which u-boot package needs to be installed on the
+ * system in order to write the boot loader to the boot media.  The
+ * base board plist is specific to the $MACHINE (e.g. "evbarm"), and
+ * is installed along with the build tools, e.g.:
+ *
+ * (native location)
+ *	/usr/sbin/installboot
+ *	/usr/share/installboot/evbarm/boards.plist
+ *	/usr/share/installboot/evbmips/boards.plist
+ *
+ * (example cross host tool location)
+ *	/usr/local/xnbsd/bin/nbinstallboot
+ *	/usr/local/xnbsd/share/installboot/evbarm/boards.plist
+ *	/usr/local/xnbsd/share/installboot/evbmips/boards.plist
+ *
+ * The schema of the base board plist is as follows:
+ *
+ * <plist>
+ * <dict>
+ *	<!--
+ *	  -- Key: string matching a "compatible" DT property.
+ *	  -- Value: dictionary representing a board object.
+ *	  -- (required)
+ *	  -->
+ *	<key>example,example-board</key>
+ *	<dict>
+ *		<!--
+ *		  -- Key: "description".
+ *		  -- Value: string containing the board description.
+ *		  -- (required)
+ *		  -->
+ *		<key>description</key>
+ *		<string>Example Co. Example Board</string>
+ *
+ *		<!--
+ *		  -- Key: "u-boot-pkg".
+ *		  -- Value: string representing the board-specific
+ *		  --        portion of the u-boot package name.
+ *		  --        In this example, the package's full name
+ *		  --        is "u-boot-exampleboard".  This is used
+ *		  --        to recommend to the user which u-boot
+ *		  --        package to install.  If not present, then
+ *		  --        no package recommendation will be made.
+ *		  -- (optional)
+ *		  -->
+ *		<key>u-boot-pkg</key>
+ *		<string>exampleboard</string>
+ *	</dict>
+ * </dict>
+ * </plist>
+ *
+ * Individual u-boot packages install their own overlay property list
+ * files that installboot(8) then scans for.  These overlay files are
+ * named "installboot.plist", and are installed alongside the u-boot
+ * binaries by the individual u-boot packages, for example:
+ *
+ *	/usr/pkg/share/u-boot/exampleboard/installboot.plist
+ *	/usr/pkg/share/u-boot/exampleboard/u-boot-with-spl.bin
+ *
+ * installboot(8) scans a set of directories looking for "installboot.plist"
+ * overlay files one directory deep.  For example:
+ *
+ *	/usr/pkg/share/u-boot/
+ *				exampleboard/installboot.plist
+ *				superarmdeluxe/installboot.plist
+ *				dummy/
+ *
+ * In this example, "/usr/pkg/share/u-boot" is scanned, it would identify
+ * "exampleboard" and "superarmdeluxe" as directories containing overlays
+ * and load them.
+ *
+ * The default path scanned for u-boot packages is:
+ *
+ *	/usr/pkg/share/u-boot
+ *
+ * This can be overridden with the INSTALLBOOT_UBOOT_PATHS environment
+ * variable, which contains a colon-sparated list of directories, e.g.:
+ *
+ *	/usr/pkg/share/u-boot:/home/jmcneill/hackityhack/u-boot
+ *
+ * The scan only consults the top-level children of the specified directory.
+ *
+ * Each overlay includes complete board objects that entirely replace
+ * the system-provided board objects in memory.  Some of the keys in
+ * overlay board objects are computed at run-time and should not appear
+ * in the plists loaded from the file system.
+ *
+ * The schema of the overlay board plists are as follows:
+ *
+ * <plist>
+ * <dict>
+ *	<!--
+ *	  -- Key: string matching a "compatible" DT property.
+ *	  -- Value: dictionary representing a board object.
+ *	  -- (required)
+ *	  -->
+ *	<key>example,example-board</key>
+ *	<dict>
+ *		<!--
+ *		  -- Key: "description".
+ *		  -- Value: string containing the board description.
+ *		  -- (required)
+ *		  -->
+ *		<key>description</key>
+ *		<string>Example Co. Example Board</string>
+ *
+ *		<!--
+ *		  -- Key: "u-boot-install".
+ *		  --      (and variants; see discussion below)
+ *		  --      "u-boot-install-emmc", etc.).
+ *		  -- Value: Array of u-boot installation step objects,
+ *		  --        as described below.
+ *		  -- (required)
+ *		  --
+ *		  -- At least one of these objects is required.  If the
+ *		  -- board uses a single set of steps for all boot media
+ *		  -- types, then it should provide just "u-boot-install".
+ *		  -- Otherwise, it whould provide one or more objects
+ *		  -- with names reflecting the media type, e.g.:
+ *		  --
+ *		  --	"u-boot-install-sd"	(for SD cards)
+ *		  --	"u-boot-install-emmc"	(for eMMC modules)
+ *		  --	"u-boot-install-usb"	(for USB block storage)
+ *		  --
+ *		  -- These installation steps will be selectable using
+ *		  -- the "media=..." option to installboot(8).
+ *		  -->
+ *		<key>u-boot-install</key>
+ *		<array>
+ *			<!-- see installation object discussion below. -->
+ *		</array>
+ *
+ *		<!--
+ *		  -- Key: "runtime-u-boot-path"
+ *		  -- Value: A string representing the path to the u-boot
+ *		  --        binary files needed to install the boot loader.
+ *		  --        This value is computed at run-time and is the
+ *		  --        same directory in which the instalboot.plist
+ *		  --        file for that u-boot package is located.
+ *		  --        This key/value pair should never be included
+ *		  --        in an installboot.plist file, and any value
+ *		  --        appearing in installboot.plist will be ignored.
+ *		  -- (computed at run-time)
+ *		  -->
+ *		<key>runtime-u-boot-path</key>
+ *		<string>/usr/pkg/share/u-boot/exampleboard</string>
+ *	</dict>
+ * </dict>
+ * </plist>
+ *
+ * The installation objects provide a description of the steps needed
+ * to install u-boot on the boot media.  Each installation object it
+ * itself an array of step object.
+ *
+ * A basic installation object has a single step that instructs
+ * installboot(8) to write a file to a specific offset onto the
+ * boot media.
+ *
+ *	<key>u-boot-install</key>
+ *	<!-- installation object -->
+ *	<array>
+ *		<!-- step object -->
+ *		<dict>
+ *			<!--
+ *			  -- Key: "file-name".
+ *			  -- Value: a string naming the file to be
+ *			  --        written to the media.
+ *			  -- (required)
+ *			  -->
+ *			<key>file-name</key>
+ *			<string>u-boot-with-spl.bin</string>
+ *
+ *			<!--
+ *			  -- Key: "image-offset".
+ *			  -- Value: an integer specifying the offset
+ *			  --        into the output image or device
+ *			  --        where to write the file.  Defaults
+ *			  --        to 0 if not specified.
+ *			  -- (optional)
+ *			  -->
+ *			<key>image-offset</key>
+ *			<integer>8192</integer>
+ *		</dict>
+ *	</array>
+ *
+ * Some installations require multiple steps with special handling.
+ *
+ *	<key>u-boot-install</key>
+ *	<array>
+ *		<--
+ *		 -- Step 1: Write the initial portion of the boot
+ *		 -- loader onto the media.  The loader has a "hole"
+ *		 -- to leave room for the MBR partition table.  Take
+ *		 -- care not to scribble over the table.
+ *		 -->
+ *		<dict>
+ *			<key>file-name</key>
+ *			<string>u-boot-img.bin</string>
+ *
+ *			<!--
+ *			  -- Key: "file-size".
+ *			  -- Value: an integer specifying the amount of
+ *			  --        data from the file to be written to the
+ *			  --        output.  Defaults to "to end of file" if
+ *			  --        not specified.
+ *			  -- (optional)
+ *			  -->
+ *			<!-- Stop short of the MBR partition table. -->
+ *			<key>file-size</key>
+ *			<integer>442</integer>
+ *
+ *			<!--
+ *			  -- Key: "preserve".
+ *			  -- Value: a boolean indicating that any partial
+ *			  --        output block should preserve any pre-
+ *			  --        existing contents of that block for
+ *			  --        the portion of the of the block not
+ *			  --        overwritten by the input file.
+ *			  --        (read-modify-write)
+ *			  -- (optional)
+ *			  -->
+ *			<!-- Preserve the MBR partition table. -->
+ *			<key>preserve</key>
+ *			<true/>
+ *		</dict>
+ *		<--
+ *		 -- Step 2: Write the rest of the loader after the
+ *		 -- MBR partition table.
+ *		 -->
+ *		<dict>
+ *			<key>file-name</key>
+ *			<string>u-boot-img.bin</string>
+ *
+ *			<!--
+ *			  -- Key: "file-offset".
+ *			  -- Value: an integer specifying the offset into
+ *			  --        the input file from where to start
+ *			  --        copying to the output.
+ *			  -- (optional)
+ *			  -->
+ *			<key>file-offset</key>
+ *			<integer>512</integer>
+ *
+ *			<!-- ...just after the MBR partition talble. -->
+ *			<key>image-offset</key>
+ *			<integer>512</integer>
+ *		</dict>
+ *	</array>
+ */
+
 #ifndef EVBOARDS_PLIST_BASE
 #define	EVBOARDS_PLIST_BASE	"/usr"
 #endif
@@ -227,413 +483,445 @@ evb_plist_load_defns(ib_params *params, prop_dictionary_t plist,
 	return rv;
 }
 
-static bool
-evb_plist_load_socs(ib_params *params, prop_dictionary_t plist)
-{
-	return evb_plist_load_defns(params, plist, "soc", evb_plist_load_soc);
-}
+static const char step_file_name_key[] = "file-name";
+static const char step_file_offset_key[] = "file-offset";
+static const char step_file_size_key[] = "file-size";
+static const char step_image_offset_key[] = "image-offset";
+static const char step_preserve_key[] = "preserve";
 
 static bool
-evb_plist_load_boards(ib_params *params, prop_dictionary_t plist)
+validate_ubstep_object(evb_ubstep obj)
 {
-	return evb_plist_load_defns(params, plist, "board",
-	    evb_plist_load_boards_for_soc);
+	/*
+	 * evb_ubstep is a dictionary with the following keys:
+	 *
+	 *	"file-name"	(string) (required)
+	 *	"file-offset"	(number) (optional)
+	 *	"file-size"	(number) (optional)
+	 *	"image-offset"	(number) (optional)
+	 *	"preserve"	(bool)	 (optional)
+	 */
+	if (prop_object_type(obj) != PROP_TYPE_DICTIONARY)
+		return false;
+
+	prop_object_t v;
+
+	v = prop_dictionary_get(obj, step_file_name_key);
+	if (v == NULL ||
+	    prop_object_type(v) != PROP_TYPE_STRING)
+	    	return false;
+
+	v = prop_dictionary_get(obj, step_file_offset_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_NUMBER)
+	    	return false;
+
+	v = prop_dictionary_get(obj, step_file_size_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_NUMBER)
+	    	return false;
+
+	v = prop_dictionary_get(obj, step_image_offset_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_NUMBER)
+	    	return false;
+
+	v = prop_dictionary_get(obj, step_preserve_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_BOOL)
+	    	return false;
+
+	return true;
 }
 
-prop_dictionary_t
-evb_plist_load(ib_params *params)
+static bool
+validate_ubinstall_object(evb_ubinstall obj)
 {
-	prop_dictionary_t plist;
-	prop_dictionary_t soc_plist;
-	prop_dictionary_t board_plist;
+	/*
+	 * evb_ubinstall is an array with one or more evb_ubstep
+	 * objects.
+	 *
+	 * (evb_ubsteps is just a convenience type for iterating
+	 * over the steps.)
+	 */
+	if (prop_object_type(obj) != PROP_TYPE_ARRAY)
+		return false;
+	if (prop_array_count(obj) < 1)
+		return false;
 
-	plist = prop_dictionary_create();
-	soc_plist = prop_dictionary_create();
-	board_plist = prop_dictionary_create();
+	prop_object_t v;
+	prop_object_iterator iter = prop_array_iterator(obj);
 
-	if (plist == NULL || soc_plist == NULL || board_plist == NULL)
-	    	goto out_bad;
-
-	if (prop_dictionary_set(plist, "socs", soc_plist) == false)
-		goto out_bad;
-	if (prop_dictionary_set(plist, "boards", board_plist) == false)
-		goto out_bad;
-
-	if (! evb_plist_load_socs(params, soc_plist))
-		goto out_bad;
-
-	if (! evb_plist_load_boards(params, board_plist))
-		goto out_bad;
-
-#if 0
-	char *xml = prop_dictionary_externalize(plist);
-	printf("%s", xml);
-	free(xml);
-#endif
-
-	/* top-level plist now owns these references. */
-	prop_object_release(board_plist);
-	prop_object_release(soc_plist);
-
-	return plist;
-
- out_bad:
-	if (board_plist)
-		prop_object_release(board_plist);
-	if (soc_plist)
-		prop_object_release(soc_plist);
-	if (plist)
-		prop_object_release(plist);
-
-	return NULL;
-}
-
-static prop_dictionary_t
-evb_plist_get_socs(ib_params *params)
-{
-	return prop_dictionary_get(params->mach_data, "socs");
-}
-
-static prop_dictionary_t
-evb_plist_get_boards(ib_params *params)
-{
-	return prop_dictionary_get(params->mach_data, "boards");
-}
-
-/*
- * Top-level dictionary helpers.
- */
-const char *
-evb_plist_soc_name(prop_dictionary_keysym_t key)
-{
-	if (prop_object_type(key) != PROP_TYPE_DICT_KEYSYM)
-		return NULL;
-	
-	return prop_dictionary_keysym_cstring_nocopy(key);
-}
-
-static const char *
-evb_plist_soc_for_board(ib_params *params)
-{
-	const char *socname = NULL;
-
-	assert(params->flags & IB_BOARD);
-
-	if (params->mach_data == NULL) {
-		warnx("Unable to map board '%s' to an SoC.", params->board);
-		return NULL;
-	}
-
-	prop_dictionary_t board = evb_plist_lookup_board(params->mach_data,
-							 &socname);
-	if (board == NULL) {
-		warnx("Unknown board '%s'.", params->board);
-		return NULL;
-	}
-
-	assert(socname != NULL);
-	return socname;
-}
-
-/*
- * Board object helpers.
- */
-static const char evb_plist_board_description_key[] = "description";
-
-const char *
-evb_plist_board_name(prop_dictionary_keysym_t board_key)
-{
-	if (prop_object_type(board_key) != PROP_TYPE_DICT_KEYSYM)
-		return NULL;
-
-	return prop_dictionary_keysym_cstring_nocopy(board_key);
-}
-
-const char *
-evb_plist_board_description(prop_dictionary_t board)
-{
-	if (prop_object_type(board) != PROP_TYPE_DICTIONARY)
-		return NULL;
-	
-	prop_string_t str = prop_dictionary_get(board,
-	    evb_plist_board_description_key);
-	if (str == NULL || prop_object_type(str) != PROP_TYPE_STRING)
-		return NULL;
-	
-	return prop_string_cstring_nocopy(str);
-}
-
-/*
- * High-level helpers.
- */
-prop_dictionary_t
-evb_plist_lookup_soc(ib_params *params)
-{
-	prop_dictionary_t soc_plist = evb_plist_get_socs(params);
-	const char *socname = NULL;
-
-	if (params->flags & IB_SOC)
-		return prop_dictionary_get(soc_plist, params->soc);
-
-	if (!(params->flags & IB_BOARD)) {
-		warnx("Must specify board or soc.");
-		return NULL;
-	}
-
-	if (evb_plist_lookup_board(params, &socname) != NULL)
-		return prop_dictionary_get(soc_plist, socname);
-
-	return NULL;
-}
-
-prop_dictionary_t
-evb_plist_lookup_board(ib_params *params, const char **socnamep)
-{
-	prop_dictionary_t board_plist = evb_plist_get_boards(params);
-	prop_dictionary_t ret = NULL;
-
-	if (!(params->flags & IB_BOARD))
-		return NULL;
-
-	prop_object_iterator_t soc_iter = prop_dictionary_iterator(board_plist);
-	if (soc_iter == NULL)
-		return NULL;
-
-	prop_dictionary_keysym_t soc_key;
-	while ((soc_key = prop_object_iterator_next(soc_iter)) != NULL) {
-		const char *cursoc = evb_plist_soc_name(soc_key);
-		if (cursoc == NULL)
-			continue;
-
-		prop_dictionary_t boards_for_soc =
-		    prop_dictionary_get_keysym(board_plist, soc_key);
-		
-		ret = prop_dictionary_get(boards_for_soc, params->board);
-		if (ret) {
-			*socnamep = cursoc;
+	while ((v = prop_object_iterator_next(iter)) != NULL) {
+		if (!validate_ubstep_object(v))
 			break;
-		}
 	}
 
- out:
-	prop_object_iterator_release(soc_iter);
-	return ret;
+	prop_object_iterator_release(iter);
+	return v == NULL;
 }
 
-void
-evb_plist_list_boards(ib_params *params, FILE *out)
+static const char board_description_key[] = "description";
+static const char board_u_boot_pkg_key[] = "u-boot-pkg";
+static const char board_u_boot_path_key[] = "runtime-u-boot-path";
+static const char board_u_boot_install_key[] = "u-boot-install";
+
+static bool
+validate_board_object(evb_board obj, bool is_overlay)
 {
-	prop_dictionary_t board_plist = evb_plist_get_boards(params);
-
-	prop_object_iterator_t soc_iter = prop_dictionary_iterator(board_plist);
-	if (soc_iter == NULL) {
-		fprintf(stderr, "Unable to read property list.\n");
-		return;
-	}
-
-	prop_dictionary_keysym_t soc_key;
-	while ((soc_key = prop_object_iterator_next(soc_iter)) != NULL) {
-		const char *cursoc = evb_plist_soc_name(soc_key);
-		if (cursoc == NULL)
-			continue;
-
-		fprintf(out, "soc \"%s\":\n", cursoc);
-
-		prop_dictionary_t boards_for_soc =
-		    prop_dictionary_get_keysym(board_plist, soc_key);
-
-		prop_object_iterator_t board_iter =
-		    prop_dictionary_iterator(boards_for_soc);
-		prop_dictionary_keysym_t board_key;
-		while ((board_key =
-		    prop_object_iterator_next(board_iter)) != NULL) {
-			prop_dictionary_t board =
-			    prop_dictionary_get_keysym(boards_for_soc,
-			    board_key);
-			if (board == NULL)
-				continue;
-
-			const char *curboard = evb_plist_board_name(board_key);
-			const char *curdesc =
-			    evb_plist_board_description(board);
-
-			if (curboard == NULL || curdesc == NULL)
-				continue;
-
-			fprintf(out, "     %-25s %s\n", curboard, curdesc);
-		}
-		prop_object_iterator_release(board_iter);
-	}
-
-	prop_object_iterator_release(soc_iter);
-}
-
-/*
- * Board method helpers.
- */
-static const char evb_plist_uboot_methods_key[] = "u-boot-methods";
-
-static prop_dictionary_t
-evb_board_uboot_methods(ib_params *params)
-{
-	prop_dictionary_t dict;
-	prop_dictionary_t methods;
-
-	dict = evb_plist_lookup_board(params, NULL);
-	if (dict != NULL) {
-		methods = prop_dictionary_get(dict,
-					      evb_plist_uboot_methods_key);
-		if (methods != NULL)
-			return methods;
-	}
-
-	dict = evb_plist_lookup_soc(params);
-	if (dict != NULL) {
-		methods = prop_dictionary_get(dict,
-					      evb_plist_uboot_methods_key);
-		if (methods != NULL)
-			return methods;
-	}
-
-	return NULL;
-}
-
-bool
-evb_board_uses_uboot(ib_params *params)
-{
-	return evb_board_uboot_methods(params) != NULL;
-}
-
-prop_array_t
-evb_board_uboot_method(ib_params *params)
-{
-	prop_dictionary_t methods = evb_board_uboot_methods(params);
-	if (methods)
-		return NULL;
-
-	prop_array_t method = prop_dictionary_get(methods, "default");
-
 	/*
-	 * If there is a "default" method, that's the one we're going
-	 * to use, and the -o media=... option is disallowed in this
-	 * case.
-	 * XXX Improve error message.
+	 * evb_board is a dictionary with the following keys:
+	 *
+	 *	"description"		(string) (required)
+	 *	"u-boot-pkg"		(string) (optional, base only)
+	 *	"runtime-u-boot-path"	(string) (required, overlay only)
+	 *
+	 * With special consideration for these keys:
+	 *
+	 * Either this key and no other "u-boot-install*" keys:
+	 *	"u-boot-install"	(string) (required, overlay only)
+	 *
+	 * Or one or more keys of the following pattern:
+	 *	"u-boot-install-*"	(string) (required, overlay only)
 	 */
-	if (method != NULL) {
-		if (params->flags & IB_MEDIA) {
-			warnx("media=... is not supported for this board/soc");
-			return NULL;
-		}
-		return method;
+	bool has_default_install = false;
+	bool has_media_install = false;
+
+	if (prop_object_type(obj) != PROP_TYPE_DICTIONARY)
+		return false;
+
+	prop_object_t v;
+
+	v = prop_dictionary_get(obj, board_description_key);
+	if (v == NULL ||
+	    prop_object_type(v) != PROP_TYPE_STRING)
+	    	return false;
+
+	v = prop_dictionary_get(obj, board_u_boot_pkg_key);
+	if (v != NULL &&
+	    (is_overlay || prop_object_type(v) != PROP_TYPE_STRING))
+	    	return false;
+
+	v = prop_dictionary_get(obj, board_u_boot_path_key);
+	if (is_overlay) {
+		if (v == NULL ||
+		    prop_object_type(v) != PROP_TYPE_STRING)
+		    	return false;
+	} else {
+		if (v != NULL)
+			return false;
 	}
 
-	/*
-	 * ...and if there's not a "default" media, then the user needs
-	 * to specify which one they want.
-	 */
-	if (!(params->flags & IB_MEDIA)) {
-		warnx("media=... is required for this board/soc");
-		goto print_supported_media_types;
-	}
-
-	method = prop_dictionary_get(methods, params->media);
-	if (method != NULL)
-		return method;
-
-	warnx("media=%s is not valid for this board/soc", params->media);
-
- print_supported_media_types:
-	fprintf(stderr, "Valid media types:");
-	prop_object_iterator_t iter = prop_dictionary_iterator(methods);
+	prop_object_iterator_t iter = prop_dictionary_iterator(obj);
 	prop_dictionary_keysym_t key;
 	while ((key = prop_object_iterator_next(iter)) != NULL) {
-		fprintf(stderr, " %s",
-		    prop_dictionary_keysym_cstring_nocopy(key));
+		const char *cp = prop_dictionary_keysym_cstring_nocopy(key);
+		if (strcmp(cp, board_u_boot_install_key) == 0) {
+			has_default_install = true;
+		} else if (strncmp(cp, board_u_boot_install_key,
+				   sizeof(board_u_boot_install_key) - 1) == 0 &&
+			   cp[sizeof(board_u_boot_install_key) - 1] == '-') {
+			has_media_install = true;
+		} else {
+			continue;
+		}
+		v = prop_dictionary_get_keysym(obj, key);
+		assert(v != NULL);
+		if (!is_overlay || !validate_ubinstall_object(v))
+			break;
 	}
-	fprintf(stderr, "\n");
+	prop_object_iterator_release(iter);
+	if (v != NULL)
+		return false;
 
- 	return NULL;
+	return has_default_install ^ has_media_install;
 }
 
 /*
- * U-boot helpers.
+ * evb_db_load --
+ *	Load the board database.
  */
-static const char evb_uboot_default_location[] = "/usr/pkg/share";
-
-const char *
-evb_uboot_base(ib_params *params, char *buf, size_t bufsize)
+bool
+evb_db_load(ib_params *params)
 {
-	struct stat sb;
-	int ret;
-
-	/*
-	 * If the user specified a stage1, and it's a directory,
-	 * then that's where the u-boot binaries are.
-	 */
-	if (params->stage1 != NULL) {
-		if (!S_ISDIR(params->s1stat.st_mode)) {
-			warnx("%s: %s", params->stage1, strerror(ENOTDIR));
-			return NULL;
-		}
-		ret = snprintf(buf, bufsize, "%s", params->stage1);
-		if (ret < 0 || (size_t)ret > bufsize)
-			return NULL;
-		return buf;
-	}
-
-	/*
-	 * User must specify a board type if the u-boot location was
-	 * not specified.
-	 */
-	if (!(params->flags & IB_BOARD)) {
-		errx(EXIT_FAILURE, "Must specify either the u-boot location "
-		     "or the board type");
-	}
-
-	ret = snprintf(buf, bufsize, "%s/u-boot-%s",
-	    evb_uboot_default_location, params->board);
-
-	if (stat(buf, &sb) < 0) {
-		if (errno == ENOENT) {
-			warnx("Please install sysutils/u-boot-%s from pkgsrc.",
-			    params->board);
-		} else {
-			warn("%s", buf);
-		}
-		return NULL;
-	}
-	if (!S_ISDIR(sb.st_mode)) {
-		warnx("%s: %s", buf, strerror(ENOTDIR));
-		return NULL;
-	}
-
-	return buf;
 }
 
-static const char *
-evb_uboot_file_path(const char *uboot_base, const char *filename,
-		    char *buf, size_t bufsize)
+/*
+ * evb_db_get_board --
+ *	Return the specified board object from the database.
+ */
+evb_board
+evb_db_get_board(ib_params *params, const char *name)
 {
+	return prop_dictionary_get(params->mach_data, name);
+}
+
+/*
+ * evb_board_get_description --
+ *	Return the description for the specified board.
+ */
+const char *
+evb_board_get_description(ib_params *params, evb_board board)
+{
+	prop_string_t string;
+
+	string = prop_dictionary_get(board, board_description_key);
+	return prop_string_cstring_nocopy(string);
+}
+
+/*
+ * evb_board_get_uboot_pkg --
+ *	Return the u-boot package name for the specified board.
+ */
+const char *
+evb_board_get_uboot_pkg(ib_params *params, evb_board board)
+{
+	prop_string_t string;
+
+	string = prop_dictionary_get(board, board_u_boot_pkg_key);
+	if (string == NULL)
+		return NULL;
+	return prop_string_cstring_nocopy(string);
+}
+
+/*
+ * evb_board_get_uboot_path --
+ *	Return the u-boot installed package path for the specified board.
+ */
+const char *
+evb_board_get_uboot_path(ib_params *params, evb_board board)
+{
+	prop_string_t string;
+
+	string = prop_dictionary_get(board, board_u_boot_path_key);
+	if (string == NULL)
+		return NULL;
+	return prop_string_cstring_nocopy(string);
+}
+
+/*
+ * evb_board_get_uboot_install --
+ *	Return the u-boot install object for the specified board,
+ *	corresponding to the media specified by the user.
+ */
+evb_ubinstall
+evb_board_get_uboot_install(ib_params *params, evb_board board)
+{
+	evb_ubinstall install;
+
+	install = prop_dictionary_get(board, board_u_boot_install_key);
+
+	if (!(params->flags & IB_MEDIA)) {
+		if (install == NULL) {
+			warnx("Must specify media=... for board '%s'",
+			    params->board);
+			goto list_media;
+		}
+		return install;
+	}
+
+	/* media=... was specified by the user. */
+
+	if (install) {
+		warnx("media=... is not a valid option for board '%s'",
+		    params->board);
+		return NULL;
+	}
+
+	char install_key[128];
+	int n = snprintf(install_key, sizeof(install_key), "%s-%s",
+	    board_u_boot_install_key, params->media);
+	if (n < 0 || (size_t)n >= sizeof(install_key))
+		goto invalid_media;;
+	install = prop_dictionary_get(board, install_key);
+	if (install != NULL)
+		return install;
+ invalid_media:
+	warnx("invalid media specification: '%s'", params->media);
+ list_media:
+	prop_array_t array = evb_board_get_uboot_media(params, board);
+	assert(array != NULL);
+	fprintf(stderr, "Valid media types:");
+	prop_object_iterator_t iter = prop_array_iterator(array);
+	prop_string_t string;
+	while ((string = prop_object_iterator_next(iter)) != NULL)
+		fprintf(stderr, " %s", prop_string_cstring_nocopy(string);
+	fprintf(stderr, "\n");
+	prop_object_iterator_release(iter);
+	prop_object_release(array);
+
+	return NULL;
+}
+
+/*
+ * evb_board_copy_uboot_media --
+ *	Return the valid media types for the given board as an array
+ *	of strings.
+ *
+ *	Follows the create rule; caller is responsible for releasing
+ *	the array.
+ */
+prop_array_t
+evb_board_get_uboot_media(ib_params *params, evb_board board)
+{
+	prop_array_t array = prop_array_create();
+	prop_dictionary_iterator_t iter = prop_dictionary_iterator(board);
+	prop_string_t string;
+	prop_dictionary_keysym_t key;
+	const char *cp;
+
+	assert(array != NULL);
+	assert(iter != NULL);
+
+	while ((key = prop_object_iterator_next(iter)) != NULL) {
+		cp = prop_dictionary_keysym_cstring_nocopy(key);
+		if (strcmp(cp, board_u_boot_install_key) == 0 ||
+		    strncmp(cp, board_u_boot_install_key,
+			    sizeof(board_u_boot_install_key) - 1) != 0)
+			continue;
+		string = prop_string_create_cstring(strrchr(cp, '-'));
+		assert(string != NULL);
+		prop_array_add(array, string);
+		prop_object_release(string);
+	}
+	prop_object_iterator_release(iter);
+	return array;
+}
+
+/*
+ * evb_ubinstall_get_steps --
+ *	Get the install steps for a given install object.
+ */
+evb_ubsteps
+evb_ubinstall_get_steps(ib_params *params, evb_ubinstall install)
+{
+	return prop_array_iterator(install);
+}
+
+/*
+ * evb_ubsteps_next_step --
+ *	Return the next step in the install object.
+ *
+ *	N.B. The iterator is released upon termination.
+ */
+evb_ubstep
+evb_ubsteps_next_step(ib_params *params, evb_ubsteps steps)
+{
+	prop_dictionary_t step = prop_object_iterator_next(steps);
+
+	/* If we are out of steps, release the iterator. */
+	if (step == NULL)
+		prop_object_iterator_release(steps);
+	
+	return step;
+}
+
+/*
+ * evb_ubstep_get_file_name --
+ *	Returns the input file name for the step.
+ */
+const char *
+evb_ubstep_get_file_name(ib_params *params, evb_ubstep step)
+{
+	prop_string_t string = prop_dictionary_get(step, step_file_name_key);
+	return prop_string_cstring_nocopy(string);
+}
+
+/*
+ * evb_ubstep_get_file_offset --
+ *	Returns the input file offset for the step.
+ */
+uint64_t
+evb_ubstep_get_file_offset(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step, step_file_offset_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
+ * evb_ubstep_get_file_size --
+ *	Returns the size of the input file to copy for this step, or
+ *	zero if the remainder of the file should be copied.
+ */
+uint64_t
+evb_ubstep_get_file_size(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step, step_file_size_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
+ * evb_ubstep_get_image_offset --
+ *	Returns the offset into the destination image / device to
+ *	copy the input file.
+ */
+uint64_t
+evb_ubstep_get_image_offset(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step, step_image_offset_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
+ * evb_ubstep_preserves_partial_block --
+ *	Returns true if the step preserves a partial block.
+ */
+bool
+evb_ubstep_preserves_partial_block(ib_params *params, evb_ubstep step)
+{
+	prop_bool_t val = prop_dictionary_get(step, step_preserve_key);
+	if (val != NULL)
+		return prop_bool_true(val);
+	return false;
+}
+
+/*
+ * evb_uboot_file_path --
+ *	Build a file path from the u-boot base path in the board object
+ *	and the file name in the step object.
+ */
+const char *
+evb_uboot_file_path(ib_params *params, evb_board board, evb_ubstep step,
+    char *buf, size_t bufsize)
+{
+	const char *base_path = evb_board_get_uboot_path(params, board);
+	const char *file_name = evb_ubstep_get_file_name(params, step);
 	int ret;
 
-	ret = snprintf(buf, bufsize, "%s/%s", uboot_base, filename);
+	if (base_path == NULL || file_name == NULL)
+		return NULL;
+
+	ret = snprintf(buf, bufsize, "%s/%s", base_path, file_path);
 	if (ret < 0 || (size_t)ret >= bufsize)
 		return NULL;
 
 	return buf;
 }
 
+/*
+ * evb_uboot_do_step --
+ *	Given a evb_ubstep, do the deed.
+ */
 static int
-evb_uboot_write_blob(ib_params *params, const char *uboot_file,
-    const struct evboard_uboot_desc *desc)
+evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 {
 	struct stat sb;
 	int ifd = -1;
 	char *blockbuf;
-	int rv = 0;
 	size_t thisblock;
 	off_t curoffset;
 	off_t remaining;
+	bool rv = false;
+
+	uint64_t file_size = evb_ubstep_get_file_size(params, step);
+	uint64_t file_offset = evb_ubstep_get_image_offset(params, step);
+	uint64_t image_offset = evb_ubstep_get_image_offset(params, step);
 
 	blockbuf = malloc(params->sectorsize);
 	if (blockbuf == NULL)
@@ -649,37 +937,37 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 		goto out;
 	}
 
-	if (desc->file_size)
-		remaining = desc->file_size;
+	if (file_size)
+		remaining = (off_t)desc->file_size;
 	else
-		remaining = sb.st_size - desc->file_offset;
+		remaining = sb.st_size - (off_t)desc->file_offset;
 
 	if (params->flags & IB_VERBOSE) {
-		if (desc->file_offset) {
-			printf("Writing '%s' -- %lld @ %lld ==> %lld\n",
+		if (file_offset) {
+			printf("Writing '%s' -- %lld @ %" PRIu64 " ==> %" PRIu64 "\n",
 			    desc->filename, (long long)remaining,
-			    desc->file_offset, (long long)desc->image_offset);
+			    file_offset, image_offset);
 		} else {
-			printf("Writing '%s' -- %lld ==> %lld\n",
+			printf("Writing '%s' -- %lld ==> %" PRIu64 "\n",
 			    desc->filename, (long long)remaining,
-			    (long long)desc->image_offset);
+			    image_offset);
 		}
 	}
 
-	if (lseek(ifd, desc->file_offset, SEEK_SET) < 0) {
-		warn("lseek '%s' @ %lld", uboot_file,
-		    (long long)desc->file_offset);
+	if (lseek(ifd, (off_t)file_offset, SEEK_SET) < 0) {
+		warn("lseek '%s' @ %" PRIu64, uboot_file,
+		    file_offset);
 		goto out;
 	}
 
-	for (curoffset = desc->image_offset; remaining != 0;
+	for (curoffset = (off_t)image_offset; remaining != 0;
 	     remaining -= thisblock, curoffset += params->sectorsize) {
 		thisblock = params->sectorsize;
 		if (thisblock > remaining)
 			thisblock = (size_t)remaining;
 		if ((thisblock % params->sectorsize) != 0) {
 			memset(blockbuf, 0, params->sectorsize);
-			if (params->flags & UB_PRESERVE) {
+			if (evb_ubstep_preserves_partial_block(params, step)) {
 				if (params->flags & IB_VERBOSE) {
 					printf("(Reading '%s' -- %u @ %lld)\n",
 					    params->filesystem,
@@ -705,7 +993,7 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 	}
 
 	/* Success! */
-	rv = 1;
+	rv = true;
 
  out:
 	if (ifd != -1 && close(ifd) == -1)
@@ -716,7 +1004,7 @@ evb_uboot_write_blob(ib_params *params, const char *uboot_file,
 }
 
 int
-evb_uboot_setboot(ib_params *params, const struct evboard_uboot_desc *descs)
+evb_uboot_setboot(ib_params *params, evb_board board)
 {
 	char uboot_base_pathbuf[PATH_MAX+1];
 	const char *uboot_base;
