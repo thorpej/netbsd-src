@@ -1041,7 +1041,7 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	bool rv = false;
 
 	uint64_t file_size = evb_ubstep_get_file_size(params, step);
-	uint64_t file_offset = evb_ubstep_get_image_offset(params, step);
+	uint64_t file_offset = evb_ubstep_get_file_offset(params, step);
 	uint64_t image_offset = evb_ubstep_get_image_offset(params, step);
 
 	blockbuf = malloc(params->sectorsize);
