@@ -1106,7 +1106,8 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 			warn("read '%s'", uboot_file);
 			goto out;
 		}
-		if (pwrite(params->fsfd, blockbuf, params->sectorsize,
+		if (!(params->flags & IB_NOWRITE) &&
+		    pwrite(params->fsfd, blockbuf, params->sectorsize,
 			   curoffset) != (ssize_t)params->sectorsize) {
 			warn("pwrite '%s'", params->filesystem);
 			goto out;
