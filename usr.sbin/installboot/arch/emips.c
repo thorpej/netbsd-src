@@ -125,10 +125,13 @@ __RCSID("$NetBSD: emips.c,v 1.1 2011/01/26 01:18:55 pooka Exp $");
 static int emips_clearboot(ib_params *);
 static int emips_setboot(ib_params *);
 
-struct ib_mach ib_mach_emips =
-	{ "emips", emips_setboot, emips_clearboot, no_editboot,
-		IB_STAGE1START | IB_APPEND | IB_SUNSUM };
-
+struct ib_mach ib_mach_emips = {
+	.name		=	"emips",
+	.setboot	=	emips_setboot,
+	.clearboot	=	emips_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE1START | IB_APPEND | IB_SUNSUM,
+};
 
 static int
 emips_clearboot(ib_params *params)

@@ -79,8 +79,12 @@ __RCSID("$NetBSD: sparc64.c,v 1.18 2010/01/14 16:27:49 tsutsui Exp $");
 static int sparc64_clearboot(ib_params *);
 static int sparc64_setboot(ib_params *);
 
-struct ib_mach ib_mach_sparc64 =
-	{ "sparc64", sparc64_setboot, sparc64_clearboot, no_editboot, 0};
+struct ib_mach ib_mach_sparc64 = {
+	.name		=	"sparc64",
+	.setboot	=	sparc64_setboot,
+	.clearboot	=	sparc64_clearboot,
+	.editboot	=	no_editboot,
+};
 
 static int
 sparc64_clearboot(ib_params *params)

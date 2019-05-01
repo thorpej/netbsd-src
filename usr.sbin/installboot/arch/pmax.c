@@ -121,9 +121,13 @@ static int	load_bootstrap(ib_params *, char **,
 static int pmax_clearboot(ib_params *);
 static int pmax_setboot(ib_params *);
 
-struct ib_mach ib_mach_pmax =
-	{ "pmax", pmax_setboot, pmax_clearboot, no_editboot,
-		IB_STAGE1START | IB_APPEND | IB_SUNSUM };
+struct ib_mach ib_mach_pmax = {
+	.name		=	"pmax",
+	.setboot	=	pmax_setboot,
+	.clearboot	=	pmax_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE1START | IB_APPEND | IB_SUNSUM,
+};
 
 
 static int

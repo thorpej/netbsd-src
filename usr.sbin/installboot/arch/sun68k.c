@@ -49,13 +49,21 @@ __RCSID("$NetBSD: sun68k.c,v 1.21 2008/04/28 20:24:16 martin Exp $");
 static int sun68k_clearboot(ib_params *);
 static int sun68k_setboot(ib_params *);
 
-struct ib_mach ib_mach_sun2 =
-	{ "sun2", sun68k_setboot, sun68k_clearboot, no_editboot,
-		IB_STAGE2START };
+struct ib_mach ib_mach_sun2 = {
+	.name		=	"sun2",
+	.setboot	=	sun68k_setboot,
+	.clearboot	=	sun68k_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE2START,
+};
 
-struct ib_mach ib_mach_sun3 =
-	{ "sun3", sun68k_setboot, sun68k_clearboot, no_editboot,
-		IB_STAGE2START };
+struct ib_mach ib_mach_sun3 = {
+	.name		=	"sun3",
+	.setboot	=	sun68k_setboot,
+	.clearboot	=	sun68k_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE2START,
+};
 
 static struct bbinfo_params bbparams = {
 	SUN68K_BBINFO_MAGIC,

@@ -57,13 +57,21 @@ static int news68k_setboot(ib_params *);
 static int newsmips_clearboot(ib_params *);
 static int newsmips_setboot(ib_params *);
 
-struct ib_mach ib_mach_news68k =
-	{ "news68k", news68k_setboot, news68k_clearboot, no_editboot,
-		IB_STAGE2START };
+struct ib_mach ib_mach_news68k = {
+	.name		=	"news68k",
+	.setboot	=	news68k_setboot,
+	.clearboot	=	news68k_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE2START,
+};
 
-struct ib_mach ib_mach_newsmips =
-	{ "newsmips", newsmips_setboot, newsmips_clearboot, no_editboot,
-		IB_STAGE2START };
+struct ib_mach ib_mach_newsmips = {
+	.name		=	"newsmips",
+	.setboot	=	newsmips_setboot,
+	.clearboot	=	newsmips_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE2START,
+};
 
 /*
  * news68k specific support
