@@ -377,7 +377,7 @@ evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 	char *buf = NULL;
 	const char *pathspec;
 	int i, count;
-	char *cp;
+	char *cp, *startcp;;
 
 	pathspec = getenv(UBOOT_PATHS_ENV_VAR);
 	if (pathspec == NULL)
@@ -400,15 +400,34 @@ evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 	if (buf == NULL)
 		goto out;
 
+	/*
+	 * Because we want to follow the usual "paths are listed in priority
+	 * order" semantics, we reverse the order of the paths when we put
+	 * them into the array we feed to fts.  This is because we always
+	 * overwrite existing entries as we find them, thus the last board
+	 * object found one a given key is the one that will be used.
+	 */
+
 	ret_array = (char **)buf;
-	cp = buf + (sizeof(char *) * (count + 1));
-	strcpy(cp, pathspec); /* this is a safe strcpy(); don't replace it. */
+	startcp = buf + (sizeof(char *) * (count + 1));
+	/* this is a safe strcpy(); don't replace it. */
+	strcpy(startcp, pathspec);
+
+	cp = strrchr(startcp, ':');
+	if (cp == NULL)
+		cp = startcp;
+
 	for (i = 0;;) {
-		ret_array[i++] = cp;
-		cp = strchr(cp, ':');
-		if (cp == NULL)
+		if (*cp == ':') {
+			ret_array[i++] = cp+1;
+			*cp-- = '\0';
+		} else
+			ret_array[i++] = cp;
+		if (cp == startcp)
 			break;
-		*cp++ = '\0';
+		cp = strrchr(cp, ':');
+		if (cp == NULL)
+			cp = startcp;
 	}
 	assert(i == count);
 	ret_array[i] = NULL;
