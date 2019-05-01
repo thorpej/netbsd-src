@@ -376,7 +376,7 @@ evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 	char **ret_array = NULL;
 	char *buf = NULL;
 	const char *pathspec;
-	int i, count = 0;
+	int i, count;
 	char *cp;
 
 	pathspec = getenv(UBOOT_PATHS_ENV_VAR);
@@ -387,8 +387,13 @@ evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 		goto out;
 
 	/* Count the path elements. */
-	for (cp = __UNCONST(pathspec); cp != NULL;
-	     cp = strchr(cp, ':'), count++);
+	for (cp = __UNCONST(pathspec), count = 0;;) {
+		count++;
+		cp = strchr(cp, ':');
+		if (cp == NULL)
+			break;
+		cp++;
+	}
 
 	buf = malloc((sizeof(char *) * (count + 1)) +
 		     strlen(pathspec) + 1);
@@ -403,7 +408,7 @@ evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 		cp = strchr(cp, ':');
 		if (cp == NULL)
 			break;
-		*cp = '\0';
+		*cp++ = '\0';
 	}
 	assert(i == count);
 	ret_array[i] = NULL;
