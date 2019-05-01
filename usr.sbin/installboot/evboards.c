@@ -179,7 +179,7 @@ __RCSID("$NetBSD$");
  *		  -- Otherwise, it whould provide one or more objects
  *		  -- with names reflecting the media type, e.g.:
  *		  --
- *		  --	"u-boot-install-sd"	(for SD cards)
+ *		  --	"u-boot-install-sdmmc"	(for SD cards)
  *		  --	"u-boot-install-emmc"	(for eMMC modules)
  *		  --	"u-boot-install-usb"	(for USB block storage)
  *		  --
@@ -909,7 +909,7 @@ evb_board_copy_uboot_media(ib_params *params, evb_board board)
 		    strncmp(cp, board_u_boot_install_key,
 			    sizeof(board_u_boot_install_key) - 1) != 0)
 			continue;
-		string = prop_string_create_cstring(strrchr(cp, '-'));
+		string = prop_string_create_cstring(strrchr(cp, '-')+1);
 		assert(string != NULL);
 		prop_array_add(array, string);
 		prop_object_release(string);
@@ -1157,6 +1157,9 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	evb_ubinstall install = evb_board_get_uboot_install(params, board);
 	evb_ubsteps steps;
 	evb_ubstep step;
+
+	if (install == NULL)
+		return 0;
 
 	/*
 	 * First, make sure the files are all there.  While we're
