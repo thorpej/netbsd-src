@@ -1197,6 +1197,20 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	 * partition containing a file system.
 	 */
 
+	off_t rounded_max_offset = (off_t)(max_offset / params->sectorsize) *
+	    params->sectorsize;
+	if (rounded_max_offset != max_offset)
+		rounded_max_offset += params->sectorsize;
+
+	if (params->flags & IB_VERBOSE) {
+		printf("Max u-boot offset (rounded): %lld (%lld)\n",
+		    (long long)max_offset, (long long)rounded_max_offset);
+		printf("First free block available for file systems: "
+		    "%lld (0x%llx)\n",
+		    (long long)rounded_max_offset / params->sectorsize,
+		    (long long)rounded_max_offset / params->sectorsize);
+	}
+
 	/* XXX Check MBR table for overlapping partitions. */
 
 	/*
