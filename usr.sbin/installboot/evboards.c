@@ -690,6 +690,22 @@ evb_db_load_overlays(ib_params *params)
 	}
 
 	fts_close(fts);
+
+	/*
+	 * If the user specifed a stage1 loader, then consult it last
+	 * for a possible u-boot package location.
+	 */
+	if (params->stage1 != NULL) {
+		overlay_path = make_path(overlay_pathbuf,
+		    sizeof(overlay_pathbuf), "%s/installboot.plist",
+		    params->stage1);
+		if (overlay_path == NULL) {
+			if (stat(overlay_path, &sb) == 0) {
+				evb_db_load_overlay(params, overlay_path,
+				    params->stage1);
+			}
+		}
+	}
 }
 
 /*
