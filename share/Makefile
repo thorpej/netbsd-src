@@ -7,7 +7,7 @@
 
 .if ${MKSHARE} != "no" || \
 	make(clean) || make(cleandir) || make(distclean) || make(obj)
-SUBDIR=	dict examples legal man me misc mk \
+SUBDIR=	dict examples installboot legal man me misc mk \
 	tabset terminfo tmac wscons xml
 
 .if ${MKGROFF} != "no"
