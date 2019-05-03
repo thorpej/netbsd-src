@@ -341,12 +341,7 @@ main(int argc, char *argv[])
 			 * infer a default location for u-boot binaries if the
 			 * board type is given).
 			 */
-			if (params->machine->mach_flags & MF_UBOOT) {
-				if (!(params->flags & IB_BOARD)) {
-					errx(EXIT_FAILURE,
-	     "Must specify either the the primary bootstrap or the board type");
-				}
-			} else {
+			if (!(params->machine->mach_flags & MF_UBOOT)) {
 				errx(EXIT_FAILURE,
 				   "Please specify the primary bootstrap file");
 			}
