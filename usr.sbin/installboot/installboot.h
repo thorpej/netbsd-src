@@ -119,6 +119,7 @@ struct ib_mach {
 	int		(*setboot)	(ib_params *);
 	int		(*clearboot)	(ib_params *);
 	int		(*editboot)	(ib_params *);
+	void		(*usage)	(ib_params *);
 	ib_flags	valid_flags;
 	m_flags		mach_flags;
 };

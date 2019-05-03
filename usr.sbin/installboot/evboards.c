@@ -822,6 +822,52 @@ evb_db_get_board(ib_params *params, const char *name)
 }
 
 /*
+ * evb_db_list_boards --
+ *	Print the list of known boards to the specified output stream.
+ */
+void
+evb_db_list_boards(ib_params *params, FILE *out)
+{
+	prop_object_iterator_t iter;
+	prop_dictionary_keysym_t key;
+	evb_board board;
+	const char *uboot_pkg;
+	const char *uboot_path;
+
+	/*
+	 * By default, we only list boards that we have a u-boot
+	 * package installed for, or if we know which package you
+	 * need to install.  You get the full monty in verbose mode.
+	 */
+
+	iter = prop_dictionary_iterator(params->mach_data);
+	while ((key = prop_object_iterator_next(iter)) != NULL) {
+		board = prop_dictionary_get_keysym(params->mach_data, key);
+		assert(board != NULL);
+		uboot_pkg = evb_board_get_uboot_pkg(params, board);
+		uboot_path = evb_board_get_uboot_path(params, board);
+
+		if (uboot_pkg == NULL && uboot_path == NULL &&
+		    !(params->flags & IB_VERBOSE))
+			continue;
+
+		fprintf(out, "%-30s %s\n",
+		    prop_dictionary_keysym_cstring_nocopy(key),
+		    evb_board_get_description(params, board));
+
+		if ((params->flags & IB_VERBOSE) && uboot_path) {
+			fprintf(out, "\t(u-boot package found at %s)\n",
+			    uboot_path);
+		} else if ((params->flags & IB_VERBOSE) && uboot_pkg) {
+			fprintf(out,
+			    "\t(install the sysutils/u-boot-%s package)\n",
+			    uboot_pkg);
+		}
+	}
+	prop_object_iterator_release(iter);
+}
+
+/*
  * evb_board_get_description --
  *	Return the description for the specified board.
  */

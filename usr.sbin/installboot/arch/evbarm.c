@@ -48,12 +48,14 @@ __RCSID("$NetBSD$");
 static int	evbarm_setboot(ib_params *);
 static int	evbarm_clearboot(ib_params *);
 static int	evbarm_editboot(ib_params *);
+static void	evbarm_usage(ib_params *);
 
 struct ib_mach ib_mach_evbarm = {
 	.name		=	"evbarm",
 	.setboot	=	evbarm_setboot,
 	.clearboot	=	evbarm_clearboot,
 	.editboot	=	evbarm_editboot,
+	.usage		=	evbarm_usage,
 	.valid_flags	=	IB_BOARD | IB_MEDIA,
 	.mach_flags	=	MF_UBOOT,
 };
@@ -105,4 +107,25 @@ evbarm_editboot(ib_params *params)
 {
 
 	return no_editboot(params);
+}
+
+static void
+evbarm_usage(ib_params *params)
+{
+	const char *prog;
+	evb_board board;
+	int rv = 0;
+
+	if (!evb_db_load(params)) {
+		warnx("Unable to load board db.");
+		return;
+	}
+
+	fprintf(stderr, "Known boards (for -o board=...) are:\n");
+	evb_db_list_boards(params, stderr);
+
+	if (params->mach_data) {
+		prop_object_release(params->mach_data);
+		params->mach_data = NULL;
+	}
 }

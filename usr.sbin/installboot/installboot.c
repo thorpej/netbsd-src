@@ -601,24 +601,6 @@ fstype_usage(void)
 }
 
 static void
-boards_usage(void)
-{
-#if 0
-	if (installboot_params.machine == NULL)
-		return;
-
-	installboot_params.mach_data = evb_plist_load(&installboot_params);
-	if (installboot_params.mach_data == NULL)
-		return;
-
-	warnx("Known board types:");
-	evb_plist_list_boards(&installboot_params, stderr);
-	prop_object_release(installboot_params.mach_data);
-	installboot_params.mach_data = NULL;
-#endif
-}
-
-static void
 usage(void)
 {
 	const char	*prog;
@@ -633,6 +615,8 @@ usage(void)
 	machine_usage();
 	fstype_usage();
 	options_usage();
-	boards_usage();
+	if (installboot_params.machine != NULL &&
+	    installboot_params.machine->usage != NULL)
+		installboot_params.machine->usage(&installboot_params);
 	exit(1);
 }
