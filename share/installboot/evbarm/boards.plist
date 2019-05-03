@@ -176,7 +176,7 @@
 		<key>description</key>
 		<string>Cubietech Cubietruck Plus</string>
 		<key>u-boot-pkg</key>
-		<string>cubietruck-plus</string>
+		<string>cubietruck_plus</string>
 	</dict>
 
 	<key>friendlyarm,nanopi-m1</key>
