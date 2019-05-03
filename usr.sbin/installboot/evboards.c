@@ -199,8 +199,8 @@ __RCSID("$NetBSD$");
  *		  --        same directory in which the instalboot.plist
  *		  --        file for that u-boot package is located.
  *		  --        This key/value pair should never be included
- *		  --        in an installboot.plist file, and any value
- *		  --        appearing in installboot.plist will be ignored.
+ *		  --        in an installboot.plist file, and including it
+ *		  --	    will cause the overlay to be rejected.
  *		  -- (computed at run-time)
  *		  -->
  *		<key>runtime-u-boot-path</key>
@@ -718,7 +718,7 @@ evb_db_load_overlays(ib_params *params)
 		overlay_path = make_path(overlay_pathbuf,
 		    sizeof(overlay_pathbuf), "%s/installboot.plist",
 		    params->stage1);
-		if (overlay_path == NULL) {
+		if (overlay_path != NULL) {
 			if (stat(overlay_path, &sb) == 0) {
 				evb_db_load_overlay(params, overlay_path,
 				    params->stage1);
