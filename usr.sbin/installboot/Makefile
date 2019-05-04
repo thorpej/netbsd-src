@@ -31,8 +31,9 @@ ARCH_FILES= ${MACHINE}.c
 
 SRCS+=${ARCH_FILES}
 
-# XXX include only for evbarm
+.if !empty(ARCH_FILES:C/(evbarm)/evboard/:Mevboard.c)
 SRCS+=evboards.c
+.endif
 
 .if empty(ARCH_FILES:C/(macppc|news|sparc|sun68k|x68k)/stg2/:Mstg2.c)
 CPPFLAGS	+= -DNO_STAGE2
@@ -58,9 +59,10 @@ CPPFLAGS+=	-I${.CURDIR} -I.
 COPTS.${f}.c+=  -Wno-pointer-sign
 .endfor
 
-# XXX include only if evboards.c is being built
+.if !empty(SRCS:Mevboards.c)
 LDADD+=	-lprop
 DPADD+=	${LIBPROP}
+.endif
 
 LDADD+= -lutil
 DPADD+= ${LIBUTIL}
