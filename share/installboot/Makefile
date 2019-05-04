@@ -4,5 +4,6 @@
 
 .if ${MKSHARE} != "no"
 SUBDIR=	evbarm
+.endif
 
 .include <bsd.subdir.mk>
