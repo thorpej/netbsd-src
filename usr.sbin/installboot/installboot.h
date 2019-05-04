@@ -102,7 +102,6 @@ typedef struct {
 	int		 timeout;	/* interactive boot timeout */
 	const char	*keymap;	/* keyboard translations */
 	const char	*board;		/* board specification */
-	const char	*soc;		/* soc specification */
 	const char	*media;		/* boot media type */
 
 		/* temporary working data */
