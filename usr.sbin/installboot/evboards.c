@@ -41,13 +41,16 @@ __RCSID("$NetBSD$");
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fts.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
 #include <unistd.h>
 
 #include "installboot.h"
@@ -314,7 +317,7 @@ __RCSID("$NetBSD$");
  *	Build a path into the given buffer with the specified
  *	format.  Returns NULL if the path won't fit.
  */
-const char *
+static const char *
 make_path(char *buf, size_t bufsize, const char *fmt, ...)
 {
 	va_list ap;
@@ -370,7 +373,7 @@ evb_db_base_path(ib_params *params, char *buf, size_t bufsize)
  *	The working buffer is returned in *bufp so that the caller
  *	can free it.
  */
-char **
+static char **
 evb_uboot_pkg_paths(ib_params *params, int *countp, void **bufp)
 {
 	char **ret_array = NULL;
@@ -790,11 +793,6 @@ evb_db_load_base(ib_params *params)
  done:
 	params->mach_data = board_db;
 	return true;
-
- bad:
-	if (board_db != NULL)
-		prop_object_release(board_db);
-	return false;
 }
 
 /*
@@ -1103,7 +1101,6 @@ evb_uboot_file_path(ib_params *params, evb_board board, evb_ubstep step,
 {
 	const char *base_path = evb_board_get_uboot_path(params, board);
 	const char *file_name = evb_ubstep_get_file_name(params, step);
-	int ret;
 
 	if (base_path == NULL || file_name == NULL)
 		return NULL;
@@ -1167,10 +1164,10 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 		goto out;
 	}
 
-	for (curoffset = (off_t)image_offset; remaining != 0;
+	for (curoffset = (off_t)image_offset; remaining > 0;
 	     remaining -= thisblock, curoffset += params->sectorsize) {
 		thisblock = params->sectorsize;
-		if (thisblock > remaining)
+		if ((off_t)thisblock > remaining)
 			thisblock = (size_t)remaining;
 		if ((thisblock % params->sectorsize) != 0) {
 			memset(blockbuf, 0, params->sectorsize);
@@ -1218,7 +1215,6 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	const char *uboot_file;
 	struct stat sb;
 	off_t max_offset = 0;
-	int i;
 
 	/*
 	 * If we don't have a u-boot path for this board, it means
@@ -1253,10 +1249,8 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 		uint64_t file_size = evb_ubstep_get_file_size(params, step);
 		uint64_t image_offset =
 		    evb_ubstep_get_image_offset(params, step);
-		uboot_file = make_path(uboot_filebuf,
-		    sizeof(uboot_filebuf), "%s/%s",
-		    evb_board_get_uboot_path(params, board),
-		    evb_ubstep_get_file_name(params, step));
+		uboot_file = evb_uboot_file_path(params, board, step,
+		    uboot_filebuf, sizeof(uboot_filebuf));
 		if (uboot_file == NULL)
 			return 0;
 		if (stat(uboot_file, &sb) < 0) {
@@ -1267,7 +1261,12 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 			warnx("%s: %s", uboot_file, strerror(EFTYPE));
 			return 0;
 		}
-		off_t this_max = (sb.st_size - file_offset) + image_offset;
+		off_t this_max;
+		if (file_size)
+			this_max = file_size;
+		else
+			this_max = sb.st_size - file_offset;
+		this_max += image_offset;
 		if (max_offset < this_max)
 			max_offset = this_max;
 	}
@@ -1300,10 +1299,8 @@ evb_uboot_setboot(ib_params *params, evb_board board)
 	 */
 	steps = evb_ubinstall_get_steps(params, install);
 	while ((step = evb_ubsteps_next_step(params, steps)) != NULL) {
-		uboot_file = make_path(uboot_filebuf,
-		    sizeof(uboot_filebuf), "%s/%s",
-		    evb_board_get_uboot_path(params, board),
-		    evb_ubstep_get_file_name(params, step));
+		uboot_file = evb_uboot_file_path(params, board, step,
+		    uboot_filebuf, sizeof(uboot_filebuf));
 		if (uboot_file == NULL)
 			return 0;
 		if (!evb_uboot_do_step(params, uboot_file, step))

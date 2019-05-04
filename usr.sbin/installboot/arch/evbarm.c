@@ -38,6 +38,7 @@
 __RCSID("$NetBSD$");
 #endif  /* !__lint */
 
+#include <err.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -112,9 +113,6 @@ evbarm_editboot(ib_params *params)
 static void
 evbarm_usage(ib_params *params)
 {
-	const char *prog;
-	evb_board board;
-	int rv = 0;
 
 	if (!evb_db_load(params)) {
 		warnx("Unable to load board db.");
