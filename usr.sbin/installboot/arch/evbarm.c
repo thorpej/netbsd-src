@@ -72,16 +72,9 @@ evbarm_setboot(ib_params *params)
 		return 0;
 	}
 
-	if (!(params->flags & IB_BOARD)) {
-		warnx("Must specify board=...");
+	board = evb_db_get_board(params);
+	if (board == NULL)
 		goto out;
-	}
-
-	board = evb_db_get_board(params, params->board);
-	if (board == NULL) {
-		warnx("Unknown board '%s'", params->board);
-		goto out;
-	}
 
 	if (params->flags & IB_VERBOSE)
 		printf("Board: %s\n", evb_board_get_description(params, board));

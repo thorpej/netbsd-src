@@ -41,7 +41,7 @@ typedef prop_object_iterator_t evb_ubsteps;
 typedef prop_dictionary_t      evb_ubstep;
 
 bool		evb_db_load(ib_params *);
-evb_board	evb_db_get_board(ib_params *, const char *);
+evb_board	evb_db_get_board(ib_params *);
 void		evb_db_list_boards(ib_params *, FILE *);
 
 const char *	evb_board_get_description(ib_params *, evb_board);

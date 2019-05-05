@@ -814,9 +814,30 @@ evb_db_load(ib_params *params)
  *	Return the specified board object from the database.
  */
 evb_board
-evb_db_get_board(ib_params *params, const char *name)
+evb_db_get_board(ib_params *params)
 {
-	return prop_dictionary_get(params->mach_data, name);
+	const char *board_name = NULL;
+	evb_board board;
+
+	if (board_name == NULL) {
+		if (!(params->flags & IB_BOARD)) {
+			warnx("Must specify board=...");
+			return NULL;
+		}
+		board_name = params->board;
+	}
+
+	assert(board_name != NULL);
+
+	board = prop_dictionary_get(params->mach_data, board_name);
+	if (board == NULL)
+		warnx("Unknown board '%s'", board_name);
+
+	if (params->flags & IB_VERBOSE) {
+		printf("Board: %s\n", evb_board_get_description(params, board));
+	}
+
+	return board;
 }
 
 /*
