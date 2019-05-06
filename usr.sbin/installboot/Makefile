@@ -35,8 +35,12 @@ SRCS+=${ARCH_FILES}
 SRCS+=evboards.c
 .endif
 
+.if !empty(ARCH_FILES:C/(evbarm)/ofw/:Mofw.c)
+CPPFLAGS+=	-DSUPPORT_OPENFIRMWARE
+.endif
+
 .if empty(ARCH_FILES:C/(macppc|news|sparc|sun68k|x68k)/stg2/:Mstg2.c)
-CPPFLAGS	+= -DNO_STAGE2
+CPPFLAGS+=	-DNO_STAGE2
 .else
 SRCS+= bbinfo.c
 

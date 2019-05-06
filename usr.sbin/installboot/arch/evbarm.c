@@ -76,9 +76,6 @@ evbarm_setboot(ib_params *params)
 	if (board == NULL)
 		goto out;
 
-	if (params->flags & IB_VERBOSE)
-		printf("Board: %s\n", evb_board_get_description(params, board));
-
 	rv = evb_uboot_setboot(params, board);
 
  out:

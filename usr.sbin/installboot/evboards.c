@@ -53,6 +53,16 @@ __RCSID("$NetBSD$");
 #include <string.h>
 #include <unistd.h>
 
+#if !HAVE_NBTOOL_CONFIG_H
+#include <sys/utsname.h>
+
+#ifdef SUPPORT_OPENFIRMWARE
+#include <sys/ioctl.h>
+#include <dev/ofw/openfirmio.h>
+#endif
+
+#endif /* ! HAVE_NBTOOL_CONFIG_H */
+
 #include "installboot.h"
 #include "evboards.h"
 
@@ -809,6 +819,149 @@ evb_db_load(ib_params *params)
 	return true;
 }
 
+#if !HAVE_NBTOOL_CONFIG_H
+/*
+ * Native board name guessing methods.
+ */
+
+#ifdef SUPPORT_OPENFIRMWARE
+static int
+ofw_fd(void)
+{
+	static const char openfirm_path[] = "/dev/openfirm";
+
+	return open(openfirm_path, O_RDONLY);
+}
+
+static int
+OF_finddevice(const char *name)
+{
+	struct ofiocdesc ofio = {
+		.of_name = __UNCONST(name),
+		.of_namelen = strlen(name),
+	};
+	int fd = ofw_fd();
+
+	if (fd == -1)
+		return -1;
+
+	if (ioctl(fd, OFIOCFINDDEVICE, &ofio) < 0) {
+		if (errno != ENOENT)
+			warn("OFIOCFINDDEVICE('%s')", name);
+		ofio.of_nodeid = -1;
+	}
+	(void) close(fd);
+
+	return ofio.of_nodeid;
+}
+
+static int
+OF_getprop(int phandle, const char *prop, void *buf, size_t buflen)
+{
+	struct ofiocdesc ofio = {
+		.of_nodeid = phandle,
+		.of_name = __UNCONST(prop),
+		.of_namelen = strlen(prop),
+		.of_buf = buf,
+		.of_buflen = buflen,
+	};
+	int fd = ofw_fd();
+
+	if (fd == -1)
+		return -1;
+
+	int save_errno = 0;
+
+	if (ioctl(fd, OFIOCGET, &ofio) < 0) {
+		save_errno = errno;
+		if (errno != ENOMEM && errno != ENOENT) {
+			save_errno = errno;
+			warn("OFIOCGET('%s')", prop);
+		}
+		ofio.of_buflen = -1;
+	}
+	(void) close(fd);
+	errno = save_errno;
+
+	return ofio.of_buflen;
+}
+
+static void *
+ofw_getprop(int phandle, const char *prop, int *lenp)
+{
+	size_t buflen = 32;
+	void *buf = NULL;
+	int len;
+
+	for (;;) {
+		void *newbuf = realloc(buf, buflen);
+		if (newbuf == NULL) {
+			free(buf);
+			return NULL;
+		}
+		buf = newbuf;
+		switch (len = OF_getprop(phandle, prop, buf, buflen)) {
+		case -1:
+			if (errno != ENOMEM) {
+				free(buf);
+				return NULL;
+			}
+			buflen *= 2;
+			break;
+
+		default:
+			if (lenp)
+				*lenp = len;
+			return buf;
+		}
+	}
+}
+
+static evb_board
+evb_db_get_board_from_ofw(ib_params *params, const char **board_namep)
+{
+	int phandle;
+	int compatible_len = 0;
+	char *compatible_buf;
+	const char *sp, *nsp;
+	evb_board board;
+
+	phandle = OF_finddevice("/");
+	if (phandle == -1) {
+		/* No OpenFirmware available. */
+		return NULL;
+	}
+
+	compatible_buf = ofw_getprop(phandle, "compatible", &compatible_len);
+
+	/*
+	 * We just leak compatible_buf on success.  Not a big deal since
+	 * we are not a long-running process.
+	 */
+
+	sp = compatible_buf;
+	while (compatible_len &&
+	       (nsp = memchr(sp, 0, compatible_len)) != NULL) {
+		if (params->flags & IB_VERBOSE)
+			printf("Checking OFW compatible string '%s'.\n", sp);
+		board = prop_dictionary_get(params->mach_data, sp);
+		if (board != NULL) {
+			if (board_namep)
+				*board_namep = sp;
+			return board;
+		}
+		nsp++;	/* skip over NUL */
+		compatible_len -= (nsp - sp);
+		sp = nsp;
+	}
+
+	free(compatible_buf);
+	return NULL;
+}
+#endif /* SUPPORT_OPENFIRMWARE */
+
+#endif /* ! HAVE_NBTOOL_CONFIG_H */
+
 /*
  * evb_db_get_board --
  *	Return the specified board object from the database.
@@ -817,8 +970,54 @@ evb_board
 evb_db_get_board(ib_params *params)
 {
 	const char *board_name = NULL;
-	evb_board board;
+	evb_board board = NULL;
 
+#if !HAVE_NBTOOL_CONFIG_H
+	/*
+	 * If we're not a host tool, determine if we're running "natively".
+	 */
+	bool is_native = false;
+	struct utsname utsname;
+
+	if (uname(&utsname) < 0) {
+		warn("uname");
+	} else if (strcmp(utsname.machine, params->machine->name) == 0) {
+		is_native = true;
+	}
+#endif /* ! HAVE_NBTOOL_CONFIG_H */
+
+	/*
+	 * Logic for determing board type that can be shared by host-tool
+	 * and native builds goes here.
+	 */
+
+	/*
+	 * Command-line argument trumps all.
+	 */
+	if (params->flags & IB_BOARD) {
+		board_name = params->board;
+	}
+
+#if !HAVE_NBTOOL_CONFIG_H
+	/*
+	 * Non-host-tool logic for determining the board type goes here.
+	 */
+
+#ifdef SUPPORT_OPENFIRMWARE
+	if (board_name == NULL && is_native) {
+		board = evb_db_get_board_from_ofw(params, &board_name);
+	}
+#endif /* SUPPORT_OPENFIRMWARE */
+
+	/* Ensure is_native is consumed. */
+	if (is_native == false)
+		is_native = false;
+
+#endif /* ! HAVE_NBTOOL_CONFIG_H */
+
+	/*
+	 * If all else fails, we can always rely on the user, right?
+	 */
 	if (board_name == NULL) {
 		if (!(params->flags & IB_BOARD)) {
 			warnx("Must specify board=...");
@@ -829,7 +1028,8 @@ evb_db_get_board(ib_params *params)
 
 	assert(board_name != NULL);
 
-	board = prop_dictionary_get(params->mach_data, board_name);
+	if (board == NULL)
+		board = prop_dictionary_get(params->mach_data, board_name);
 	if (board == NULL)
 		warnx("Unknown board '%s'", board_name);
 
