@@ -1105,12 +1105,14 @@ evb_db_get_board(ib_params *params)
 		board = evb_db_get_board_from_dtb(params, &board_name);
 		if ((params->flags & IB_VERBOSE) && board != NULL)
 			printf("Found board '%s' from DTB data.\n", board_name);
+#if !HAVE_NBTOOL_CONFIG_H
 		/*
 		 * If the user specified a DTB, then regardless of the
 		 * outcome, this is like specifying the board directly,
 		 * so native checks should be skipped.
 		 */
 		is_native = false;
+#endif /* ! HAVE_NBTOOL_CONFIG_H */
 	}
 #endif /* SUPPORT_FDT */
 

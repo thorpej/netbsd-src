@@ -41,11 +41,16 @@ FDTDIR=		${.CURDIR}/../../sys/external/bsd/libfdt/dist
 CPPFLAGS+=	-DSUPPORT_FDT -I${FDTDIR}
 SRCS+=fdt.c fdt_ro.c fdt_strerror.c
 # XXX libfdt has some sign-comparison issues
-CWARNFLAGS+=	-Wno-error=sign-compare
+COPTS.fdt.c+=		-Wno-error=sign-compare
+COPTS.fdt_ro.c+=	-Wno-error=sign-compare
+COPTS.fdt_strerror.c+=	-Wno-error=sign-compare
 .endif
 
+
+.if !defined(HOSTPROGNAME)
 .if !empty(ARCH_FILES:C/(evbarm)/ofw/:Mofw.c)
 CPPFLAGS+=	-DSUPPORT_OPENFIRMWARE
+.endif
 .endif
 
 .if empty(ARCH_FILES:C/(macppc|news|sparc|sun68k|x68k)/stg2/:Mstg2.c)
