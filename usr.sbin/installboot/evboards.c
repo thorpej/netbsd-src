@@ -1006,6 +1006,8 @@ evb_db_get_board(ib_params *params)
 #ifdef SUPPORT_OPENFIRMWARE
 	if (board_name == NULL && is_native) {
 		board = evb_db_get_board_from_ofw(params, &board_name);
+		if ((params->flags & IB_VERBOSE) && board != NULL)
+			printf("Found board '%s' from OFW data.\n", board_name);
 	}
 #endif /* SUPPORT_OPENFIRMWARE */
 
