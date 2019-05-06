@@ -69,9 +69,10 @@ typedef enum {
 	IB_BOOTCONF = 	1<<22,		/* i386: read boot.conf */
 
 	IB_BOARD =	1<<23,		/* evb*: board specification */
+	IB_DTB=		1<<24,		/* evb*: device tree blob */
 
 	/* IB_MEDIA is required for some evb*, but not all. */
-	IB_MEDIA =	1<<24,		/* evb*: boot media type */
+	IB_MEDIA =	1<<25,		/* evb*: boot media type */
 } ib_flags;
 
 typedef enum {
@@ -102,6 +103,7 @@ typedef struct {
 	int		 timeout;	/* interactive boot timeout */
 	const char	*keymap;	/* keyboard translations */
 	const char	*board;		/* board specification */
+	const char	*dtb;		/* dtb specification */
 	const char	*media;		/* boot media type */
 
 		/* temporary working data */

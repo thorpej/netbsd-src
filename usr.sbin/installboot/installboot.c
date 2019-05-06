@@ -94,6 +94,7 @@ const struct option {
 	{ "modules",	IB_MODULES,	OPT_BOOL,	0 },
 	{ "bootconf",	IB_BOOTCONF,	OPT_BOOL,	0 },
 	{ "board",	IB_BOARD,	OPT_STRING,	OFFSET(board) },
+	{ "dtb",	IB_DTB,		OPT_STRING,	OFFSET(dtb) },
 	{ "media",	IB_MEDIA,	OPT_WORD,	OFFSET(media) },
 	{ .name = NULL },
 };

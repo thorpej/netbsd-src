@@ -35,6 +35,15 @@ SRCS+=${ARCH_FILES}
 SRCS+=evboards.c
 .endif
 
+.if !empty(ARCH_FILES:C/(evbarm)/fdt/:Mfdt.c)
+FDTDIR=		${.CURDIR}/../../sys/external/bsd/libfdt/dist
+.PATH:		${FDTDIR}
+CPPFLAGS+=	-DSUPPORT_FDT -I${FDTDIR}
+SRCS+=fdt.c fdt_ro.c fdt_strerror.c
+# XXX libfdt has some sign-comparison issues
+CWARNFLAGS+=	-Wno-error=sign-compare
+.endif
+
 .if !empty(ARCH_FILES:C/(evbarm)/ofw/:Mofw.c)
 CPPFLAGS+=	-DSUPPORT_OPENFIRMWARE
 .endif

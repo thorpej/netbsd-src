@@ -57,7 +57,7 @@ struct ib_mach ib_mach_evbarm = {
 	.clearboot	=	evbarm_clearboot,
 	.editboot	=	evbarm_editboot,
 	.usage		=	evbarm_usage,
-	.valid_flags	=	IB_BOARD | IB_MEDIA,
+	.valid_flags	=	IB_BOARD | IB_DTB | IB_MEDIA,
 	.mach_flags	=	MF_UBOOT,
 };
 

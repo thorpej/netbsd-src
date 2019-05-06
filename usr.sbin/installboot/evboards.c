@@ -53,6 +53,10 @@ __RCSID("$NetBSD$");
 #include <string.h>
 #include <unistd.h>
 
+#ifdef SUPPORT_FDT
+#include "libfdt.h"
+#endif
+
 #if !HAVE_NBTOOL_CONFIG_H
 #include <sys/utsname.h>
 
@@ -963,6 +967,104 @@ evb_db_get_board_from_ofw(ib_params *params, const char **board_namep)
 #endif /* ! HAVE_NBTOOL_CONFIG_H */
 
 /*
+ * Host-tool and native board name guessing methods.
+ */
+
+#ifdef SUPPORT_FDT
+static void *
+load_dtb(ib_params *params)
+{
+	struct stat sb;
+	void *buf;
+	int fd;
+
+	if (stat(params->dtb, &sb) < 0) {
+		warn("%s", params->dtb);
+		return NULL;
+	}
+
+	buf = malloc((size_t)sb.st_size);
+	assert(buf != NULL);
+
+	if ((fd = open(params->dtb, O_RDONLY)) < 0) {
+		warn("%s", params->dtb);
+		free(buf);
+		return NULL;
+	}
+
+	if (read(fd, buf, (size_t)sb.st_size) != (ssize_t)sb.st_size) {
+		warn("read '%s'", params->dtb);
+		free(buf);
+		buf = NULL;
+	}
+	(void) close(fd);
+
+	return buf;
+}
+
+static evb_board
+evb_db_get_board_from_dtb(ib_params *params, const char **board_namep)
+{
+	evb_board board = NULL;
+	void *fdt = NULL;
+	int error;
+
+	fdt = load_dtb(params);
+	if (fdt == NULL)
+		return NULL;
+
+	error = fdt_check_header(fdt);
+	if (error) {
+		warnx("%s: %s", params->dtb, fdt_strerror(error));
+		goto bad;
+	}
+
+	const int system_root = fdt_path_offset(fdt, "/");
+	if (system_root < 0) {
+		warnx("%s: unable to find node '/'", params->dtb);
+		goto bad;
+	}
+
+	const int system_ncompat = fdt_stringlist_count(fdt, system_root,
+	    "compatible");
+	if (system_ncompat <= 0) {
+		warnx("%s: no 'compatible' property on node '/'", params->dtb);
+		goto bad;
+	}
+
+	const char *compatible;
+	int si;
+	for (si = 0; si < system_ncompat; si++) {
+		compatible = fdt_stringlist_get(fdt, system_root,
+		    "compatible", si, NULL);
+		if (compatible == NULL)
+			continue;
+		if (params->flags & IB_VERBOSE)
+			printf("Checking FDT compatible string '%s'.\n",
+			    compatible);
+		board = prop_dictionary_get(params->mach_data, compatible);
+		if (board != NULL) {
+			/*
+			 * We just leak compatible on success.  Not a big
+			 * deal since we are not a long-running process.
+			 */
+			if (board_namep) {
+				*board_namep = strdup(compatible);
+				assert(*board_namep != NULL);
+			}
+			free(fdt);
+			return board;
+		}
+	}
+
+ bad:
+	if (fdt != NULL)
+		free(fdt);
+	return NULL;
+}
+#endif /* SUPPORT_FDT */
+
+/*
  * evb_db_get_board --
  *	Return the specified board object from the database.
  */
@@ -997,6 +1099,20 @@ evb_db_get_board(ib_params *params)
 	if (params->flags & IB_BOARD) {
 		board_name = params->board;
 	}
+
+#ifdef SUPPORT_FDT
+	if (board_name == NULL && (params->flags & IB_DTB)) {
+		board = evb_db_get_board_from_dtb(params, &board_name);
+		if ((params->flags & IB_VERBOSE) && board != NULL)
+			printf("Found board '%s' from DTB data.\n", board_name);
+		/*
+		 * If the user specified a DTB, then regardless of the
+		 * outcome, this is like specifying the board directly,
+		 * so native checks should be skipped.
+		 */
+		is_native = false;
+	}
+#endif /* SUPPORT_FDT */
 
 #if !HAVE_NBTOOL_CONFIG_H
 	/*
