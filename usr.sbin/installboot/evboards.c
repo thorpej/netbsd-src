@@ -1033,6 +1033,9 @@ evb_db_get_board(ib_params *params)
 	if (board == NULL)
 		warnx("Unknown board '%s'", board_name);
 
+	/* Ensure params->board is always valid. */
+	params->board = board_name;
+
 	if (params->flags & IB_VERBOSE) {
 		printf("Board: %s\n", evb_board_get_description(params, board));
 	}
