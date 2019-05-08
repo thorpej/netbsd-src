@@ -10,6 +10,7 @@ LIBPROP_INC=	${.CURDIR}/../../common/include
 .include "${LIBPROP_DIR}/Makefile.inc"
 
 CPPFLAGS+=	-I${.CURDIR}/../compat -I${LIBPROP_INC}
+CPPFLAGS+=	-I${TOOLDIR}/include/compat
 CPPFLAGS+=	-I${TOOLDIR}/include/nbinclude
 
 .PATH:		${LIBPROP_DIR}

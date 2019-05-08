@@ -29,8 +29,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <prop/prop_string.h>
 #include "prop_object_impl.h"
+#include <prop/prop_string.h>
 
 struct _prop_string {
 	struct _prop_object	ps_obj;

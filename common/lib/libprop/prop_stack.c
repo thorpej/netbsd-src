@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "prop_stack.h"
 #include "prop_object_impl.h"
+#include "prop_stack.h"
 
 void
 _prop_stack_init(prop_stack_t stack)

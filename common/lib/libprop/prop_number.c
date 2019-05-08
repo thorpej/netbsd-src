@@ -29,9 +29,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/rbtree.h>
-#include <prop/prop_number.h>
 #include "prop_object_impl.h"
+#include <prop/prop_number.h>
+#include <sys/rbtree.h>
 
 #if defined(_KERNEL)
 #include <sys/systm.h>

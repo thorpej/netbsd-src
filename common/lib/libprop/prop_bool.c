@@ -29,8 +29,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <prop/prop_bool.h>
 #include "prop_object_impl.h"
+#include <prop/prop_bool.h>
 
 struct _prop_bool {
 	struct _prop_object	pb_obj;
