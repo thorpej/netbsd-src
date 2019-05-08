@@ -64,9 +64,13 @@ u_int32_t chksum(u_int32_t *, int);
 
 static int amiga_setboot(ib_params *);
 
-struct ib_mach ib_mach_amiga =
-	{ "amiga", amiga_setboot, no_clearboot, no_editboot,
-		IB_STAGE1START | IB_STAGE2START | IB_COMMAND };
+struct ib_mach ib_mach_amiga = {
+	.name		=	"amiga",
+	.setboot	=	amiga_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE1START | IB_STAGE2START | IB_COMMAND,
+};
 
 static int
 amiga_setboot(ib_params *params)

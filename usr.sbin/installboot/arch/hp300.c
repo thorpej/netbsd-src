@@ -64,8 +64,13 @@ __RCSID("$NetBSD: hp300.c,v 1.15 2013/06/14 03:54:43 msaitoh Exp $");
 
 static int hp300_setboot(ib_params *);
 
-struct ib_mach ib_mach_hp300 =
-	{ "hp300", hp300_setboot, no_clearboot, no_editboot, IB_APPEND };
+struct ib_mach ib_mach_hp300 = {
+	.name		=	"hp300",
+	.setboot	=	hp300_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_APPEND,
+};
 
 static int
 hp300_setboot(ib_params *params)

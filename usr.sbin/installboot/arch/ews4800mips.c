@@ -16,8 +16,12 @@ __RCSID("$NetBSD: ews4800mips.c,v 1.2 2006/02/18 10:08:07 dsl Exp $");
 
 static int ews4800mips_setboot(ib_params *);
 
-struct ib_mach ib_mach_ews4800mips =
-	{ "ews4800mips", ews4800mips_setboot, no_clearboot, no_editboot, 0};
+struct ib_mach ib_mach_ews4800mips = {
+	.name		=	"ews4800mips",
+	.setboot	=	ews4800mips_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	no_editboot,
+};
 
 struct bbinfo_params ews4800mips_bbparams = {
 	EWS4800MIPS_BBINFO_MAGIC,

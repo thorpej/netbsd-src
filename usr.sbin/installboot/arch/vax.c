@@ -100,9 +100,13 @@ static int	load_bootstrap(ib_params *, char **,
 static int vax_clearboot(ib_params *);
 static int vax_setboot(ib_params *);
 
-struct ib_mach ib_mach_vax =
-	{ "vax", vax_setboot, vax_clearboot, no_editboot,
-		IB_STAGE1START | IB_APPEND | IB_SUNSUM };
+struct ib_mach ib_mach_vax = {
+	.name		=	"vax",
+	.setboot	=	vax_setboot,
+	.clearboot	=	vax_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE1START | IB_APPEND | IB_SUNSUM,
+};
 
 static int
 vax_clearboot(ib_params *params)

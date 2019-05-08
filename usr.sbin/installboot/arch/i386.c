@@ -75,19 +75,27 @@ static const struct console_name {
 static int i386_setboot(ib_params *);
 static int i386_editboot(ib_params *);
 
-struct ib_mach ib_mach_i386 =
-	{ "i386", i386_setboot, no_clearboot, i386_editboot,
-		IB_RESETVIDEO | IB_CONSOLE | IB_CONSPEED | IB_CONSADDR |
-		IB_KEYMAP | IB_PASSWORD | IB_TIMEOUT |
-		IB_MODULES | IB_BOOTCONF |
-		IB_STAGE1START };
+struct ib_mach ib_mach_i386 = {
+	.name		=	"i386",
+	.setboot	=	i386_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	i386_editboot,
+	.valid_flags	=	IB_RESETVIDEO | IB_CONSOLE | IB_CONSPEED |
+				    IB_CONSADDR | IB_KEYMAP | IB_PASSWORD |
+				    IB_TIMEOUT | IB_MODULES | IB_BOOTCONF |
+				    IB_STAGE1START
+};
 
-struct ib_mach ib_mach_amd64 =
-	{ "amd64", i386_setboot, no_clearboot, i386_editboot,
-		IB_RESETVIDEO | IB_CONSOLE | IB_CONSPEED | IB_CONSADDR |
-		IB_KEYMAP | IB_PASSWORD | IB_TIMEOUT |
-		IB_MODULES | IB_BOOTCONF |
-		IB_STAGE1START };
+struct ib_mach ib_mach_amd64 = {
+	.name		=	"amd64",
+	.setboot	=	i386_setboot,
+	.clearboot	=	no_clearboot,
+	.editboot	=	i386_editboot,
+	.valid_flags	=	IB_RESETVIDEO | IB_CONSOLE | IB_CONSPEED |
+				    IB_CONSADDR | IB_KEYMAP | IB_PASSWORD |
+				    IB_TIMEOUT | IB_MODULES | IB_BOOTCONF |
+				    IB_STAGE1START
+};
 
 /*
  * Attempting to write the 'labelsector' (or a sector near it - within 8k?)

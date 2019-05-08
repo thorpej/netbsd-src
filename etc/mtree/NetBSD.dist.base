@@ -472,6 +472,8 @@
 ./usr/share/i18n/esdb/UTF
 ./usr/share/i18n/iconv
 ./usr/share/info
+./usr/share/installboot
+./usr/share/installboot/evbarm
 ./usr/share/keymaps
 ./usr/share/keymaps/amiga
 ./usr/share/keymaps/atari

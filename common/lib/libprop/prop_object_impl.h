@@ -32,6 +32,10 @@
 #ifndef _PROPLIB_PROP_OBJECT_IMPL_H_
 #define	_PROPLIB_PROP_OBJECT_IMPL_H_
 
+#if defined(HAVE_NBTOOL_CONFIG_H)
+#include "nbtool_config.h"
+#endif
+
 #if defined(_KERNEL) || defined(_STANDALONE)
 #include <lib/libkern/libkern.h>
 #else

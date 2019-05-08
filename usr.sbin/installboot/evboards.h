@@ -1,11 +1,11 @@
-/*	$NetBSD: sun68k.c,v 1.21 2008/04/28 20:24:16 martin Exp $ */
+/*	$NetBSD$	*/
 
 /*-
- * Copyright (c) 2002 The NetBSD Foundation, Inc.
+ * Copyright (c) 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Luke Mewburn.
+ * by Jason R. Thorpe.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,65 +29,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if HAVE_NBTOOL_CONFIG_H
-#include "nbtool_config.h"
-#endif
+#ifndef installboot_evboards_h_included
+#define	installboot_evboards_h_included
 
-#include <sys/cdefs.h>
-#if !defined(__lint)
-__RCSID("$NetBSD: sun68k.c,v 1.21 2008/04/28 20:24:16 martin Exp $");
-#endif	/* !__lint */
-
-#include <sys/param.h>
-
-#include <assert.h>
-#include <err.h>
 #include <stdio.h>
+#include <prop/proplib.h>
 
-#include "installboot.h"
+typedef prop_dictionary_t      evb_board;
+typedef prop_array_t           evb_ubinstall;
+typedef prop_object_iterator_t evb_ubsteps;
+typedef prop_dictionary_t      evb_ubstep;
 
-static int sun68k_clearboot(ib_params *);
-static int sun68k_setboot(ib_params *);
+bool		evb_db_load(ib_params *);
+evb_board	evb_db_get_board(ib_params *);
+void		evb_db_list_boards(ib_params *, FILE *);
 
-struct ib_mach ib_mach_sun2 = {
-	.name		=	"sun2",
-	.setboot	=	sun68k_setboot,
-	.clearboot	=	sun68k_clearboot,
-	.editboot	=	no_editboot,
-	.valid_flags	=	IB_STAGE2START,
-};
+const char *	evb_board_get_description(ib_params *, evb_board);
+const char *	evb_board_get_uboot_pkg(ib_params *, evb_board);
+const char *	evb_board_get_uboot_path(ib_params *, evb_board);
+evb_ubinstall	evb_board_get_uboot_install(ib_params *, evb_board);
+prop_array_t	evb_board_copy_uboot_media(ib_params *, evb_board);
 
-struct ib_mach ib_mach_sun3 = {
-	.name		=	"sun3",
-	.setboot	=	sun68k_setboot,
-	.clearboot	=	sun68k_clearboot,
-	.editboot	=	no_editboot,
-	.valid_flags	=	IB_STAGE2START,
-};
+evb_ubsteps	evb_ubinstall_get_steps(ib_params *, evb_ubinstall);
 
-static struct bbinfo_params bbparams = {
-	SUN68K_BBINFO_MAGIC,
-	SUN68K_BOOT_BLOCK_OFFSET,
-	SUN68K_BOOT_BLOCK_BLOCKSIZE,
-	SUN68K_BOOT_BLOCK_MAX_SIZE,
-	0,
-	BBINFO_BIG_ENDIAN,
-};
+evb_ubstep	evb_ubsteps_next_step(ib_params *, evb_ubsteps);
 
-static int
-sun68k_clearboot(ib_params *params)
-{
+const char *	evb_ubstep_get_file_name(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_file_offset(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_file_size(ib_params *, evb_ubstep);
+uint64_t	evb_ubstep_get_image_offset(ib_params *, evb_ubstep);
+bool		evb_ubstep_preserves_partial_block(ib_params *, evb_ubstep);
 
-	assert(params != NULL);
+int		evb_uboot_setboot(ib_params *, evb_board);
 
-	return (shared_bbinfo_clearboot(params, &bbparams, NULL));
-}
-
-static int
-sun68k_setboot(ib_params *params)
-{
-
-	assert(params != NULL);
-
-	return (shared_bbinfo_setboot(params, &bbparams, NULL));
-}
+#endif /* installboot_evboards_h_included */

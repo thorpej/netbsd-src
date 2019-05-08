@@ -121,9 +121,14 @@ static void	check_sparc(const struct alpha_boot_block * const,
 static int alpha_clearboot(ib_params *);
 static int alpha_setboot(ib_params *);
 
-struct ib_mach ib_mach_alpha =
-	{ "alpha", alpha_setboot, alpha_clearboot, no_editboot,
-		IB_STAGE1START | IB_ALPHASUM | IB_APPEND | IB_SUNSUM };
+struct ib_mach ib_mach_alpha = {
+	.name		=	"alpha",
+	.setboot	=	alpha_setboot,
+	.clearboot	=	alpha_clearboot,
+	.editboot	=	no_editboot,
+	.valid_flags	=	IB_STAGE1START | IB_ALPHASUM | IB_APPEND |
+				    IB_SUNSUM,
+};
 
 static int
 alpha_clearboot(ib_params *params)

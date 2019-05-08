@@ -29,8 +29,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <prop/prop_data.h>
 #include "prop_object_impl.h"
+#include <prop/prop_data.h>
 
 #if defined(_KERNEL)
 #include <sys/systm.h>
