@@ -215,6 +215,12 @@ get_option(struct dhcpcd_ctx *ctx,
 		}
 		l = *p++;
 
+		/* Check we can read the option data, if present */
+		if (p + l > e) {
+			errno = EINVAL;
+			return NULL;
+		}
+
 		if (o == DHO_OPTSOVERLOADED) {
 			/* Ensure we only get this option once by setting
 			 * the last bit as well as the value.
@@ -249,10 +255,6 @@ get_option(struct dhcpcd_ctx *ctx,
 				bp += ol;
 			}
 			ol = l;
-			if (p + ol >= e) {
-				errno = EINVAL;
-				return NULL;
-			}
 			op = p;
 			bl += ol;
 		}
@@ -2075,7 +2077,7 @@ dhcp_arp_probed(struct arp_state *astate)
 	    ifp->name, inet_ntoa(astate->addr));
 	if (!(ifo->options & DHCPCD_INFORM))
 		dhcp_bind(ifp);
-#ifndef IN_IFF_TENTATIVE
+#ifndef IN_IFF_DUPLICATED
 	else {
 		struct bootp *bootp;
 		size_t len;
@@ -2429,7 +2431,7 @@ dhcp_arp_address(struct interface *ifp)
 	if (astate == NULL)
 		return -1;
 
-#ifdef IN_IFF_TENTATIVE
+#ifdef IN_IFF_NOTUSEABLE
 	if (ia == NULL || ia->addr_flags & IN_IFF_NOTUSEABLE) {
 		state->state = DHS_PROBE;
 		if (ia == NULL) {
@@ -3497,9 +3499,14 @@ dhcp_readudp(struct dhcpcd_ctx *ctx, struct interface *ifp)
 			logerr(__func__);
 			return;
 		}
+		if (D_CSTATE(ifp) == NULL) {
+			logdebugx("%s: received BOOTP for inactive interface",
+			    ifp->name);
+			return;
+		}
 	}
 
-	dhcp_handlebootp(ifp, (struct bootp *)buf, (size_t)bytes,
+	dhcp_handlebootp(ifp, (struct bootp *)(void *)buf, (size_t)bytes,
 	    &from.sin_addr);
 #endif
 }
