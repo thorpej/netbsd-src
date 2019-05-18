@@ -50,7 +50,7 @@ static inline const struct mtk_eintc_reg_group *
 mtk_eintc_get_regs(const struct mtk_eintc_softc * const sc, const u_int which)
 {
 	KASSERT(which < MTK_EINTC_NREGS);
-	return &sc->sc_eintc.reg_groups[which];
+	return &sc->sc_eintc->reg_groups[which];
 }
 
 void
@@ -61,10 +61,10 @@ mtk_eintc_init(struct mtk_eintc_softc * const sc)
 	KASSERT(sc->sc_eintc != NULL);
 
 	mutex_init(&sc->sc_mutex, MUTEX_DEFAULT, IPL_VM);
-	sc->sc_intrs = kmem_zalloc(sizeof(*intrs) * sc->sc_eintc->nintrs,
+	sc->sc_intrs = kmem_zalloc(sizeof(*sc->sc_intrs) * sc->sc_eintc->nintrs,
 				   KM_SLEEP);
 
-	for (irq = 0; irq < sc->sc_eintc->nintrs; irq++) {
+	for (u_int irq = 0; irq < sc->sc_eintc->nintrs; irq++) {
 		sc->sc_intrs[irq].intr_debounce = -1;	/* not set */
 	}
 
@@ -76,7 +76,7 @@ mtk_eintc_init(struct mtk_eintc_softc * const sc)
 	const struct mtk_eintc_reg_group * const mask_regs =
 	    mtk_eintc_get_regs(sc, MTK_EINTC_REGS_MASK);
 
-	const uint32_t mask = __BITS(0, sc->sc_eintc->pins_per_reg - 1);
+	const uint32_t mask = __BITS(0, sc->sc_eintc->irqs_per_bank - 1);
 
 	for (u_int bank = 0; bank < sc->sc_eintc->nbanks; bank++) {
 		EINTC_WRITE(sc, mask_regs->set_base +
@@ -117,7 +117,7 @@ mtk_eintc_process_intrs(struct mtk_eintc_softc * const sc, const u_int bank)
 
 		while ((bit = ffs32(pending)) != 0) {
 			pending &= ~__BIT(bit - 1);
-			intr = sc->sc_intrs[irqoff + (bit - 1)];
+			intr = &sc->sc_intrs[irqoff + (bit - 1)];
 			if ((func = intr->intr_func) == NULL)
 				continue;
 			if (intr->intr_type & (FDT_INTR_TYPE_HIGH_LEVEL |
@@ -176,7 +176,7 @@ mtk_eintc_intr_enable(struct mtk_eintc_softc * const sc,
 	KASSERT(bank < sc->sc_eintc->nbanks);
 
 	if (ipl != IPL_VM) {
-		aprint_error_dev(dev, "%s: wrong IPL %d (expected %d)\n",
+		aprint_error_dev(sc->sc_dev, "%s: wrong IPL %d (expected %d)\n",
 				 __func__, ipl, IPL_VM);
 		return NULL;
 	}
@@ -274,12 +274,12 @@ mtk_eintc_intr_to_irq(struct mtk_eintc_softc * const sc,
 		      struct mtk_eintc_intr * const intr)
 {
 	KASSERT((uintptr_t)intr >= (uintptr_t)&sc->sc_intrs[0]);
-	KASSERT((uintptr_t)intr < (uintptr_t)&sc->sc_intrs[sc->sc_eintc->nintrs);
+	KASSERT((uintptr_t)intr < (uintptr_t)&sc->sc_intrs[sc->sc_eintc->nintrs]);
 	return (u_int)((uintptr_t)(intr - sc->sc_intrs));
 }
 
 void
-mtk_eintc_intr_disable(struct mtk_eintc_softc * const sc
+mtk_eintc_intr_disable(struct mtk_eintc_softc * const sc,
 		       struct mtk_eintc_intr * const intr)
 {
 	const u_int irq = mtk_eintc_intr_to_irq(sc, intr);
