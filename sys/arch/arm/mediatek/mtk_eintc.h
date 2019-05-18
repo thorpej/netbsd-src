@@ -29,8 +29,8 @@
 #ifndef _ARM_MEDIATEK_MTK_EINTC_H_
 #define _ARM_MEDIATEK_MTK_EINTC_H_
 
-#define	MTK_EINT_REG_SPACE(x)		((x) * 4)
-#define	MTK_EINT_REG_OFF(b, x)		((b) + MTK_EINT_REG_SPACE(x))
+#define	MTK_EINT_REG_BANK(x)		((x) * 4)
+#define	MTK_EINT_REG_OFF(b, x)		((b) + MTK_EINT_REG_BANK(x))
 
 struct mtk_eintc_reg_group {
 	bus_size_t	base;		/* base registers */
@@ -74,6 +74,11 @@ struct mtk_eintc_softc {
 	kmutex_t		sc_mutex;
 	struct mtk_eintc_intr	*sc_intrs;
 };
+
+#define	EINTC_READ(sc, reg)		\
+	bus_space_read_4((sc)->sc_bst, (sc)->sc_bsh, (reg))
+#define	EINTC_WRITE(sc, reg, val)	\
+	bus_space_write_4((sc)->sc_bst, (sc)->sc_bsh, (reg), (val))
 
 void	mtk_eintc_init(struct mtk_eintc_softc * const);
 int	mtk_eintc_intr(void *);

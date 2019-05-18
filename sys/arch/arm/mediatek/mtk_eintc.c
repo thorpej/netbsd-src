@@ -80,9 +80,9 @@ mtk_eintc_init(struct mtk_eintc_softc * const sc)
 
 	for (u_int bank = 0; bank < sc->sc_eintc->nbanks; bank++) {
 		EINTC_WRITE(sc, mask_regs->set_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		EINTC_WRITE(sc, sc->sc_eintc->domen_base +
-		    MTK_EINT_REG_SPACE(bank), 0);
+		    MTK_EINT_REG_BANK(bank), 0);
 	}
 }
 
@@ -100,7 +100,7 @@ mtk_eintc_process_intrs(struct mtk_eintc_softc * const sc, const u_int bank)
 
 	for (;;) {
 		status = pending =
-		    EINTC_READ(sc, sta_regs->base + MTK_EINT_REG_SPACE(bank));
+		    EINTC_READ(sc, sta_regs->base + MTK_EINT_REG_BANK(bank));
 		if (status == 0)
 			return rv;
 
@@ -111,7 +111,7 @@ mtk_eintc_process_intrs(struct mtk_eintc_softc * const sc, const u_int bank)
 		 * de-asserted.  We'll have to clear level-triggered
 		 * indicators below.
 		 */
-		EINTC_WRITE(sc, sta_regs->clr_base + MTK_EINT_REG_SPACE(bank),
+		EINTC_WRITE(sc, sta_regs->clr_base + MTK_EINT_REG_BANK(bank),
 		    status);
 		clear_level = 0;
 
@@ -138,8 +138,8 @@ mtk_eintc_process_intrs(struct mtk_eintc_softc * const sc, const u_int bank)
 		 * pins.
 		 */
 		if (clear_level)
-			EINC_WRITE(sc, sta_regs->clr_base +
-			    MTK_EINT_REG_SPACE(bank), clear_level);
+			EINTC_WRITE(sc, sta_regs->clr_base +
+			    MTK_EINT_REG_BANK(bank), clear_level);
 
 	}
 
@@ -202,16 +202,16 @@ mtk_eintc_intr_enable(struct mtk_eintc_softc * const sc,
 	switch (type) {
 	case FDT_INTR_TYPE_POS_EDGE:	/* sens=0, pol=0 */
 		EINTC_WRITE(sc, sens_regs->clr_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		EINTC_WRITE(sc, pol_regs->clr_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		break;
 
 	case FDT_INTR_TYPE_NEG_EDGE:	/* sens=0, pol=1 */
 		EINTC_WRITE(sc, sens_regs->clr_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		EINTC_WRITE(sc, pol_regs->set_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		break;
 
 #if 0 /* catch this in the "default" case below. */
@@ -228,16 +228,16 @@ mtk_eintc_intr_enable(struct mtk_eintc_softc * const sc,
 
 	case FDT_INTR_TYPE_HIGH_LEVEL:	/* sens=1, pol=0 */
 		EINTC_WRITE(sc, sens_regs->set_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		EINTC_WRITE(sc, pol_regs->clr_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		break;
 
 	case FDT_INTR_TYPE_LOW_LEVEL:	/* sens=1, pol=1 */
 		EINTC_WRITE(sc, sens_regs->set_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		EINTC_WRITE(sc, pol_regs->set_base +
-		    MTK_EINT_REG_SPACE(bank), mask);
+		    MTK_EINT_REG_BANK(bank), mask);
 		break;
 
 	default:
@@ -257,13 +257,13 @@ mtk_eintc_intr_enable(struct mtk_eintc_softc * const sc,
 		/* XXXJRT program debounce register */
 	}
 
-	uint32_t dom_en = EINTC_READ(sc, sc->sc_eintc->domen_base,
-	    MTK_EINT_REG_SPACE(bank));
+	uint32_t dom_en = EINTC_READ(sc, sc->sc_eintc->domen_base +
+	    MTK_EINT_REG_BANK(bank));
 	dom_en |= mask;
 	EINTC_WRITE(sc, sc->sc_eintc->domen_base +
-	    MTK_EINT_REG_SPACE(bank), dom_en);
+	    MTK_EINT_REG_BANK(bank), dom_en);
 
-	EINTC_WRITE(sc, mask_regs->clr_base + MTK_EINT_REG_SPACE(bank), mask);
+	EINTC_WRITE(sc, mask_regs->clr_base + MTK_EINT_REG_BANK(bank), mask);
 
 	mutex_exit(&sc->sc_mutex);
 	return (intr);
@@ -294,13 +294,13 @@ mtk_eintc_intr_disable(struct mtk_eintc_softc * const sc,
 
 	mutex_enter(&sc->sc_mutex);
 
-	EINTC_WRITE(sc, mask_regs->set_base + MTK_EINT_REG_SPACE(bank), mask);
+	EINTC_WRITE(sc, mask_regs->set_base + MTK_EINT_REG_BANK(bank), mask);
 
-	uint32_t dom_en = EINTC_READ(sc, sc->sc_eintc->domen_base,
-	    MTK_EINT_REG_SPACE(bank));
+	uint32_t dom_en = EINTC_READ(sc, sc->sc_eintc->domen_base +
+	    MTK_EINT_REG_BANK(bank));
 	dom_en &= ~mask;
 	EINTC_WRITE(sc, sc->sc_eintc->domen_base +
-	    MTK_EINT_REG_SPACE(bank), dom_en);
+	    MTK_EINT_REG_BANK(bank), dom_en);
 	
 	intr->intr_func = NULL;
 	intr->intr_arg = NULL;
