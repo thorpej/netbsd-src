@@ -85,7 +85,7 @@ CFATTACH_DECL_NEW(mtk_gpio, sizeof(struct mtk_gpio_softc),
 	mtk_gpio_match, mtk_gpio_attach, NULL, NULL);
 
 static const struct mtk_gpio_pinconf *
-mtk_gpio_lookup(struct mtk_gpio_softc *sc, const u_int pin)
+mtk_gpio_lookup(const struct mtk_gpio_softc *sc, const u_int pin)
 {
 
 	if (pin >= sc->sc_padconf->npins)
@@ -154,7 +154,7 @@ mtk_gpio_mA_to_sel(const struct mtk_gpio_drive * const drive, uint8_t mA,
 }
 
 static inline u_int
-mtk_gpio_pinconf_to_pin(struct mtk_gpio_softc * const sc,
+mtk_gpio_pinconf_to_pin(const struct mtk_gpio_softc * const sc,
 			const struct mtk_gpio_pinconf * const pin_def)
 {
 	return (u_int)((uintptr_t)(pin_def - sc->sc_padconf->pins));
@@ -690,7 +690,7 @@ static struct fdtbus_gpio_controller_func mtk_gpio_fdt_funcs = {
 };
 
 static const struct mtk_gpio_pinconf *
-mtk_gpio_lookup_eint_pin(struct mtk_gpio_softc * const sc, u_int pin)
+mtk_gpio_lookup_eint_pin(const struct mtk_gpio_softc * const sc, u_int pin)
 {
 	const struct mtk_gpio_pinconf * const pin_def =
 	    mtk_gpio_lookup(sc, pin);
@@ -698,7 +698,7 @@ mtk_gpio_lookup_eint_pin(struct mtk_gpio_softc * const sc, u_int pin)
 	if (pin_def == NULL)
 		return NULL;
 
-	if ((pin_def->eint_flags & MTK_EINT_SOURCE) == 0) {
+	if ((pin_def->eint.eint_flags & MTK_EINT_SOURCE) == 0) {
 		/* This pin is not a valid interrupt source. */
 		return NULL;
 	}
@@ -707,12 +707,14 @@ mtk_gpio_lookup_eint_pin(struct mtk_gpio_softc * const sc, u_int pin)
 }
 
 static bool
-mtk_gpio_intrstr(struct mtk_gpio_softc * const sc,
+mtk_gpio_intrstr(const struct mtk_gpio_softc * const sc,
 		  const struct mtk_gpio_pinconf * const pin_def,
 		  char *buf, const size_t buflen)
 {
 	snprintf(buf, buflen, "GPIO %u (EINT %" PRIu16 ")",
-		 mtk_gpio_pinconf_to_pin(pin_def), pin_def->eint_num);
+		 mtk_gpio_pinconf_to_pin(sc, pin_def), pin_def->eint.eint_num);
+
+	return true;
 }
 
 static void *
@@ -732,10 +734,10 @@ mtk_gpio_fdt_intr_establish(device_t dev, u_int *specifier, int ipl,
 	    mtk_gpio_lookup_eint_pin(sc, pin);
 
 	if (pin_def == NULL)
-		return false;
+		return NULL;
 
 	return mtk_eintc_intr_enable(&sc->sc_eintc, func, arg, ipl,
-				     pin_def->eint_num, type, eint_flags);
+				     pin_def->eint.eint_num, type, eint_flags);
 }
 
 static void
@@ -757,6 +759,11 @@ mtk_gpio_fdt_intrstr(device_t dev, u_int *specifier, char *buf, size_t buflen)
 	const u_int pin = be32toh(specifier[0]);
 
 	const struct mtk_gpio_softc * const sc = device_private(dev);
+	const struct mtk_gpio_pinconf * const pin_def =
+	    mtk_gpio_lookup_eint_pin(sc, pin);
+
+	if (pin_def == NULL)
+		return false;
 
 	return mtk_gpio_intrstr(sc, pin_def, buf, buflen);
 }
@@ -794,7 +801,7 @@ mtk_gpio_gpio_intr_establish(void *vsc, int pin, int ipl, int irqmode,
 		break;
 	default:
 		aprint_error_dev(sc->sc_dev, "%s: unsupported irq type 0x%x\n",
-				 __func__, type);
+				 __func__, irqmode & GPIO_INTR_MODE_MASK);
 		return NULL;
 	}
 
@@ -805,7 +812,7 @@ mtk_gpio_gpio_intr_establish(void *vsc, int pin, int ipl, int irqmode,
 		return NULL;
 
 	return mtk_eintc_intr_enable(&sc->sc_eintc, func, arg, ipl,
-				     pin_def->eint_num, type, flags);
+				     pin_def->eint.eint_num, type, eint_flags);
 }
 
 static void
@@ -1096,7 +1103,6 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	aprint_naive("\n");
 	aprint_normal(": Pin MUX controller\n");
 
-	/* XXXJRT interrupt support. */
 	mtk_eintc_init(&sc->sc_eintc);
 
 	fdtbus_register_gpio_controller(self, phandle, &mtk_gpio_fdt_funcs);
@@ -1113,6 +1119,9 @@ mtk_gpio_attach(device_t parent, device_t self, void *aux)
 	}
 
 	fdtbus_pinctrl_configure();
+
+	fdtbus_register_interrupt_controller(self, phandle,
+					     &mtk_gpio_fdt_intrfuncs);
 
 	mtk_gpio_attach_pins(sc);
 }
