@@ -19,8 +19,12 @@ file	arch/arm/mediatek/mtk_cru_fixed.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_gate.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_mux.c		mtk_cru
 
+# External interupt support
+define	mtk_eintc
+file	arch/arm/mediatek/mtk_eintc.c		mtk_eintc
+
 # GPIO / pin mux control
-device	mtkgpio
+device	mtkgpio: mtk_eintc
 attach	mtkgpio at fdt with mtk_gpio
 file	arch/arm/mediatek/mtk_gpio.c		mtk_gpio
 file	arch/arm/mediatek/mt2701_gpio.c		mtk_gpio & soc_mt7623
