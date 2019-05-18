@@ -157,7 +157,7 @@ struct mtk_gpio_padconf {
 	struct mtk_gpio_reg_group reg_groups[MTK_GPIO_NREGS];
 	int (*setfunc_hook)(struct mtk_gpio_softc * const, const u_int,
 			    int * const);
-	const struct mtk_eintc_config * const * eintc;
+	const struct mtk_eintc_config *eintc;
 };
 
 struct mtk_gpio_softc {
