@@ -117,8 +117,17 @@ mt6577_uart_attach(device_t parent, device_t self, void *aux)
 	}
 
 	/* Enable clocks. */
-	/* XXXJRT */
-	sc->sc_frequency = 26000000;
+	struct clk *clk;
+	for (int i = 0; (clk = fdtbus_clock_get_index(phandle, i)); i++) {
+		if (clk_enable(clk) != 0) {
+			aprint_error(": failed to enable clock #%d\n", i);
+			return;
+		}
+		/* First clock is the baud clock. */
+		/* XXX Use clock-names property instead? */
+		if (i == 0)
+			sc->sc_frequency = clk_get_rate(clk);
+	}
 
 	mt6577_uart_init_regs(&sc->sc_regs, bst, bsh, addr, size);
 
