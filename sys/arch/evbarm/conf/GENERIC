@@ -230,7 +230,7 @@ options 	MSGBUFSIZE=32768
 #options 	EARLYCONS=cycv, CONSADDR=0xffc02000
 #options 	EARLYCONS=rk3328, CONSADDR=0xff130000
 #options 	EARLYCONS=sunxi, CONSADDR=0x01c28000
-#options	EARLYCONS=mediatek, CONSADDR=0x11004000
+#options 	EARLYCONS=mediatek, CONSADDR=0x11004000
 
 # TEGRA TK1
 #options 	EARLYCONS=tegra, CONSADDR=0x70006300
@@ -268,7 +268,7 @@ exy5422clk* 	at fdt? pass 3		# Exynos5422 clock controller
 meson8bclkc* 	at fdt? pass 2		# Amlogic Meson8b clock controller
 mesonresets* 	at fdt? pass 2		# Amlogic Meson misc. clock resets
 mt2701pericfg*	at fdt? pass 2		# MediaTek MT2701 PERICFG
-mt2701topckgen*	at fdt? pass 1		# MediaTek MT2701 TOPCKGEN
+mt2701topckgen*	at fdt? pass 2		# MediaTek MT2701 TOPCKGEN
 sun4ia10ccu* 	at fdt? pass 2		# Allwinner A10/A20 CCU
 sun5ia13ccu* 	at fdt? pass 2		# Allwinner A13 CCU
 sun6ia31ccu* 	at fdt? pass 2		# Allwinner A31 CCU
