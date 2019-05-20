@@ -73,12 +73,14 @@ gtmr_fdt_attach(device_t parent, device_t self, void *aux)
 	aprint_naive("\n");
 	aprint_normal(": Generic Timer\n");
 
-	struct mpcore_attach_args mpcaa = {
-		.mpcaa_name = "armgtmr",
-		.mpcaa_irq = -1		/* setup handler locally */
-	};
 	struct fdt_attach_args * const faa = aux;
 	const int phandle = faa->faa_phandle;
+
+	struct mpcore_attach_args mpcaa = {
+		.mpcaa_name = "armgtmr",
+		.mpcaa_irq = -1,	/* setup handler locally */
+		.mpcaa_handle = phandle,
+	};
 
 	char intrstr[128];
 	if (!fdtbus_intr_str(phandle, GTMR_VTIMER, intrstr, sizeof(intrstr))) {

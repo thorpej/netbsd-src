@@ -38,6 +38,7 @@ struct mpcore_attach_args {
 	bus_size_t mpcaa_off1;
 	bus_size_t mpcaa_off2;
 	int mpcaa_irq;
+	uintptr_t mpcaa_handle;	/* ACPI handle / OF node */
 };
 
 #endif /* _ARM_CORTEX_MPCORE_VAR_H_ */
