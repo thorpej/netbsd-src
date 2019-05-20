@@ -42,6 +42,7 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #include <dev/fdt/fdtvar.h>
 #include <arm/fdt/arm_fdtvar.h>
+#include <arm/cortex/mpcore_var.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -115,8 +116,28 @@ mediatek_platform_early_putchar(char c)
 static void
 mediatek_platform_device_register(device_t self, void *aux)
 {
+	prop_dictionary_t prop = device_properties(self);
 
-	/* Nothing yet. */
+	/*
+	 * XXX These are generic DT properties, not SoC quirks.  Should
+	 * XXX have a generic arm_fdt_device_register() to call.
+	 */
+	if (device_is_a(self, "armgtmr")) {
+		const struct mpcore_attach_args *mpcaa = aux;
+
+		uint32_t frequency;
+		if (of_getprop_uint32((int)mpcaa->mpcaa_handle,
+		    "clock-frequency", &frequency) == 0) {
+			prop_dictionary_set_uint32(prop, "frequency",
+			    frequency);
+		}
+
+		if (of_hasprop((int)mpcaa->mpcaa_handle,
+		    "arm,cpu-registers-not-fw-configured")) {
+			prop_dictionary_set_bool(prop, "force-phys-secure-ppi",
+			    true);
+		}
+	}
 }
 
 static u_int
