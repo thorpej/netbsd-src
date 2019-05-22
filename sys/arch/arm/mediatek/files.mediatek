@@ -24,7 +24,7 @@ define	mtk_eintc
 file	arch/arm/mediatek/mtk_eintc.c		mtk_eintc
 
 # GPIO / pin mux control
-device	mtkgpio: mtk_eintc
+device	mtkgpio: mtk_eintc, gpiobus
 attach	mtkgpio at fdt with mtk_gpio
 file	arch/arm/mediatek/mtk_gpio.c		mtk_gpio
 file	arch/arm/mediatek/mt2701_gpio.c		mtk_gpio & soc_mt7623
