@@ -6,9 +6,12 @@
 
 file	arch/arm/mediatek/mediatek_platform.c	soc_mediatek
 
+file	arch/arm/mediatek/mtk_mc_smp.c		soc_mediatek_mc
+
 # SOC parameters
-defflag	opt_soc.h			SOC_MEDIATEK
-defflag	opt_soc.h			SOC_MT7623: SOC_MEDIATEK
+defflag	opt_soc.h		SOC_MEDIATEK
+defflag opt_soc.h		SOC_MEDIATEK_MC
+defflag	opt_soc.h		SOC_MT7623: SOC_MEDIATEK, SOC_MEDIATEK_MC
 
 # Clock / reset units (common code)
 define	mtk_cru
