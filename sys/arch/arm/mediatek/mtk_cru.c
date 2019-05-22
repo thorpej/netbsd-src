@@ -120,8 +120,22 @@ mtk_cru_clock_decode(device_t dev, int cc_phandle, const void *data,
 	return &clk->base;
 }
 
+static struct clk *
+mtk_cru_clock_lookup(device_t dev, const char *name)
+{
+	struct mtk_cru_softc * const sc = device_private(dev);
+	struct mtk_cru_clk *clk;
+
+	clk = mtk_cru_clock_find(sc, name);
+	if (clk == NULL)
+		return NULL;
+
+	return &clk->base;
+}
+
 static const struct fdtbus_clock_controller_func mtk_cru_fdtclock_funcs = {
 	.decode = mtk_cru_clock_decode,
+	.lookup = mtk_cru_clock_lookup,
 };
 
 static struct clk *
@@ -272,7 +286,7 @@ mtk_cru_clock_get_parent(void *priv, struct clk *clkp)
 		return &clk_parent->base;
 
 	/* No parent in this domain, try FDT */
-	return fdtbus_clock_get(sc->sc_phandle, parent);
+	return fdtbus_clock_byname(parent);
 }
 
 static const struct clk_funcs mtk_cru_clock_funcs = {

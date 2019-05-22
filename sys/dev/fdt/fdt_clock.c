@@ -187,6 +187,24 @@ fdtbus_clock_byname(const char *clkname)
 		    clock_cells > 0 ? 4 : 0);
 	}
 
+	/*
+	 * Clock sources that provide outputs beyond their own domain
+	 * are supposed to use "clock-output-names".  But some DTs don't
+	 * do this.  So, we provide this little backdoor that uses the
+	 * "get" method on the clock controller.  Since this is for clk
+	 * backends only, we assume that they know what they're doing.
+	 */
+	struct clk *clk;
+	LIST_FOREACH(cc, &fdtbus_clock_controllers, cc_next) {
+		/* Skip any that have "clock-output-names". */
+		if (of_hasprop(cc->cc_phandle, "clock-output-names"))
+			continue;
+		if (cc->cc_funcs->lookup == NULL)
+			continue;
+		if ((clk = cc->cc_funcs->lookup(cc->cc_dev, clkname)) != NULL)
+			return clk;
+	}
+
 	return NULL;
 }
 
