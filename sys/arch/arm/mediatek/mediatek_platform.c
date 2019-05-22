@@ -55,6 +55,7 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <dev/ic/comreg.h>
 
 #include <arm/mediatek/mediatek_platform.h>
+#include <arm/mediatek/mtk_mc_smp.h>
 #include <arm/mediatek/mt6589_toprgureg.h>
 #include <arm/mediatek/mt6577_uartreg.h>
 
@@ -195,6 +196,7 @@ static const struct arm_platform mt7623_platform = {
 	.ap_reset = mediatek_platform_reset,
 	.ap_delay = gtmr_delay,
 	.ap_uart_freq = mediatek_platform_uart_freq,
+	.ap_mpstart = mtk_mt7623_mpstart,
 };
 
 ARM_PLATFORM(mt7623, "mediatek,mt7623", &mt7623_platform);
