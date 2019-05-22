@@ -31,6 +31,7 @@
 #define	_MEDIATEK_MTK_CRU_H_
 
 #include <sys/mutex.h>
+#include <sys/queue.h>
 #include <dev/clk/clk_backend.h>
 
 struct mtk_cru_softc;
@@ -261,6 +262,8 @@ struct mtk_cru_softc {
 	int			sc_phandle;
 	bus_space_tag_t		sc_bst;
 	bus_space_handle_t	sc_bsh;
+
+	LIST_ENTRY(mtk_cru_softc) sc_cru_list;
 
 	struct clk_domain	sc_clkdom;
 

@@ -1,6 +1,7 @@
 /* $NetBSD$ */
 
 /*-
+ * Copyright (c) 2019 Jason R. Thorpe
  * Copyright (c) 2017 Jared McNeill <jmcneill@invisible.ca>
  * All rights reserved.
  *
@@ -99,6 +100,23 @@ static const struct fdtbus_reset_controller_func mtk_cru_fdtreset_funcs = {
 	.reset_deassert = mtk_cru_reset_deassert,
 };
 
+static LIST_HEAD(, mtk_cru_softc) mtk_cru_list =
+    LIST_HEAD_INITIALIZER(&mtk_cru_list);
+
+static struct mtk_cru_clk *
+mtk_cru_clock_lookup(const char *name)
+{
+	struct mtk_cru_softc *sc;
+	struct mtk_cru_clk *clk;
+
+	LIST_FOREACH(sc, &mtk_cru_list, sc_cru_list) {
+		if ((clk = mtk_cru_clock_find(sc, name)) != NULL)
+			return return clk;
+	}
+
+	return NULL;
+}
+
 static struct clk *
 mtk_cru_clock_decode(device_t dev, int cc_phandle, const void *data,
 		       size_t len)
@@ -120,22 +138,8 @@ mtk_cru_clock_decode(device_t dev, int cc_phandle, const void *data,
 	return &clk->base;
 }
 
-static struct clk *
-mtk_cru_clock_lookup(device_t dev, const char *name)
-{
-	struct mtk_cru_softc * const sc = device_private(dev);
-	struct mtk_cru_clk *clk;
-
-	clk = mtk_cru_clock_find(sc, name);
-	if (clk == NULL)
-		return NULL;
-
-	return &clk->base;
-}
-
 static const struct fdtbus_clock_controller_func mtk_cru_fdtclock_funcs = {
 	.decode = mtk_cru_clock_decode,
-	.lookup = mtk_cru_clock_lookup,
 };
 
 static struct clk *
@@ -168,7 +172,8 @@ mtk_cru_clock_get_rate(void *priv, struct clk *clkp)
 
 	clkp_parent = clk_get_parent(clkp);
 	if (clkp_parent == NULL) {
-		aprint_error("%s: no parent for %s\n", __func__, clk->base.name);
+		aprint_error("%s: no parent for %s\n", __func__,
+		    clk->base.name);
 		return 0;
 	}
 
@@ -185,7 +190,8 @@ mtk_cru_clock_set_rate(void *priv, struct clk *clkp, u_int rate)
 	if (clkp->flags & CLK_SET_RATE_PARENT) {
 		clkp_parent = clk_get_parent(clkp);
 		if (clkp_parent == NULL) {
-			aprint_error("%s: no parent for %s\n", __func__, clk->base.name);
+			aprint_error("%s: no parent for %s\n", __func__,
+			    clk->base.name);
 			return ENXIO;
 		}
 		return clk_set_rate(clkp_parent, rate);
@@ -207,7 +213,8 @@ mtk_cru_clock_round_rate(void *priv, struct clk *clkp, u_int rate)
 	if (clkp->flags & CLK_SET_RATE_PARENT) {
 		clkp_parent = clk_get_parent(clkp);
 		if (clkp_parent == NULL) {
-			aprint_error("%s: no parent for %s\n", __func__, clk->base.name);
+			aprint_error("%s: no parent for %s\n", __func__,
+			    clk->base.name);
 			return 0;
 		}
 		return clk_round_rate(clkp_parent, rate);
@@ -286,7 +293,22 @@ mtk_cru_clock_get_parent(void *priv, struct clk *clkp)
 		return &clk_parent->base;
 
 	/* No parent in this domain, try FDT */
-	return fdtbus_clock_byname(parent);
+	clk = fdtbus_clock_byname(parent);
+	if (clk != NULL)
+		return clk;
+
+	/*
+	 * Finally, try looking in all of our own clock domains.
+	 *
+	 * XXX In an ideal world, the DT would have clock-output-names
+	 * on all of our clock controllers, but we don't live in an
+	 * ideal world.
+	 */
+	clk_parent = mtk_cru_clock_lookup(parent);
+	if (clk_parent != NULL)
+		return &clk_parent->base;
+
+	return NULL;
 }
 
 static const struct clk_funcs mtk_cru_clock_funcs = {
@@ -345,6 +367,8 @@ mtk_cru_attach(struct mtk_cru_softc *sc)
 
 	fdtbus_register_reset_controller(sc->sc_dev, sc->sc_phandle,
 	    &mtk_cru_fdtreset_funcs);
+
+	LIST_INSERT_HEAD(&mtk_cru_list, sc, sc_cru_list);
 
 	return 0;
 }

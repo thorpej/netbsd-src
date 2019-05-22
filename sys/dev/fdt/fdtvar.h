@@ -127,7 +127,6 @@ struct fdtbus_regulator_controller_func {
 
 struct fdtbus_clock_controller_func {
 	struct clk *	(*decode)(device_t, int, const void *, size_t);
-	struct clk *	(*lookup)(device_t, const char *);
 };
 
 struct fdtbus_reset_controller;
