@@ -260,7 +260,7 @@ mtk_gpio_setfunc(struct mtk_gpio_softc * const sc,
 	    		mtk_gpio_pinconf_to_pin(sc, pin_def), &func_num))) {
 		return error;
 	}
-	if (func_num > 0 && func_num < MTK_GPIO_MAXFUNC) {
+	if (func_num >= 0 && func_num < MTK_GPIO_MAXFUNC) {
 		func = pin_def->functions[func_num];
 	}
 	if (func == NULL || func_num < 0 || func_num >= MTK_GPIO_MAXFUNC) {
