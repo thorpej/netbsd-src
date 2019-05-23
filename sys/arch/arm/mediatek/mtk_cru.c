@@ -111,7 +111,7 @@ mtk_cru_clock_lookup(const char *name)
 
 	LIST_FOREACH(sc, &mtk_cru_list, sc_cru_list) {
 		if ((clk = mtk_cru_clock_find(sc, name)) != NULL)
-			return return clk;
+			return clk;
 	}
 
 	return NULL;
@@ -293,9 +293,9 @@ mtk_cru_clock_get_parent(void *priv, struct clk *clkp)
 		return &clk_parent->base;
 
 	/* No parent in this domain, try FDT */
-	clk = fdtbus_clock_byname(parent);
-	if (clk != NULL)
-		return clk;
+	clkp = fdtbus_clock_byname(parent);
+	if (clkp != NULL)
+		return clkp;
 
 	/*
 	 * Finally, try looking in all of our own clock domains.
