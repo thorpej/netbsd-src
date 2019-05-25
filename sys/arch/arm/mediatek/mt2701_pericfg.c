@@ -458,7 +458,7 @@ mt2701_pericfg_attach(device_t parent, device_t self, void *aux)
 		return;
 
 	aprint_naive("\n");
-	aprint_normal(": MT2701 Peripheral Controller\n");
+	aprint_normal(": Peripheral Controller\n");
 
 	mtk_cru_print(sc);
 }

@@ -1407,7 +1407,7 @@ mt2701_topckgen_attach(device_t parent, device_t self, void *aux)
 		return;
 
 	aprint_naive("\n");
-	aprint_normal(": MT2701 Top Clock Generator\n");
+	aprint_normal(": Top Clock Generator\n");
 
 	mtk_cru_print(sc);
 }
