@@ -57,7 +57,7 @@ CFATTACH_DECL_NEW(gtmr_fdt, 0, gtmr_fdt_match, gtmr_fdt_attach, NULL, NULL);
 #define	GTMR_INTR_VIRT			2
 #define	GTMR_INTR_HYP			3
 
-static const char gmtr_intr_names[] = {
+static const char *gmtr_intr_names[] = {
 	[GTMR_INTR_PHYS_SECURE]		=	"physical-secure",
 	[GTMR_INTR_PHYS_NON_SECURE]	=	"physical-non-secure",
 	[GTMR_INTR_VIRT]		=	"virtual",
