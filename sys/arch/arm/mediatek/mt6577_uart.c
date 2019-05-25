@@ -43,6 +43,13 @@ __KERNEL_RCSID(0, "$NetBSD$");
 
 #include <dev/ic/comvar.h>
 
+/*
+ * TODO:
+ * - High-speed modes (> 115200)
+ * - Power management (disable clocks when port not in use)
+ * - DMA mode
+ */
+
 static int	mt6577_uart_match(device_t, cfdata_t, void *);
 static void	mt6577_uart_attach(device_t, device_t, void *);
 
@@ -130,6 +137,9 @@ mt6577_uart_attach(device_t parent, device_t self, void *aux)
 	}
 
 	mt6577_uart_init_regs(&sc->sc_regs, bst, bsh, addr, size);
+
+	/* Disable Fix Rate. */
+	bus_space_write_4(bst, bsh, MTK_UART_RATE_FIX, 0);
 
 	com_attach_subr(sc);
 	aprint_naive("\n");
