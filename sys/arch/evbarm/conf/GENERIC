@@ -314,6 +314,7 @@ armgtmr0	at gtmr?
 mct*		at fdt? pass 2		# Exynos Multi Core Timer (MCT)
 armgtmr*	at mct?
 meson6timer* 	at fdt?			# Amlogic Timer
+mt6577tmr*	at fdt? pass 2		# MT6577 General Purpose Timers
 sunxitimer* 	at fdt?			# Allwinner async timer
 sunxihstimer* 	at fdt?			# Allwinner High-Speed timer
 tegratimer* 	at fdt?			# Timers
