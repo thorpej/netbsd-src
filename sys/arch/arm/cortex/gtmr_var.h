@@ -38,7 +38,6 @@ struct gtmr_softc {
 	struct evcnt sc_ev_missing_ticks;
 	uint32_t sc_freq;
 	uint32_t sc_flags;
-#define	GTMR_FLAG_SUN50I_A64_UNSTABLE_TIMER	__BIT(0)
 	u_long sc_autoinc;
 	bool sc_physical;
 	void *sc_global_ih;
@@ -46,6 +45,9 @@ struct gtmr_softc {
 	percpu_t *sc_percpu;
 #endif
 };
+
+#define	GTMR_FLAG_PHYSICAL			__BIT(0)
+#define	GTMR_FLAG_SUN50I_A64_UNSTABLE_TIMER	__BIT(1)
 
 #ifdef _KERNEL
 #include "opt_arm_timer.h"

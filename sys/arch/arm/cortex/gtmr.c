@@ -5,7 +5,7 @@
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Matt Thomas
+ * by Matt Thomas.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,6 +80,71 @@ static struct timecounter gtmr_timecounter = {
 
 CFATTACH_DECL_NEW(armgtmr, 0, gtmr_match, gtmr_attach, NULL, NULL);
 
+static inline uint32_t
+gtmr_cntX_ctl_read(const struct gtmr_softc * const sc)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		return gtmr_cntp_ctl_read();
+
+	return gtmr_cntv_ctl_read();
+}
+
+static inline void
+gtmr_cntX_ctl_write(const struct gtmr_softc * const sc, uint32_t val)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		gtmr_cntp_ctl_write(val);
+	else
+		gtmr_cntv_ctl_write(val);
+}
+
+#if 0
+static inline uint32_t
+gtmr_cntX_tval_read(const struct gtmr_softc * const sc)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		return gtmr_cntp_tval_read();
+
+	return gtmr_cntv_tval_read();
+}
+#endif
+
+static inline void
+gtmr_cntX_tval_write(const struct gtmr_softc * const sc, uint32_t val)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		gtmr_cntp_tval_write(val);
+	else
+		gtmr_cntv_tval_write(val);
+}
+
+static inline uint64_t
+gtmr_cntX_cval_read(const struct gtmr_softc * const sc)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		return gtmr_cntp_cval_read();
+
+	return gtmr_cntv_cval_read();
+}
+
+static inline void
+gtmr_cntX_cval_write(const struct gtmr_softc * const sc, uint64_t val)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		gtmr_cntp_cval_write(val);
+	else
+		gtmr_cntv_cval_write(val);
+}
+
+static inline uint64_t
+gtmr_cntXct_read(const struct gtmr_softc * const sc)
+{
+	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
+		return gtmr_cntpct_read();
+
+	return gtmr_cntvct_read();
+}
+
 /* ARGSUSED */
 static int
 gtmr_match(device_t parent, cfdata_t cf, void *aux)
@@ -125,6 +190,8 @@ gtmr_attach(device_t parent, device_t self, void *aux)
 	aprint_naive("\n");
 	aprint_normal(": Generic Timer (%s, %s)\n", freqbuf,
 	    sc->sc_physical ? "physical" : "virtual");
+
+	sc->sc_flags = mpcaa->mpcaa_flags;
 
 	if (prop_dictionary_get_bool(dict, "sun50i-a64-unstable-timer", &flag) && flag) {
 		sc->sc_flags |= GTMR_FLAG_SUN50I_A64_UNSTABLE_TIMER;

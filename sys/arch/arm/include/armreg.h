@@ -942,6 +942,13 @@ gtmr_cntfrq_read(void)
 	return armreg_cnt_frq_read();
 }
 
+static inline void
+gtmr_cntfrq_write(uint32_t val)
+{
+
+	armreg_cnt_frq_write(val);
+}
+
 static inline uint32_t
 gtmr_cntk_ctl_read(void)
 {
@@ -1009,7 +1016,6 @@ gtmr_cntp_ctl_write(uint32_t val)
 	armreg_cntp_ctl_write(val);
 }
 
-
 /*
  * Counter-timer Physical Timer TimerValue register
  */
@@ -1045,6 +1051,22 @@ gtmr_cntv_tval_write(uint32_t val)
 	armreg_cntv_tval_write(val);
 }
 
+/*
+ * Counter-timer Physical Timer TimerValue register
+ */
+static inline uint32_t
+gtmr_cntp_tval_read(void)
+{
+
+	return armreg_cntp_tval_read();
+}
+
+static inline void
+gtmr_cntp_tval_write(uint32_t val)
+{
+
+	armreg_cntp_tval_write(val);
+}
 
 /*
  * Counter-timer Physical Timer CompareValue register
@@ -1079,6 +1101,23 @@ gtmr_cntv_cval_write(uint64_t val)
 {
 
 	armreg_cntv_cval_write(val);
+}
+
+/*
+ * Counter-timer Physical Timer CompareValue register
+ */
+static inline uint64_t
+gtmr_cntp_cval_read(void)
+{
+
+	return armreg_cntp_cval_read();
+}
+
+static inline void
+gtmr_cntp_cval_write(uint64_t val)
+{
+
+	armreg_cntp_cval_write(val);
 }
 
 #endif /* _KERNEL */

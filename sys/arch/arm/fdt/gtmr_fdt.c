@@ -51,8 +51,43 @@ static void	gtmr_fdt_cpu_hatch(void *, struct cpu_info *);
 
 CFATTACH_DECL_NEW(gtmr_fdt, 0, gtmr_fdt_match, gtmr_fdt_attach, NULL, NULL);
 
-/* The virtual timer list entry */
-#define GTMR_VTIMER 2
+/* Available timer interrupts. */
+#define	GTMR_INTR_PHYS_SECURE		0
+#define	GTMR_INTR_PHYS_NON_SECURE	1
+#define	GTMR_INTR_VIRT			2
+#define	GTMR_INTR_HYP			3
+
+static const char gmtr_intr_names[] = {
+	[GTMR_INTR_PHYS_SECURE]		=	"physical-secure",
+	[GTMR_INTR_PHYS_NON_SECURE]	=	"physical-non-secure",
+	[GTMR_INTR_VIRT]		=	"virtual",
+	[GTMR_INTR_HYP]			=	"hypervisor",
+};
+
+static int
+gmtr_select_intr(int phandle)
+{
+#if defined(__aarch64__)
+	return GTMR_INTR_VIRT;
+#else
+	/*
+	 * If the firmware can't be relied upon to configure the timer
+	 * registers, then use the physical timer.
+	 */
+	if (of_getprop_bool(phandle, "arm,cpu-registers-not-fw-configured"))
+		return GTMR_INTR_PHYS_SECURE;
+
+	/* If we have an interrupt for the virtual timer, use it. */
+	char intrstr[128];
+	if (fdtbus_intr_str(phandle, GTMR_INTR_VIRT, intrstr,
+			    sizeof(intrstr))) {
+		return GTMR_INTR_VIRT;
+	}
+
+	/* Otherwise, use the physical timer. */
+	return GTMR_INTR_PHYS_SECURE;
+#endif /* __aarch64__ */
+}
 
 static int
 gtmr_fdt_match(device_t parent, cfdata_t cf, void *aux)
@@ -75,6 +110,7 @@ gtmr_fdt_attach(device_t parent, device_t self, void *aux)
 
 	struct fdt_attach_args * const faa = aux;
 	const int phandle = faa->faa_phandle;
+	int intr;
 
 	struct mpcore_attach_args mpcaa = {
 		.mpcaa_name = "armgtmr",
@@ -82,19 +118,25 @@ gtmr_fdt_attach(device_t parent, device_t self, void *aux)
 		.mpcaa_handle = phandle,
 	};
 
+	intr = gmtr_select_intr(phandle);
+
 	char intrstr[128];
-	if (!fdtbus_intr_str(phandle, GTMR_VTIMER, intrstr, sizeof(intrstr))) {
+	if (!fdtbus_intr_str(phandle, intr, intrstr, sizeof(intrstr))) {
 		aprint_error(": failed to decode interrupt\n");
 		return;
 	}
 
-	void *ih = fdtbus_intr_establish(phandle, GTMR_VTIMER, IPL_CLOCK,
+	void *ih = fdtbus_intr_establish(phandle, intr, IPL_CLOCK,
 	    FDT_INTR_MPSAFE, gtmr_intr, NULL);
 	if (ih == NULL) {
 		aprint_error_dev(self, "couldn't install interrupt handler\n");
 		return;
 	}
-	aprint_normal_dev(self, "interrupting on %s\n", intrstr);
+	aprint_normal_dev(self, "interrupting on %s (%s)\n", intrstr,
+	    gmtr_intr_names[intr]);
+
+	if (intr == GTMR_INTR_PHYS_SECURE || intr == GTMR_INTR_PHYS_NON_SECURE)
+		mpcaa.mpcaa_flags |= GTMR_FLAG_PHYSICAL;
 
 	config_found(self, &mpcaa, NULL);
 
