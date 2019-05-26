@@ -46,6 +46,11 @@ file	arch/arm/mediatek/mt6577_sysirq.c	mt6577_sysirq
 attach	com at fdt with mt6577com
 file	arch/arm/mediatek/mt6577_uart.c		mt6577com
 
+# MT2701-compatible Infrastructure Configuration block
+device	mt2701infracfg: mtk_cru
+attach	mt2701infracfg at fdt with mt2701_infracfg
+file	arch/arm/mediatek/mt2701_infracfg.c	mt2701_infracfg
+
 # MT2701-compatible Peripheral Controller
 device	mt2701pericfg: mtk_cru
 attach	mt2701pericfg at fdt with mt2701_pericfg
