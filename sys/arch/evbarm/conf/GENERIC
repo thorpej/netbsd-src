@@ -267,6 +267,7 @@ exy5410clk* 	at fdt? pass 3		# Exynos5410 clock controller
 exy5422clk* 	at fdt? pass 3		# Exynos5422 clock controller
 meson8bclkc* 	at fdt? pass 2		# Amlogic Meson8b clock controller
 mesonresets* 	at fdt? pass 2		# Amlogic Meson misc. clock resets
+mt2701apmsys*	at fdt? pass 2		# MediaTek MT2701 APMIXEDSYS
 mt2701infracfg*	at fdt? pass 2		# MediaTek MT2701 INFRACFG
 mt2701pericfg*	at fdt? pass 2		# MediaTek MT2701 PERICFG
 mt2701topckgen*	at fdt? pass 2		# MediaTek MT2701 TOPCKGEN

@@ -66,6 +66,7 @@ typedef enum {
 	MTK_CLK_GATE,
 	MTK_CLK_MUX,
 	MTK_CLK_MUXGATE,
+	MTK_CLK_PLL,
 } mtk_cru_clk_type_t;
 
 struct mtk_cru_clk_div {
@@ -236,6 +237,45 @@ struct mtk_cru_clk_muxgate {
 	MTK_CLK_MUXGATE_CLKF(_id, _name, _pnames, _regs, _sel,	\
 			     _mask, _flags, CLK_SET_RATE_PARENT)
 
+struct mtk_cru_clk_pll {
+	const char	*parent;
+	const bus_size_t *regs;
+	uint32_t	pll_en;		/* control reg */
+	uint32_t	pwr_en;		/* power reg */
+	uint32_t	iso_en;		/* power reg */
+	uint32_t	pcw_chg;	/* PCW reg */
+	uint32_t	pcw_mask;	/* PCW reg */
+	uint32_t	pd_mask;	/* PD reg */
+	u_int		flags;
+};
+
+#define	MTK_CLK_PLL_ALWAYS_ON		__BIT(0)
+
+#define	MTK_CLK_PLL(_id, _name, _parent, _regs, _pll_en_bit,	\
+		     _pwr_en_bit, _iso_en_bit, _pcw_chg_bit,	\
+		     _pcw_mask, _pd_mask, _flags)		\
+	[(_id)] = {						\
+		.type = MTK_CLK_PLL,				\
+		.base.name = (_name),				\
+		.base.flags = 0,				\
+		.u.pll.flags = (_flags),			\
+		.u.pll.parent = (_parent),			\
+		.u.pll.regs = (_regs),				\
+		.u.pll.pll_en = __BIT(_pll_en_bit),		\
+		.u.pll.pwr_en = __BIT(_pwr_en_bit),		\
+		.u.pll.iso_en = __BIT(_iso_en_bit),		\
+		.u.pll.pcw_chg = __BIT(_pcw_chg_bit),		\
+		.u.pll.pcw_mask = (_pcw_mask),			\
+		.u.pll.pd_mask = (_pd_mask),			\
+	}
+
+#define	MTK_CLK_PLL_REG_CON		0	/* control */
+#define	MTK_CLK_PLL_REG_PCW		1	/* feedback divide ratio */
+#define	MTK_CLK_PLL_REG_PD		2	/* post-divide ratio */
+#define	MTK_CLK_PLL_REG_PWR		3	/* power */
+#define	MTK_CLK_PLL_REG_TUNER		4	/* tuner */
+#define	MTK_CLK_PLL_REG_TUNER_EN	5	/* tuner enable */
+
 struct mtk_cru_clk {
 	struct clk		base;
 	mtk_cru_clk_type_t	type;
@@ -246,6 +286,7 @@ struct mtk_cru_clk {
 		struct mtk_cru_clk_gate gate;
 		struct mtk_cru_clk_mux mux;
 		struct mtk_cru_clk_muxgate muxgate;
+		struct mtk_cru_clk_pll pll;
 	} u;
 
 	int	(*enable)(struct mtk_cru_softc *, struct mtk_cru_clk *, int);
