@@ -33,6 +33,7 @@
 #include <sys/mutex.h>
 #include <sys/queue.h>
 #include <dev/clk/clk_backend.h>
+#include <dev/fdt/syscon.h>
 
 struct mtk_cru_softc;
 struct mtk_cru_clk;
@@ -266,6 +267,7 @@ struct mtk_cru_softc {
 	LIST_ENTRY(mtk_cru_softc) sc_cru_list;
 
 	struct clk_domain	sc_clkdom;
+	struct syscon		sc_syscon;
 
 	struct mtk_cru_reset	*sc_resets;
 	u_int			sc_nresets;

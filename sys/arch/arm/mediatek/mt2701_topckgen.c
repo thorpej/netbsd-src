@@ -112,7 +112,6 @@ static const char * compatible[] = {
 
 struct mt2701_topckgen_softc {
 	struct mtk_cru_softc	sc_mtk_cru;
-	/* XXX Register with fdt syscon? */
 };
 
 CFATTACH_DECL_NEW(mt2701_topckgen, sizeof(struct mt2701_topckgen_softc),

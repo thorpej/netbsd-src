@@ -336,6 +336,42 @@ mtk_cru_clock_find(struct mtk_cru_softc *sc, const char *name)
 	return NULL;
 }
 
+static void
+mtk_cru_syscon_lock(void *v)
+{
+	struct mtk_cru_softc * const sc = v;
+
+	mutex_enter(&sc->sc_mutex);
+}
+
+static void
+mtk_cru_syscon_unlock(void *v)
+{
+	struct mtk_cru_softc * const sc = v;
+
+	mutex_exit(&sc->sc_mutex);
+}
+
+static uint32_t
+mtk_cru_syscon_read_4(void *v, bus_size_t reg)
+{
+	struct mtk_cru_softc * const sc = v;
+
+	KASSERT(mutex_owned(&sc->sc_mutex));
+
+	return CRU_READ(sc, reg);
+}
+
+static void
+mtk_cru_syscon_write_4(void *v, bus_size_t reg, uint32_t val)
+{
+	struct mtk_cru_softc * const sc = v;
+
+	KASSERT(mutex_owned(&sc->sc_mutex));
+
+	CRU_WRITE(sc, reg, val);
+}
+
 int
 mtk_cru_attach(struct mtk_cru_softc *sc)
 {
@@ -367,6 +403,13 @@ mtk_cru_attach(struct mtk_cru_softc *sc)
 
 	fdtbus_register_reset_controller(sc->sc_dev, sc->sc_phandle,
 	    &mtk_cru_fdtreset_funcs);
+
+	sc->sc_syscon.priv = sc;
+	sc->sc_syscon.lock = mtk_cru_syscon_lock;
+	sc->sc_syscon.unlock = mtk_cru_syscon_unlock;
+	sc->sc_syscon.read_4 = mtk_cru_syscon_read_4;
+	sc->sc_syscon.write_4 = mtk_cru_syscon_write_4;
+	fdtbus_register_syscon(sc->sc_dev, sc->sc_phandle, &sc->sc_syscon);
 
 	LIST_INSERT_HEAD(&mtk_cru_list, sc, sc_cru_list);
 
