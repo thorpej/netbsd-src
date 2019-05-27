@@ -131,84 +131,84 @@ static const bus_size_t mt2701_apmsys_armpll_regs[] = {
 static const bus_size_t mt2701_apmsys_mainpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = MAINPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = MAINPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = MAINPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = MAINPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = MAINPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_univpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = UNIVPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = UNIVPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = UNIVPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = UNIVPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = UNIVPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_mmpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = MMPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = MMPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = MMPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = MMPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = MMPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_msdcpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = MSDCPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = MSDCPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = MSDCPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = MSDCPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = MSDCPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_tvdpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = TVDPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = TVDPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = TVDPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = TVDPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = TVDPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_aud1pll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = AUD1PLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = AUD1PLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = AUD1PLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = AUD1PLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = AUD1PLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_trgpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = TRGPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = TRGPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = TRGPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = TRGPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = TRGPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_ethpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = ETHPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = ETHPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = ETHPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = ETHPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = ETHPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_vdecpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = VDECPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = VDECPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = VDECPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = VDECPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = VDECPLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_hadds2pll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = HADDS2PLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = HADDS2PLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = HADDS2PLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = HADDS2PLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = HADDS2PLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_aud2pll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = AUD2PLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = AUD2PLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = AUD2PLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = AUD2PLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = AUD2PLL_PWR_CON0,
 };
 
 static const bus_size_t mt2701_apmsys_tvd2pll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = TVD2PLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = TVD2PLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = TVD2PLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = TVD2PLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = TVD2PLL_PWR_CON0,
 };
 
@@ -216,7 +216,7 @@ static const bus_size_t mt2701_apmsys_tvd2pll_regs[] = {
 static const bus_size_t mt2701_apmsys_vencpll_regs[] = {
 	[MTK_CLK_PLL_REG_CON] = VENCPLL_CON0,
 	[MTK_CLK_PLL_REG_PCW] = VENCPLL_CON1,
-	[MTK_CLK_PLL_REG_PD]  = VENCPLL_CON1,
+	[MTK_CLK_PLL_REG_PD]  = VENCPLL_CON0,
 	[MTK_CLK_PLL_REG_PWR] = VENCPLL_PWR_CON0,
 #endif
 
@@ -227,144 +227,172 @@ static struct mtk_cru_clk mt2701_apmsys_clks[] = {
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_ARMPLL, "armpll", "clk26m",
 	    mt2701_apmsys_armpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(24,26),		/* pd_mask */
+	    0,				/* rst_bar_mask */
 	    MTK_CLK_PLL_ALWAYS_ON),
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_MAINPLL, "mainpll", "clk26m",
 	    mt2701_apmsys_mainpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0) | __BITS(27,30),	/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    __BIT(24),			/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_UNIVPLL, "univpll", "clk26m",
 	    mt2701_apmsys_univpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0) | __BITS(26,31),	/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    7,				/* pcw_nbits */
+	    14,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    __BIT(24),			/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_MMPLL, "mmpll", "clk26m",
 	    mt2701_apmsys_mmpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_MSDCPLL, "msdcpll", "clk26m",
 	    mt2701_apmsys_msdcpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_TVDPLL, "tvdpll", "clk26m",
 	    mt2701_apmsys_tvdpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_AUD1PLL, "aud1pll", "clk26m",
 	    mt2701_apmsys_aud1pll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_TRGPLL, "trgpll", "clk26m",
 	    mt2701_apmsys_trgpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_ETHPLL, "ethpll", "clk26m",
 	    mt2701_apmsys_ethpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_VDECPLL, "vdecpll", "clk26m",
 	    mt2701_apmsys_vdecpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_HADDS2PLL, "hadds2pll", "clk26m",
 	    mt2701_apmsys_hadds2pll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_AUD2PLL, "aud2pll", "clk26m",
 	    mt2701_apmsys_aud2pll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_TVD2PLL, "tvd2pll", "clk26m",
 	    mt2701_apmsys_tvd2pll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0),			/* pll_en mask */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    31,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 
 #if 0 /* Not in the DT bindings. */
 	MTK_CLK_PLL(MT2701_CLK_APMIXED_VENCPLL, "vencpll", "clk26m",
 	    mt2701_apmsys_vencpll_regs,
-	    0,			/* pll_enxbit */
-	    0,			/* pwr_en bit */
-	    1,			/* iso_en bit */
-	    31,			/* pcw_chg bit */
-	    __BITS(0,20),	/* pcw_mask */
-	    __BITS(24,26),	/* pd_mask */
-	    0),			/* flags */
+	    __BIT(0) | __BITS(8,11),	/* pll_en mask *//* XXX ?? */
+	    0,				/* pwr_en bit */
+	    1,				/* iso_en bit */
+	    31,				/* pcw_chg bit */
+	    21,				/* pcw_nbits */
+	    0,				/* pcw_shift */
+	    __BITS(4,6),		/* pd_mask */
+	    0,				/* rst_bar_mask */
+	    0),				/* flags */
 #endif
 
 	/*

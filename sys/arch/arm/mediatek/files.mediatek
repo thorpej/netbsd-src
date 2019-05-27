@@ -21,6 +21,7 @@ file	arch/arm/mediatek/mtk_cru_factor.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_fixed.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_gate.c	mtk_cru
 file	arch/arm/mediatek/mtk_cru_mux.c		mtk_cru
+file	arch/arm/mediatek/mtk_cru_pll.c		mtk_cru
 
 # External interupt support
 define	mtk_eintc

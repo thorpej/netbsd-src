@@ -244,16 +244,30 @@ struct mtk_cru_clk_pll {
 	uint32_t	pwr_en;		/* power reg */
 	uint32_t	iso_en;		/* power reg */
 	uint32_t	pcw_chg;	/* PCW reg */
-	uint32_t	pcw_mask;	/* PCW reg */
+	uint16_t	pcw_nbits;	/* PCW reg */
+	uint16_t	pcw_shift;	/* PCW reg */
 	uint32_t	pd_mask;	/* PD reg */
+	uint32_t	rst_bar_mask;	/* control reg */
 	u_int		flags;
 };
 
 #define	MTK_CLK_PLL_ALWAYS_ON		__BIT(0)
 
-#define	MTK_CLK_PLL(_id, _name, _parent, _regs, _pll_en_bit,	\
+int	mtk_cru_clk_pll_enable(struct mtk_cru_softc *, struct mtk_cru_clk *,
+			       int);
+u_int	mtk_cru_clk_pll_get_rate(struct mtk_cru_softc *,
+				 struct mtk_cru_clk *);
+int	mtk_cru_clk_pll_set_rate(struct mtk_cru_softc *,
+				 struct mtk_cru_clk *, u_int);
+u_int	mtk_cru_clk_pll_round_rate(struct mtk_cru_softc *,
+				   struct mtk_cru_clk *, u_int);
+const char *mtk_cru_clk_pll_get_parent(struct mtk_cru_softc *,
+				       struct mtk_cru_clk *);
+
+#define	MTK_CLK_PLL(_id, _name, _parent, _regs, _pll_en_mask,	\
 		     _pwr_en_bit, _iso_en_bit, _pcw_chg_bit,	\
-		     _pcw_mask, _pd_mask, _flags)		\
+		     _pcw_nbits, _pcw_shift, _pd_mask,		\
+		     _rst_bar_mask, _flags)			\
 	[(_id)] = {						\
 		.type = MTK_CLK_PLL,				\
 		.base.name = (_name),				\
@@ -261,12 +275,19 @@ struct mtk_cru_clk_pll {
 		.u.pll.flags = (_flags),			\
 		.u.pll.parent = (_parent),			\
 		.u.pll.regs = (_regs),				\
-		.u.pll.pll_en = __BIT(_pll_en_bit),		\
+		.u.pll.pll_en = (_pll_en_mask),			\
 		.u.pll.pwr_en = __BIT(_pwr_en_bit),		\
 		.u.pll.iso_en = __BIT(_iso_en_bit),		\
 		.u.pll.pcw_chg = __BIT(_pcw_chg_bit),		\
-		.u.pll.pcw_mask = (_pcw_mask),			\
+		.u.pll.pcw_nbits = (_pcw_nbits),		\
+		.u.pll.pcw_shift = (_pcw_shift),		\
 		.u.pll.pd_mask = (_pd_mask),			\
+		.u.pll.rst_bar_mask = (_rst_bar_mask),		\
+		.enable = mtk_cru_clk_pll_enable,		\
+		.get_rate = mtk_cru_clk_pll_get_rate,		\
+		.set_rate = mtk_cru_clk_pll_set_rate,		\
+		.round_rate = mtk_cru_clk_pll_round_rate,	\
+		.get_parent = mtk_cru_clk_pll_get_parent,	\
 	}
 
 #define	MTK_CLK_PLL_REG_CON		0	/* control */
