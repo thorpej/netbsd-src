@@ -268,7 +268,8 @@ exy5422clk* 	at fdt? pass 3		# Exynos5422 clock controller
 meson8bclkc* 	at fdt? pass 2		# Amlogic Meson8b clock controller
 mesonresets* 	at fdt? pass 2		# Amlogic Meson misc. clock resets
 mt2701apmsys*	at fdt? pass 2		# MediaTek MT2701 APMIXEDSYS
-mt2701infracfg*	at fdt? pass 2		# MediaTek MT2701 INFRACFG
+mt2701hifsys*	at fdt? pass 2		# MediaTek MT2701 HIFSYS
+mt2701infracfg*	at fdt? pass 3		# MediaTek MT2701 INFRACFG
 mt2701pericfg*	at fdt? pass 2		# MediaTek MT2701 PERICFG
 mt2701topckgen*	at fdt? pass 2		# MediaTek MT2701 TOPCKGEN
 sun4ia10ccu* 	at fdt? pass 2		# Allwinner A10/A20 CCU
@@ -316,7 +317,7 @@ armgtmr0	at gtmr?
 mct*		at fdt? pass 2		# Exynos Multi Core Timer (MCT)
 armgtmr*	at mct?
 meson6timer* 	at fdt?			# Amlogic Timer
-mt6577tmr*	at fdt? pass 2		# MT6577 General Purpose Timers
+mt6577tmr*	at fdt? pass 1		# MT6577 General Purpose Timers
 sunxitimer* 	at fdt?			# Allwinner async timer
 sunxihstimer* 	at fdt?			# Allwinner High-Speed timer
 tegratimer* 	at fdt?			# Timers
