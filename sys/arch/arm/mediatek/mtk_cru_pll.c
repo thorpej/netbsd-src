@@ -52,7 +52,7 @@ static u_int
 mtk_cru_clk_pll_compute_rate(struct mtk_cru_clk_pll *pll, u_int parent_rate,
     uint32_t pcw, u_int postdiv)
 {
-	uint64_t vco;
+	uint64_t val;
 	u_int frac_bits;
 	bool carry;
 
@@ -62,32 +62,31 @@ mtk_cru_clk_pll_compute_rate(struct mtk_cru_clk_pll *pll, u_int parent_rate,
 	else
 		frac_bits = 0;
 
-	vco = (uint64_t)parent_rate * pcw;
+	val = (uint64_t)parent_rate * pcw;
 
-	if (frac_bits && (vco & __BITS(0, frac_bits - 1)))
+	if (frac_bits && (val & __BITS(0, frac_bits - 1)))
 		carry = true;
 	else
 		carry = false;
 
-	vco >>= frac_bits;
+	val >>= frac_bits;
 	if (carry)
-		vco++;
+		val++;
 
-	return (u_int)((vco + postdiv - 1) / postdiv);
+	return (u_int)((val + postdiv - 1) / postdiv);
 }
 
 static void
-mtk_cru_clk_pll_compute_values(struct mtk_cru_clk_pll *pll, u_int target_rate,
-    u_int parent_rate, uint32_t *pcw_out, u_int *postdiv_out)
+mtk_cru_clk_pll_compute_values(const struct mtk_cru_clk_pll *pll,
+    u_int target_rate, u_int parent_rate,
+    uint32_t *pcw_out, u_int *postdiv_out)
 {
 	const u_int min_freq = 1 * 1000 * 1000 * 1000;	/* 1GHz */
-		/* XXX max_freq might be different on another SoC. */
-	const u_int max_freq = 2 * 1000 * 1000 * 1000;	/* 2GHz */
 	uint64_t pcw;
 	u_int postdiv;
 
-	if (target_rate > max_freq)
-		target_rate = max_freq;
+	if (target_rate > pll->max_freq)
+		target_rate = pll->max_freq;
 	
 	u_int pd_shift;
 	for (pd_shift = 0; pd_shift < 5; pd_shift++) {
@@ -127,7 +126,7 @@ mtk_cru_clk_pll_enable(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 		delay(1);
 
 		val = CRU_READ(sc, pll->regs[MTK_CLK_PLL_REG_CON]);
-		val |= pll->pll_en;
+		val |= pll->pll_en | pll->pll_en_aux;
 		CRU_WRITE(sc, pll->regs[MTK_CLK_PLL_REG_CON], val);
 
 		/* XXX Tuner PLLs */
@@ -149,7 +148,7 @@ mtk_cru_clk_pll_enable(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 		/* XXX Tuner PLLs */
 
 		val = CRU_READ(sc, pll->regs[MTK_CLK_PLL_REG_CON]);
-		val &= ~1;
+		val &= ~pll->pll_en;
 		CRU_WRITE(sc, pll->regs[MTK_CLK_PLL_REG_CON], val);
 
 		val = CRU_READ(sc, pll->regs[MTK_CLK_PLL_REG_PWR]);
@@ -213,7 +212,7 @@ mtk_cru_clk_pll_set_rate(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 	mutex_enter(&sc->sc_mutex);
 
 	const uint32_t pll_enabled =
-	    CRU_READ(sc, pll->regs[MTK_CLK_PLL_REG_CON]) & 1;
+	    CRU_READ(sc, pll->regs[MTK_CLK_PLL_REG_CON]) & pll->pll_en;
 	
 	uint32_t val;
 
@@ -238,8 +237,8 @@ mtk_cru_clk_pll_set_rate(struct mtk_cru_softc *sc, struct mtk_cru_clk *clk,
 	if (pll_enabled)
 		val |= pll->pcw_chg;
 	CRU_WRITE(sc, pll->regs[MTK_CLK_PLL_REG_PCW], val);
-	if (pll->regs[MTK_CLK_PLL_REG_TUNER])
-		CRU_WRITE(sc, pll->regs[MTK_CLK_PLL_REG_TUNER], val + 1);
+
+	/* XXX Tuner PLLs */
 
 	if (pll_enabled)
 		delay(20);
