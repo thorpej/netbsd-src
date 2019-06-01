@@ -83,8 +83,10 @@ CFATTACH_DECL_NEW(armgtmr, 0, gtmr_match, gtmr_attach, NULL, NULL);
 static inline uint32_t
 gtmr_cntX_ctl_read(const struct gtmr_softc * const sc)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		return gtmr_cntp_ctl_read();
+#endif
 
 	return gtmr_cntv_ctl_read();
 }
@@ -92,9 +94,11 @@ gtmr_cntX_ctl_read(const struct gtmr_softc * const sc)
 static inline void
 gtmr_cntX_ctl_write(const struct gtmr_softc * const sc, uint32_t val)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		gtmr_cntp_ctl_write(val);
 	else
+#endif
 		gtmr_cntv_ctl_write(val);
 }
 
@@ -102,8 +106,10 @@ gtmr_cntX_ctl_write(const struct gtmr_softc * const sc, uint32_t val)
 static inline uint32_t
 gtmr_cntX_tval_read(const struct gtmr_softc * const sc)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		return gtmr_cntp_tval_read();
+#endif
 
 	return gtmr_cntv_tval_read();
 }
@@ -112,17 +118,21 @@ gtmr_cntX_tval_read(const struct gtmr_softc * const sc)
 static inline void
 gtmr_cntX_tval_write(const struct gtmr_softc * const sc, uint32_t val)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		gtmr_cntp_tval_write(val);
 	else
+#endif
 		gtmr_cntv_tval_write(val);
 }
 
 static inline uint64_t
 gtmr_cntX_cval_read(const struct gtmr_softc * const sc)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		return gtmr_cntp_cval_read();
+#endif
 
 	return gtmr_cntv_cval_read();
 }
@@ -130,17 +140,21 @@ gtmr_cntX_cval_read(const struct gtmr_softc * const sc)
 static inline void
 gtmr_cntX_cval_write(const struct gtmr_softc * const sc, uint64_t val)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		gtmr_cntp_cval_write(val);
 	else
+#endif
 		gtmr_cntv_cval_write(val);
 }
 
 static inline uint64_t
 gtmr_cntXct_read(const struct gtmr_softc * const sc)
 {
+#ifndef __aarch64__	/* XXX for now */
 	if (ISSET(sc->sc_flags, GTMR_FLAG_PHYSICAL))
 		return gtmr_cntpct_read();
+#endif
 
 	return gtmr_cntvct_read();
 }
