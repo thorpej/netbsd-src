@@ -52,6 +52,11 @@ device	mt2701apmsys: mtk_cru
 attach	mt2701apmsys at fdt with mt2701_apmsys
 file	arch/arm/mediatek/mt2701_apmsys.c	mt2701_apmsys
 
+# MT2701-compatible ETHSYS
+device	mt2701ethsys: mtk_cru
+attach	mt2701ethsys at fdt with mt2701_ethsys
+file	arch/arm/mediatek/mt2701_ethsys.c	mt2701_ethsys
+
 # MT2701-compatible HIFSYS
 device	mt2701hifsys: mtk_cru
 attach	mt2701hifsys at fdt with mt2701_hifsys
