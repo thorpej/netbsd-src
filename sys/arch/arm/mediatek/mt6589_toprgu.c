@@ -127,7 +127,7 @@ mt6589_toprgu_attach(device_t parent, device_t self, void *aux)
 	sc->sc_smw.smw_cookie = sc;
 	sc->sc_smw.smw_period = TOPRGU_WDT_PERIOD_DEFAULT;
 
-	sc->sc_smw.smw_setmode = mt6589_toprgu_set_mode;
+	sc->sc_smw.smw_setmode = mt6589_toprgu_setmode;
 	sc->sc_smw.smw_tickle = mt6589_toprgu_tickle;
 
 	aprint_normal_dev(self,
