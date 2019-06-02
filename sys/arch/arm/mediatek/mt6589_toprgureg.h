@@ -61,8 +61,7 @@
 
 /* Watchdog Counter Setting Register */
 #define	WDT_LENGTH_UNLOCK_KEY		0x08
-#define	WDT_LENGTH_WDT_LENGTH_MASK	0x7ff
-#define	WDT_LENGTH_WDT_LENGTH(x)	(((x) & WDT_LENGTH_WDT_LENGTH_MASK) << 5)
+#define	WDT_LENGTH_WDT_LENGTH		__BITS(5,15)
 
 /* Watchdog Counter Restart Register */
 #define	WDT_RESTART_WDT_RESTART		0x1971

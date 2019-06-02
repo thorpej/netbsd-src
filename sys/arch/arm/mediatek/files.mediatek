@@ -38,6 +38,12 @@ device	mt6577tmr
 attach	mt6577tmr at fdt with mt6577_timer
 file	arch/arm/mediatek/mt6577_timer.c	mt6577_timer
 
+# MT6589-compatible Top Reset Generate Unit
+# (includes watchdog timer)
+device	mt6589toprgu
+attach	mt6589toprgu at fdt with mt6589_toprgu
+file	arch/arm/mediatek/mt6589_toprgu.c	mt6589_toprgu
+
 # MT6577-compatible SYSIRQ interrupt polarity controller
 device	mt6577sysirq
 attach	mt6577sysirq at fdt with mt6577_sysirq
