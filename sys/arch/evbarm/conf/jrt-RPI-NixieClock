@@ -141,7 +141,7 @@ sdmmc*		at sdhc?
 
 # SD host controller
 bcmsdhost* 	at fdt?
-sdmmc* 		at sdhost?
+sdmmc* 		at bcmsdhost?
 
 ld*     at sdmmc?
 
