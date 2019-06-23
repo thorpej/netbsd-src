@@ -149,6 +149,16 @@ source_lines()
 
 # MAIN PROGRAM
 
+cwd=$(dirname "$0")
+
+# If ${BUILDID} is not set, then check to see if sys/conf/jrt-dev-branch-id
+# is present, and, if so, set BUILDID based on the contents of that file.
+if [ -z "${BUILDID}" ]; then
+	if [ -f ${cwd}/jrt-dev-branch-id ]; then
+		BUILDID=$(cat ${cwd}/jrt-dev-branch-id)
+	fi
+fi
+
 if [ ! -e version ]; then
 	echo 0 > version
 fi
@@ -222,7 +232,6 @@ else
 	reproversion=" #${v}: ${t}\n\t${u}@${h}:${d}"
 fi
 
-cwd=$(dirname "$0")
 copyright="$(cat "${cwd}/copyright")"
 osrelcmd=${cwd}/osrelease.sh
 
