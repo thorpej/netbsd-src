@@ -1,4 +1,4 @@
-# $NetBSD: mi,v 1.814 2019/05/26 21:04:56 christos Exp $
+# $NetBSD: mi,v 1.817 2019/06/20 12:14:46 isaki Exp $
 #
 # Note: don't delete entries from here - mark them as "obsolete" instead.
 #
@@ -1389,7 +1389,7 @@
 ./usr/tests/dev/audio/Kyuafile			tests-fs-tests		atf,rump,kyua
 ./usr/tests/dev/audio/h_pad			tests-fs-tests		atf,rump
 ./usr/tests/dev/audio/t_pad			tests-fs-tests		atf,rump
-./usr/tests/dev/audio/t_pad_output.bz2.uue	tests-fs-tests		atf,rump
+./usr/tests/dev/audio/t_pad_output.bz2.uue	tests-obsolete		obsolete
 ./usr/tests/dev/cgd				tests-fs-tests		compattestfile,atf
 ./usr/tests/dev/cgd/Atffile			tests-fs-tests		compattestfile,atf
 ./usr/tests/dev/cgd/Kyuafile			tests-fs-tests		compattestfile,atf,kyua
@@ -2186,11 +2186,13 @@
 ./usr/tests/kernel/t_lwpctl			tests-obsolete		obsolete
 ./usr/tests/kernel/t_mkdir			tests-obsolete		obsolete
 ./usr/tests/kernel/t_mqueue			tests-kernel-tests	compattestfile,atf
+./usr/tests/kernel/t_origin			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_pipe			tests-obsolete		obsolete
 ./usr/tests/kernel/t_poll3w			tests-obsolete		obsolete
 ./usr/tests/kernel/t_pollts			tests-obsolete		obsolete
 ./usr/tests/kernel/t_posix_fadvise		tests-obsolete		obsolete
 ./usr/tests/kernel/t_posix_fallocate		tests-obsolete		obsolete
+./usr/tests/kernel/t_proccwd			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_procpath			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_ps_strings			tests-kernel-tests	compattestfile,atf
 ./usr/tests/kernel/t_ptrace			tests-obsolete		obsolete

@@ -1,4 +1,4 @@
-/*	$NetBSD: net.c,v 1.26 2018/10/06 18:45:37 martin Exp $	*/
+/*	$NetBSD: net.c,v 1.30 2019/06/22 20:46:07 christos Exp $	*/
 
 /*
  * Copyright 1997 Piermont Information Systems Inc.
@@ -453,7 +453,8 @@ handle_license(const char *dev)
 			if (sysctlbyname(buf, &val, &len, NULL, 0) != -1
 			    && val != 0)
 				return 1;
-			msg_display(MSG_license, dev, licdev[i].lic);
+			msg_fmt_display(MSG_license, "%s%s",
+			    dev, licdev[i].lic);
 			if (ask_yesno(NULL)) {
 				val = 1;
 				if (sysctlbyname(buf, NULL, NULL, &val,
@@ -503,14 +504,12 @@ config_network(void)
 
 	if (num_devs < 1) {
 		/* No network interfaces found! */
-		msg_display(MSG_nonet);
-		process_menu(MENU_ok, NULL);
+		hit_enter_to_continue(NULL, MSG_nonet);
 		return (-1);
 	}
 
 	for (i = 0; i < num_devs; i++) {
 		net_menu[i].opt_name = net_devs[i].if_dev;
-		net_menu[i].opt_menu = OPT_NOMENU;
 		net_menu[i].opt_flags = OPT_EXIT;
 		net_menu[i].opt_action = set_menu_select;
 	}
@@ -520,7 +519,7 @@ again:
 		net_menu, num_devs, -1, 4, 0, 0,
 		MC_SCROLL,
 		NULL, NULL, NULL, NULL, NULL);
-	msg_display(MSG_asknetdev, "");
+	msg_display(MSG_asknetdev);
 	process_menu(menu_no, &selected_net);
 	free_menu(menu_no);
 	
@@ -724,7 +723,9 @@ again:
 
 	/* confirm the setting */
 	if (slip)
-		msg_display(MSG_netok_slip, net_domain, net_host,
+		msg_fmt_display(MSG_netok_slip, "%s%s%s%s%s%s%s%s%s",
+		    net_domain,
+		    net_host,
 		    *net_namesvr == '\0' ? "<none>" : net_namesvr,
 		    net_dev,
 		    *net_media == '\0' ? "<default>" : net_media,
@@ -733,7 +734,9 @@ again:
 		    *net_mask == '\0' ? "<none>" : net_mask,
 		    *net_defroute == '\0' ? "<none>" : net_defroute);
 	else
-		msg_display(MSG_netok, net_domain, net_host,
+		msg_fmt_display(MSG_netok, "%s%s%s%s%s%s%s%s",
+		    net_domain,
+		    net_host,
 		    *net_namesvr == '\0' ? "<none>" : net_namesvr,
 		    net_dev,
 		    *net_media == '\0' ? "<default>" : net_media,
@@ -741,7 +744,7 @@ again:
 		    *net_mask == '\0' ? "<none>" : net_mask,
 		    *net_defroute == '\0' ? "<none>" : net_defroute);
 #ifdef INET6
-	msg_display_add(MSG_netokv6,
+	msg_fmt_display_add(MSG_netokv6, "%s",
 		     !is_v6kernel() ? "<not supported>" : net_ip6);
 #endif
 done:
@@ -793,7 +796,7 @@ done:
 			    net_dev, net_ip, net_srv_ip);
 			strcpy(sl_flags, "-s 115200 -l /dev/tty00");
 			msg_prompt_win(MSG_slattach, -1, 12, 70, 0,
-				sl_flags, sl_flags, 255);
+				sl_flags, sl_flags, sizeof sl_flags);
 
 			/* XXX: wtf isn't run_program() used here? */
 			pid = fork();

@@ -1,4 +1,4 @@
-/*	$NetBSD: util.c,v 1.21 2019/02/12 18:32:15 martin Exp $	*/
+/*	$NetBSD: util.c,v 1.25 2019/06/22 20:46:07 christos Exp $	*/
 
 /*
  * Copyright 1997 Piermont Information Systems Inc.
@@ -41,7 +41,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mount.h>
-#include <sys/disklabel.h>
 #include <sys/dkio.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -57,27 +56,14 @@
 #include <util.h>
 #include "defs.h"
 #include "md.h"
+#include "defsizes.h"
 #include "msg_defs.h"
 #include "menu_defs.h"
-
-#ifndef MD_SETS_SELECTED
-#define MD_SETS_SELECTED SET_KERNEL_1, SET_SYSTEM, SET_X11, SET_MD
-#endif
-#ifndef MD_SETS_SELECTED_MINIMAL
-#define MD_SETS_SELECTED_MINIMAL SET_KERNEL_1, SET_CORE
-#endif
-#ifndef MD_SETS_SELECTED_NOX
-#define MD_SETS_SELECTED_NOX SET_KERNEL_1, SET_SYSTEM, SET_MD
-#endif
-#ifndef MD_SETS_VALID
-#define MD_SETS_VALID SET_KERNEL, SET_SYSTEM, SET_X11, SET_MD, SET_SOURCE, SET_DEBUGGING
-#endif
 
 #define MAX_CD_DEVS	256	/* how many cd drives do we expect to attach */
 #define ISO_BLKSIZE	ISO_DEFAULT_BLOCK_SIZE
 
 static const char *msg_yes, *msg_no, *msg_all, *msg_some, *msg_none;
-static const char *msg_cur_distsets_row;
 static int select_menu_width;
 
 static uint8_t set_status[SET_GROUP_END];
@@ -175,6 +161,10 @@ struct cd_info {
 };
 static struct cd_info cds[MAX_CD_INFOS];
 
+/* flags whether to offer the respective options (depending on helper
+   programs available on install media */
+int have_raid, have_vnd, have_cgd, have_lvm, have_gpt, have_dk;
+
 /*
  * local prototypes
  */
@@ -182,6 +172,7 @@ static struct cd_info cds[MAX_CD_INFOS];
 static int check_for(unsigned int mode, const char *pathname);
 static int get_iso9660_volname(int dev, int sess, char *volname);
 static int get_available_cds(void);
+static int binary_available(const char *prog);
 
 void
 init_set_status(int flags)
@@ -197,16 +188,16 @@ init_set_status(int flags)
 
 	if (flags & SFLAG_MINIMAL) {
 		sets_selected = sets_selected_minimal;
-		nelem_selected = nelem(sets_selected_minimal);
+		nelem_selected = __arraycount(sets_selected_minimal);
 	} else if (flags & SFLAG_NOX) {
 		sets_selected = sets_selected_nox;
-		nelem_selected = nelem(sets_selected_nox);
+		nelem_selected = __arraycount(sets_selected_nox);
 	} else {
 		sets_selected = sets_selected_full;
-		nelem_selected = nelem(sets_selected_full);
+		nelem_selected = __arraycount(sets_selected_full);
 	}
 
-	for (i = 0; i < nelem(sets_valid); i++)
+	for (i = 0; i < __arraycount(sets_valid); i++)
 		set_status[sets_valid[i]] = SET_VALID;
 	for (i = 0; i < nelem_selected; i++)
 		set_status[sets_selected[i]] |= SET_SELECTED;
@@ -219,7 +210,6 @@ init_set_status(int flags)
 	msg_all = msg_string(MSG_All);
 	msg_some = msg_string(MSG_Some);
 	msg_none = msg_string(MSG_None);
-	msg_cur_distsets_row = msg_string(MSG_cur_distsets_row);
 
 	/* Find longest and use it to determine width of selection menu */
 	len = strlen(msg_no); longest = msg_no;
@@ -227,7 +217,7 @@ init_set_status(int flags)
 	i = strlen(msg_all); if (i > len) {len = i; longest = msg_all; }
 	i = strlen(msg_some); if (i > len) {len = i; longest = msg_some; }
 	i = strlen(msg_none); if (i > len) {len = i; longest = msg_none; }
-	select_menu_width = snprintf(NULL, 0, msg_cur_distsets_row, "",longest);
+	select_menu_width = snprintf(NULL, 0, "%-30s %s", "", longest);
 
 	/* Give the md code a chance to choose the right kernel, etc. */
 	md_init_set_status(flags);
@@ -255,7 +245,8 @@ file_mode_match(const char *path, unsigned int mode)
 	return (stat(path, &st) == 0 && (st.st_mode & S_IFMT) == mode);
 }
 
-uint
+/* return ram size in MB */
+uint64_t
 get_ramsize(void)
 {
 	uint64_t ramsize;
@@ -328,7 +319,7 @@ floppy_fetch(const char *set_name)
 	for (;;) {
 		umount_mnt2();
 		msg_display(errmsg);
-		msg_display_add(MSG_fdmount, set_name, post);
+		msg_fmt_display_add(MSG_fdmount, "%s%s", set_name, post);
 		process_menu(menu, &status);
 		if (status != SET_CONTINUE)
 			return status;
@@ -574,6 +565,7 @@ get_via_cdrom(void)
 		return SET_OK;
 	}
 
+	memset(cd_menu, 0, sizeof(cd_menu));
 	num_cds = get_available_cds();
 	if (num_cds <= 0) {
 		silent = true;
@@ -585,7 +577,6 @@ get_via_cdrom(void)
 	} else {
 		for (i = 0; i< num_cds; i++) {
 			cd_menu[i].opt_name = cds[i].menu;
-			cd_menu[i].opt_menu = OPT_NOMENU;
 			cd_menu[i].opt_flags = OPT_EXIT;
 			cd_menu[i].opt_action = set_menu_select;
 		}
@@ -608,8 +599,7 @@ get_via_cdrom(void)
 		msg_display("");
 	else {
 		umount_mnt2();
-		msg_display(MSG_cd_path_not_found);
-		process_menu(MENU_ok, NULL);
+		hit_enter_to_continue(MSG_cd_path_not_found, NULL);
 	}
 
 	/* ask for paths on the CD */
@@ -799,7 +789,7 @@ set_label(menudesc *menu, int opt, void *arg)
 		}
 	}
 
-	wprintw(menu->mw, msg_cur_distsets_row, msg_string(desc), selected);
+	wprintw(menu->mw, "%-30s %s", msg_string(desc), selected);
 }
 
 static int set_sublist(menudesc *menu, void *arg);
@@ -818,9 +808,7 @@ initialise_set_menu(distinfo *dist, menu_ent *me, distinfo **de, int all_none)
 		if (!(set_status[set] & SET_VALID))
 			continue;
 		*de = dist;
-		me->opt_menu = OPT_NOMENU;
-		me->opt_flags = 0;
-		me->opt_name = NULL;
+		memset(me, 0, sizeof(*me));
 		if (set != SET_GROUP)
 			me->opt_action = set_toggle;
 		else {
@@ -838,13 +826,9 @@ initialise_set_menu(distinfo *dist, menu_ent *me, distinfo **de, int all_none)
 	}
 
 	if (all_none) {
-		me->opt_menu = OPT_NOMENU;
-		me->opt_flags = 0;
 		me->opt_name = MSG_select_all;
 		me->opt_action = set_all;
 		me++;
-		me->opt_menu = OPT_NOMENU;
-		me->opt_flags = 0;
 		me->opt_name = MSG_select_none;
 		me->opt_action = set_none;
 		sets += 2;
@@ -862,6 +846,7 @@ set_sublist(menudesc *menu, void *arg)
 	int menu_no;
 	int sets;
 
+	memset(me, 0, sizeof(me));
 	sets = initialise_set_menu(dist[menu->cursel] + 1, me, de, 1);
 
 	menu_no = new_menu(NULL, me, sets, 20, 10, 0, select_menu_width,
@@ -886,6 +871,7 @@ customise_sets(void)
 	msg_display(MSG_cur_distsets);
 	msg_table_add(MSG_cur_distsets_header);
 
+	memset(me, 0, sizeof(me));
 	sets = initialise_set_menu(dist_list, me, de, 0);
 
 	menu_no = new_menu(NULL, me, sets, 0, 5, 0, select_menu_width,
@@ -941,8 +927,7 @@ extract_file(distinfo *dist, int update)
 
 		tarstats.nnotfound++;
 
-		msg_display(MSG_notarfile, path);
-		process_menu(MENU_ok, NULL);
+		hit_enter_to_continue(MSG_notarfile, NULL);
 		return SET_RETRY;
 	}
 #ifdef SUPPORT_8_3_SOURCE_FILESYSTEM
@@ -977,8 +962,8 @@ extract_file(distinfo *dist, int update)
 	/* Check rval for errors and give warning. */
 	if (rval != 0) {
 		tarstats.nerror++;
-		msg_display(MSG_tarerror, path);
-		process_menu(MENU_ok, NULL);
+		msg_fmt_display(MSG_tarerror, "%s", path);
+		hit_enter_to_continue(NULL, NULL);
 		return SET_RETRY;
 	}
 
@@ -1060,7 +1045,8 @@ get_and_unpack_sets(int update, msg setupdone_msg, msg success_msg, msg failure_
 			/* Sort out the location of the set files */
 			do {
 				umount_mnt2();
-				msg_display(MSG_distmedium, tarstats.nselected,
+				msg_fmt_display(MSG_distmedium, "%d%d%s",
+				    tarstats.nselected,
 				    tarstats.nsuccess + tarstats.nskipped,
 				    dist->name);
 				fetch_fn = NULL;
@@ -1077,8 +1063,7 @@ get_and_unpack_sets(int update, msg setupdone_msg, msg success_msg, msg failure_
 				continue;
 			}
 			if (status != SET_OK) {
-				msg_display(failure_msg);
-				process_menu(MENU_ok, NULL);
+				hit_enter_to_continue(failure_msg, NULL);
 				return 1;
 			}
 		}
@@ -1095,11 +1080,10 @@ get_and_unpack_sets(int update, msg setupdone_msg, msg success_msg, msg failure_
 		sleep(1);
 	} else {
 		/* We encountered errors. Let the user know. */
-		msg_display(MSG_endtar,
+		msg_fmt_display(MSG_endtar, "%d%d%d%d%d%d",
 		    tarstats.nselected, tarstats.nnotfound, tarstats.nskipped,
 		    tarstats.nfound, tarstats.nsuccess, tarstats.nerror);
-		process_menu(MENU_ok, NULL);
-		msg_clear();
+		hit_enter_to_continue(NULL, NULL);
 	}
 
 	/*
@@ -1162,8 +1146,7 @@ get_and_unpack_sets(int update, msg setupdone_msg, msg success_msg, msg failure_
 	run_program(RUN_DISPLAY | RUN_CHROOT | RUN_FATAL | RUN_PROGRESS,
 		    "/etc/rc.d/random_seed stop");
 	/* Install/Upgrade complete ... reboot or exit to script */
-	msg_display(success_msg);
-	process_menu(MENU_ok, NULL);
+	hit_enter_to_continue(success_msg, NULL);
 	return 0;
 }
 
@@ -1218,7 +1201,7 @@ check_for(unsigned int mode, const char *pathname)
 
 	found = (target_test(mode, pathname) == 0);
 	if (found == 0)
-		msg_display(MSG_rootmissing, pathname);
+		msg_fmt_display(MSG_rootmissing, "%s", pathname);
 	return found;
 }
 
@@ -1239,8 +1222,7 @@ sanity_check(void)
 		return 0;
 
 	/* Uh, oh. Something's missing. */
-	msg_display(MSG_badroot);
-	process_menu(MENU_ok, NULL);
+	hit_enter_to_continue(MSG_badroot, NULL);
 	return 1;
 }
 
@@ -1282,7 +1264,7 @@ set_tz_select(menudesc *m, void *arg)
 	/* Update displayed time */
 	t = time(NULL);
 	tm = localtime(&t);
-	msg_display(MSG_choose_timezone,
+	msg_fmt_display(MSG_choose_timezone, "%s%s%s%s",
 		    tz_default, tz_selected, safectime(&t), tm ? tm->tm_zone :
 		    "?");
 	return 0;
@@ -1344,7 +1326,7 @@ tzm_set_names(menudesc *m, void *arg)
 	struct stat sb;
 
 	if (tz_menu == NULL)
-		tz_menu = malloc(maxfiles * sizeof *tz_menu);
+		tz_menu = calloc(maxfiles, sizeof *tz_menu);
 	if (tz_names == NULL)
 		tz_names = malloc(maxfiles * sizeof *tz_names);
 	if (tz_menu == NULL || tz_names == NULL)
@@ -1357,8 +1339,6 @@ tzm_set_names(menudesc *m, void *arg)
 	if (fp != zoneinfo_dir + zonerootlen) {
 		tz_names[0] = 0;
 		tz_menu[0].opt_name = msg_string(MSG_tz_back);
-		tz_menu[0].opt_menu = OPT_NOMENU;
-		tz_menu[0].opt_flags = 0;
 		tz_menu[0].opt_action = set_tz_back;
 		nfiles = 1;
 	}
@@ -1391,8 +1371,6 @@ tzm_set_names(menudesc *m, void *arg)
 				continue;
 			tz_names[nfiles] = strdup(zoneinfo_dir + zonerootlen);
 			tz_menu[nfiles].opt_name = tz_names[nfiles];
-			tz_menu[nfiles].opt_menu = OPT_NOMENU;
-			tz_menu[nfiles].opt_flags = 0;
 			nfiles++;
 		}
 		closedir(dir);
@@ -1452,9 +1430,8 @@ set_timezone(void)
 	setenv("TZ", tz_env, 1);
 	t = time(NULL);
 	tm = localtime(&t);
-	msg_display(MSG_choose_timezone,
-		    tz_default, tz_selected, safectime(&t), tm ? tm->tm_zone :
-		    "?");
+	msg_fmt_display(MSG_choose_timezone, "%s%s%s%s",
+	    tz_default, tz_selected, safectime(&t), tm ? tm->tm_zone : "?");
 
 	signal(SIGALRM, timezone_sig);
 	alarm(60);
@@ -1541,14 +1518,14 @@ del_rc_conf(const char *value)
 			free(rcconf);
 		if (tempname)
 			free(tempname);
-		msg_display(MSG_rcconf_delete_failed, value);
-		process_menu(MENU_ok, NULL);
+		msg_fmt_display(MSG_rcconf_delete_failed, "%s", value);
+		hit_enter_to_continue(NULL, NULL);
 		return -1;
 	}
 
 	if ((fd = mkstemp(bakname)) < 0) {
-		msg_display(MSG_rcconf_delete_failed, value);
-		process_menu(MENU_ok, NULL);
+		msg_fmt_display(MSG_rcconf_delete_failed, "%s", value);
+		hit_enter_to_continue(NULL, NULL);
 		return -1;
 	}
 	close(fd);
@@ -1556,8 +1533,8 @@ del_rc_conf(const char *value)
 	if (!(fp = fopen(rcconf, "r+")) || (fd = mkstemp(tempname)) < 0) {
 		if (fp)
 			fclose(fp);
-		msg_display(MSG_rcconf_delete_failed, value);
-		process_menu(MENU_ok, NULL);
+		msg_fmt_display(MSG_rcconf_delete_failed, "%s", value);
+		hit_enter_to_continue(NULL, NULL);
 		return -1;
 	}
 
@@ -1565,8 +1542,8 @@ del_rc_conf(const char *value)
 	if (!nfp) {
 		fclose(fp);
 		close(fd);
-		msg_display(MSG_rcconf_delete_failed, value);
-		process_menu(MENU_ok, NULL);
+		msg_fmt_display(MSG_rcconf_delete_failed, "%s", value);
+		hit_enter_to_continue(NULL, NULL);
 		return -1;
 	}
 
@@ -1597,11 +1574,11 @@ del_rc_conf(const char *value)
 
 		if (rename(tempname, rcconf)) {
 			if (rename(bakname, rcconf)) {
-				msg_display(MSG_rcconf_restore_failed);
-				process_menu(MENU_ok, NULL);
+				hit_enter_to_continue(MSG_rcconf_restore_failed,
+				    NULL);
 			} else {
-				msg_display(MSG_rcconf_delete_failed, value);
-				process_menu(MENU_ok, NULL);
+				hit_enter_to_continue(MSG_rcconf_delete_failed,
+				    NULL);
 			}
 		} else {
 			(void)unlink(bakname);
@@ -1705,7 +1682,7 @@ set_menu_select(menudesc *m, void *arg)
  * check wether a binary is available somewhere in PATH,
  * return 1 if found, 0 if not.
  */
-int
+static int
 binary_available(const char *prog)
 {
         char *p, tmp[MAXPATHLEN], *path = getenv("PATH"), *opath;
@@ -1770,6 +1747,22 @@ ask_noyes(const char *msgtxt)
 
 	process_menu(MENU_noyes, &p);
 	return p.rv;
+}
+
+int
+ask_reedit(const struct disk_partitions *parts)
+{
+	const char *args[2];
+	arg_rep_int arg;
+
+	args[0] = msg_string(parts->pscheme->name);
+	args[1] = msg_string(parts->pscheme->short_name);
+	arg.args.argv = args;
+	arg.args.argc = 2;
+	arg.rv = 0;
+	process_menu(MENU_reedit, &arg);
+
+	return arg.rv;
 }
 
 bool
@@ -1854,6 +1847,55 @@ str_arg_subst(const char *src, size_t argc, const char **argv)
 }
 
 /*
+ * Does this string have any positional args that need expanding?
+ */
+bool
+needs_expanding(const char *src, size_t argc)
+{
+	const char *p;
+
+	for (p = strchr(src, '$'); p; p = strchr(p+1, '$')) {
+		char *endp = NULL;
+		size_t n;
+		int e;
+
+		/* $ followed by a correct numeric position? */
+		n = strtou(p+1, &endp, 10, 0, INT_MAX, &e);
+		if ((e == 0 || e == ENOTSUP) && n < argc)
+			return true;
+	}
+	return false;
+}
+
+/*
+ * Replace positional arguments (encoded as $0 .. $N) in the
+ * message by the strings passed as ... and call outfunc
+ * with the result.
+ */
+static void
+msg_display_subst_internal(void (*outfunc)(msg),
+    const char *master, size_t argc, va_list ap)
+{
+	const char **args, **arg;
+	char *out;
+
+	args = calloc(argc, sizeof(*args));
+	if (args == NULL)
+		return;
+
+	arg = args;
+	for (size_t i = 0; i < argc; i++)
+		*arg++ = va_arg(ap, const char*);
+
+	out = str_arg_subst(msg_string(master), argc, args);
+	if (out != NULL) {
+		outfunc(out);
+		free(out);
+	}
+	free(args);
+}
+
+/*
  * Replace positional arguments (encoded as $0 .. $N) in the
  * message by the strings passed as ...
  */
@@ -1861,24 +1903,167 @@ void
 msg_display_subst(const char *master, size_t argc, ...)
 {
 	va_list ap;
-	const char **args, **arg;
-	char *out;
 
-	args = malloc(sizeof(const char *)*argc);
-	if (args == NULL)
-		return;
-
-	arg = args;
 	va_start(ap, argc);
-	for (size_t i = 0; i < argc; i++)
-		*arg++ = va_arg(ap, const char*);
+	msg_display_subst_internal(msg_display, master, argc, ap);
 	va_end(ap);
+}
 
-	out = str_arg_subst(msg_string(master), argc, args);
-	if (out != NULL) {
-		msg_display(out);
-		free(out);
+/*
+ * Same as above, but add to message instead of starting a new one
+ */
+void
+msg_display_add_subst(const char *master, size_t argc, ...)
+{
+	va_list ap;
+
+	va_start(ap, argc);
+	msg_display_subst_internal(msg_display_add, master, argc, ap);
+	va_end(ap);
+}
+
+/* initialize have_* variables */
+void
+check_available_binaries()
+{
+	static int did_test = false;
+
+	if (did_test) return;
+	did_test = 1;
+
+	have_raid = binary_available("raidctl");
+	have_vnd = binary_available("vndconfig");
+	have_cgd = binary_available("cgdconfig");
+	have_lvm = binary_available("lvm");
+	have_gpt = binary_available("gpt");
+	have_dk = binary_available("dkctl");
+}
+
+/*
+ * Wait for enter and immediately clear the screen after user response
+ * (in case some longer action follows, so the user has instant feedback)
+ */
+void
+hit_enter_to_continue(const char *prompt, const char *title)
+{
+	if (prompt != NULL)
+		msg_display(prompt);
+        process_menu(MENU_ok, __UNCONST(title));
+	msg_clear();
+	wrefresh(mainwin);
+}
+
+/*
+ * On auto pilot:
+ * convert an existing set of partitions ot a list of part_usage_info
+ * so that we "want" exactly what is there already.
+ */
+static bool
+usage_info_list_from_parts(struct part_usage_info **list, size_t *count,
+    struct disk_partitions *parts)
+{
+	struct disk_part_info info;
+	part_id pno;
+	size_t no, num;
+
+	num = 0;
+	for (pno = 0; pno < parts->num_part; pno++) {
+		if (!parts->pscheme->get_part_info(parts, pno, &info))
+			continue;
+		num++;
 	}
-	free(args);
+
+	*list = calloc(num, sizeof(**list));
+	if (*list == NULL)
+		return false;
+
+	*count = num;
+	for (no = pno = 0; pno < parts->num_part && no < num; pno++) {
+		if (!parts->pscheme->get_part_info(parts, pno, &info))
+			continue;
+		(*list)[no].size = info.size;
+		if (info.last_mounted != NULL && *info.last_mounted != 0) {
+			strlcpy((*list)[no].mount, info.last_mounted,
+			    sizeof((*list)[no].mount));
+			(*list)[no].instflags |= PUIINST_MOUNT;
+		}
+		(*list)[no].parts = parts;
+		(*list)[no].cur_part_id = pno;
+		(*list)[no].cur_start = info.start;
+		(*list)[no].cur_flags = info.flags;
+		(*list)[no].type = info.nat_type->generic_ptype;
+		if ((*list)[no].type == PT_swap) {
+			(*list)[no].fs_type = FS_SWAP;
+			(*list)[no].fs_version = 0;
+		} else {
+			(*list)[no].fs_type = info.fs_type;
+			(*list)[no].fs_version = info.fs_sub_type;
+		}
+		no++;
+	}
+	return true;
+}
+
+bool
+usage_set_from_parts(struct partition_usage_set *wanted,
+    struct disk_partitions *parts)
+{
+	memset(wanted, 0, sizeof(*wanted));
+	wanted->parts = parts;
+
+	return usage_info_list_from_parts(&wanted->infos, &wanted->num, parts);
+}
+
+bool
+install_desc_from_parts(struct install_partition_desc *install,
+    struct disk_partitions *parts)
+{
+	struct disk_partitions *inner_parts;
+	daddr_t start, size;
+	part_id pno;
+	struct disk_part_info info;
+
+	memset(install, 0, sizeof(*install));
+
+	if (parts->pscheme->secondary_scheme != NULL) {
+		start = -1;
+		size = -1;
+		if (parts->pscheme->guess_install_target != NULL &&
+		    parts->pscheme->guess_install_target(parts,
+			&start, &size)) {
+		} else {
+			for (pno = 0; pno < parts->num_part; pno++) {
+				if (!parts->pscheme->get_part_info(parts, pno,
+				    &info))
+					continue;
+				if (!(info.flags & PTI_SEC_CONTAINER))
+					continue;
+				start = info.start;
+				size = info.size;
+			}
+		}
+		if (size > 0) {
+			inner_parts = parts->pscheme->secondary_partitions(
+			    parts, start, false);
+			if (inner_parts != NULL)
+				parts = inner_parts;
+		}
+	}
+
+	return usage_info_list_from_parts(&install->infos, &install->num,
+	    parts);
+}
+
+void
+free_usage_set(struct partition_usage_set *wanted)
+{
+	free(wanted->menu_opts);
+	free(wanted->infos);
+}
+
+void
+free_install_desc(struct install_partition_desc *install)
+{
+	free(install->infos);
 }
 

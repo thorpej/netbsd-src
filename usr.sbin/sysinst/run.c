@@ -1,4 +1,4 @@
-/*	$NetBSD: run.c,v 1.10 2019/02/27 12:59:35 martin Exp $	*/
+/*	$NetBSD: run.c,v 1.12 2019/06/22 20:46:07 christos Exp $	*/
 
 /*
  * Copyright 1997 Piermont Information Systems Inc.
@@ -79,8 +79,8 @@ static int script_flip (menudesc *, void *);
 #define BUFSIZE 4096
 
 menu_ent logmenu [2] = {
-	{ .opt_menu=OPT_NOMENU, .opt_action=log_flip},
-	{ .opt_menu=OPT_NOMENU, .opt_action=script_flip}
+	{ .opt_action=log_flip},
+	{ .opt_action=script_flip}
 };
 
 static void
@@ -131,8 +131,8 @@ log_flip(menudesc *m, void *arg)
 			fflush(logfp);
 		} else {
 			if (mainwin) {
-				msg_display(MSG_openfail, "log file",
-				    strerror(errno));
+				msg_fmt_display(MSG_openfail, "%s%s",
+				    "log file", strerror(errno));
 			} else {
 				fprintf(stderr, "could not open /tmp/sysinst.log: %s\n",
 				    strerror(errno));
@@ -164,7 +164,7 @@ script_flip(menudesc *m, void *arg)
 			    safectime(&tloc));
 			fflush(script);
 		} else {
-			msg_display(MSG_openfail, "script file",
+			msg_fmt_display(MSG_openfail, "%s%s", "script file",
 			    strerror(errno));
 		}
 	}
