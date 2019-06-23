@@ -1,0 +1,131 @@
+/*
+ * Copyright (c) 2018, 2019 Jason R. Thorpe
+ * All rights reserved.
+ */
+
+#include <dt-bindings/pinctrl/bcm2835.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/linux-event-codes.h>
+
+/*
+ * Device tree overlay for my Nixie clock.
+ */
+/dts-v1/;
+/plugin/;
+/ {
+	compatible = "raspberrypi,model-b-plus", "brcm,bcm2835";
+
+	/*
+	 * i2c devices:
+	 *
+	 *	- DS3231 real-time clock
+	 *	- TSL2561 ambient light sensor
+	 *	- PCA9685 PWM LED controller
+	 */
+	fragment@0 {
+		target = <&i2c1>;
+
+		__overlay__ {
+			light-sensor@39 {
+				compatible = "amstaos,tsl2561";
+				reg = <0x39>;
+			};
+
+			 pwm@41 {
+			 	compatible = "nxp,pca9685";
+			 	reg = <0x41>;
+			 };
+
+			 rtc@68 {
+			 	compatible = "dallas,ds3231";
+			 	reg = <0x68>;
+			 };
+		};
+	};
+
+	/*
+	 * Clock controls:
+	 *
+	 *	Rotary encoder:
+	 *		- "Up"			0
+	 *		- "Down"		2
+	 *		- "Enter"		3
+	 *	- Snooze button			4
+	 *	- Alarm-set button		5
+	 *	- Alarm-off-for-today button	6
+	 *	- Alarm on/off switch		27
+	 *	- Setup mode switch		25
+	 */
+	fragment@1 {
+		target = <&gpio>;
+		__overlay__ {
+			nixie_clock_control_pins: nixie-clock-control-pins {
+				brcm,pins = <0 2 3 4 5 6 25 27>;
+				brcm,function = <BCM2835_FSEL_GPIO_IN>;
+				brcm,pull = <BCM2835_PUD_UP>;
+			};
+		};
+	};
+	fragment@2 {
+		target-path = "/";
+		__overlay__ {
+			nixie-clock-controls {
+				/* compatible = "gpio-keys"; */
+				compatible = "gpio-keys-polled";
+
+				poll-interval = <150>;
+
+				pinctrl-names = "default";
+				pinctrl-0 = <&nixie_clock_control_pins>;
+
+				up-button {
+					label = "up";
+					linux,code = <KEY_UP>;
+					gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
+				};
+
+				down-button {
+					label = "down";
+					linux,code = <KEY_DOWN>;
+					gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
+				};
+
+				enter-button {
+					label = "enter";
+					linux,code = <KEY_ENTER>;
+					gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
+				};
+
+				snooze-button {
+					label = "snooze";
+					linux,code = <KEY_S>;
+					gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
+				};
+
+				alarm-set-button {
+					label = "alarm-set";
+					linux,code = <KEY_TIME>;
+					gpios = <&gpio 5 GPIO_ACTIVE_LOW>;
+				};
+
+				awake-button {
+					label = "awake";
+					linux,code = <KEY_MUTE>;
+					gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+				};
+
+				alarm-enable-switch {
+					label = "alarm-on-off";
+					linux,code = <KEY_A>;
+					gpios = <&gpio 27 GPIO_ACTIVE_LOW>;
+				};
+
+				setup-mode-switch {
+					label = "setup-mode";
+					linux,code = <KEY_SETUP>;
+					gpios = <&gpio 25 GPIO_ACTIVE_LOW>;
+				};
+			};
+		};
+	};
+};
