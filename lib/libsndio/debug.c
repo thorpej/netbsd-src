@@ -42,7 +42,7 @@ _sndio_debug_init(void)
 #endif
 
 const char *
-_sndio_parsetype(const char *str, char *type)
+_sndio_parsetype(const char *str, const char *type)
 {
 	while (*type) {
 		if (*type != *str)

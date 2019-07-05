@@ -47,7 +47,7 @@ extern int _sndio_debug;
 #define DPERROR(s) do {} while(0)
 #endif
 
-const char *_sndio_parsetype(const char *, char *);
+const char *_sndio_parsetype(const char *, const char *);
 const char *_sndio_parsenum(const char *, unsigned int *, unsigned int);
 
 #endif
