@@ -108,6 +108,13 @@ typedef struct audio_offset {
 	u_int	offset;		/* Physical transfer offset in buffer */
 } audio_offset_t;
 
+typedef struct audio_pos {
+	u_int	play_pos;	/* Total number of bytes played */
+	u_int	play_xrun;	/* bytes of silence inserted */
+	u_int	rec_pos;	/* Total number of bytes recorded */
+	u_int	rec_xrun;	/* bytes dropped */
+} audio_pos_t;
+
 /*
  * Supported audio encodings
  */
@@ -297,6 +304,7 @@ typedef struct audio_format_query {
 #define AUDIO_QUERYFORMAT	_IOWR('A', 38, struct audio_format_query)
 #define AUDIO_GETFORMAT	_IOR('A', 39, struct audio_info)
 #define AUDIO_SETFORMAT	_IOW('A', 40, struct audio_info)
+#define AUDIO_GETPOS	_IOR('A', 41, struct audio_pos)
 
 /*
  * Mixer device

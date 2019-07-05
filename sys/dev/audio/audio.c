@@ -2458,6 +2458,7 @@ audio_ioctl(dev_t dev, struct audio_softc *sc, u_long cmd, void *addr, int flag,
 	struct lwp *l, audio_file_t *file)
 {
 	struct audio_offset *ao;
+	struct audio_pos *ap;
 	struct audio_info ai;
 	audio_track_t *track;
 	audio_encoding_t *ae;
@@ -2492,6 +2493,7 @@ audio_ioctl(dev_t dev, struct audio_softc *sc, u_long cmd, void *addr, int flag,
 		" AUDIO_QUERYFORMAT",	/* 38 */
 		" AUDIO_GETFORMAT",	/* 39 */
 		" AUDIO_SETFORMAT",	/* 40 */
+		" AUDIO_GETPOS",	/* 41 */
 	};
 	int nameidx = (cmd & 0xff);
 	const char *ioctlname = "";
@@ -2598,6 +2600,47 @@ audio_ioctl(dev_t dev, struct audio_softc *sc, u_long cmd, void *addr, int flag,
 
 		TRACET(3, track, "GETOOFFS: samples=%u deltablks=%u offset=%u",
 		    ao->samples, ao->deltablks, ao->offset);
+		break;
+
+	case AUDIO_GETPOS:
+		ap = (struct audio_pos *)addr;
+
+		mutex_enter(sc->sc_lock);
+		mutex_enter(sc->sc_intr_lock);
+
+		if (file->ptrack != NULL)
+			ap->play_pos = file->ptrack->usrbuf_stamp;
+		else
+			ap->play_pos = 0;
+
+		/* XXXTODO */
+		ap->rec_pos = 0;
+
+		mutex_exit(sc->sc_intr_lock);
+		mutex_exit(sc->sc_lock);
+
+		if (file->ptrack != NULL)
+			ap->play_xrun = frametobyte(&file->ptrack->usrbuf.fmt,
+			    file->ptrack->dropframes);
+		else
+			ap->play_xrun = 0;
+
+		if (file->rtrack != NULL)
+			ap->rec_xrun = frametobyte(&file->rtrack->usrbuf.fmt,
+			    file->rtrack->dropframes);
+		else
+			ap->rec_xrun = 0;
+
+		if (file->ptrack) {
+			TRACET(3, file->ptrack,
+			    "GETPOS: play_pos=%u play_xrun=%u",
+			    ap->play_pos, ap->play_xrun);
+		}
+		if (file->rtrack) {
+			TRACET(3, file->rtrack,
+			    "GETPOS: rec_pos=%u rec_xrun=%u",
+			    ap->rec_pos, ap->rec_xrun);
+		}
 		break;
 
 	case AUDIO_WSEEK:
