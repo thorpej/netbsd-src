@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: sio_sun.c,v 1.25 2016/01/09 08:27:24 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

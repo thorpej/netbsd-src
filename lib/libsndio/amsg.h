@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: amsg.h,v 1.11 2018/07/28 09:07:48 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

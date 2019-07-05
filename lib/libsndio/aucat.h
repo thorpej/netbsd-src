@@ -1,3 +1,5 @@
+/*	$NetBSD$	*/
+
 #ifndef AUCAT_H
 #define AUCAT_H
 

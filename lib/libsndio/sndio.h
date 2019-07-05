@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: sndio.h,v 1.9 2015/12/20 11:29:29 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

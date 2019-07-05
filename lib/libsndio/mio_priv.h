@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: mio_priv.h,v 1.12 2015/11/22 12:01:23 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

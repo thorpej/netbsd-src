@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: sio.c,v 1.24 2019/06/29 06:05:26 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

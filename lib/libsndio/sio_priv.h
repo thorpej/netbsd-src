@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: sio_priv.h,v 1.9 2015/01/16 16:48:52 deraadt Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

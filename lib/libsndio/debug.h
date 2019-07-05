@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: debug.h,v 1.5 2015/10/02 09:48:22 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>

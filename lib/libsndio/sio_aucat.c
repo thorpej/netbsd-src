@@ -1,3 +1,4 @@
+/*	$NetBSD$	*/
 /*	$OpenBSD: sio_aucat.c,v 1.20 2016/01/09 08:27:24 ratchov Exp $	*/
 /*
  * Copyright (c) 2008 Alexandre Ratchov <alex@caoua.org>
