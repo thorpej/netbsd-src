@@ -7169,6 +7169,7 @@ audiogetinfo(struct audio_softc *sc, struct audio_info *ai, int need_mixerinfo,
 		pi->open = 1;
 		pi->active = sc->sc_pbusy;
 		pi->buffer_size = ptrack->usrbuf.capacity;
+		pi->block_size = ptrack->usrbuf_blksize;
 	}
 	if (rtrack) {
 		ri->seek = rtrack->usrbuf.used;
@@ -7180,23 +7181,31 @@ audiogetinfo(struct audio_softc *sc, struct audio_info *ai, int need_mixerinfo,
 		ri->open = 1;
 		ri->active = sc->sc_rbusy;
 		ri->buffer_size = rtrack->usrbuf.capacity;
+		ri->block_size = rtrack->usrbuf_blksize;
 	}
 
 	/*
-	 * XXX There may be different number of channels between playback
-	 *     and recording, so that blocksize also may be different.
-	 *     But struct audio_info has an united blocksize...
-	 *     Here, I use play info precedencely if ptrack is available,
-	 *     otherwise record info.
+	 * There may be different number of channels between playback
+	 * and recording, so that blocksize also may be different.
+	 * But struct audio_info has an united blocksize...
+	 * Here, I use play info precedencely if ptrack is available,
+	 * otherwise record info.
 	 *
-	 * XXX hiwat/lowat is a playback-only parameter.  What should I
-	 *     return for a record-only descriptor?
+	 * The correct individual playback and recording block sizes
+	 * are returne above in the audio_prinfo_t.
 	 */
 	track = ptrack ? ptrack : rtrack;
 	if (track) {
 		ai->blocksize = track->usrbuf_blksize;
-		ai->hiwat = track->usrbuf_usedhigh / track->usrbuf_blksize;
-		ai->lowat = track->usrbuf_usedlow / track->usrbuf_blksize;
+		if (track == ptrack) {
+			ai->hiwat = track->usrbuf_usedhigh /
+			    track->usrbuf_blksize;
+			ai->lowat = track->usrbuf_usedlow /
+			    track->usrbuf_blksize;
+		} else {
+			ai->hiwat = 0;
+			ai->lowat = 0;
+		}
 	}
 	ai->mode = file->mode;
 

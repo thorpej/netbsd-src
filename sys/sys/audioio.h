@@ -57,7 +57,7 @@ struct audio_prinfo {
 	u_int	seek;		/* BSD extension */
 	u_int	avail_ports;	/* available I/O ports */
 	u_int	buffer_size;	/* total size audio buffer */
-	u_int	_ispare[1];
+	u_int	block_size;	/* H/W read/write block size */
 	/* Current state of device: */
 	u_int	samples;	/* number of samples */
 	u_int	eof;		/* End Of File (zero-size writes) counter */
@@ -77,7 +77,17 @@ struct audio_info {
 
 	u_int	monitor_gain;	/* input to output mix */
 	/* BSD extensions */
+	/*
+	 * For the blksize parameter, a record-only descriptor will
+	 * return the record block size.  Otherwise, the playback block
+	 * size is returned.  The individual blocks sizes for a full-
+	 * duplex descriptor can be found in audio_prinfo_t::block_size.
+	 */
 	u_int	blocksize;	/* H/W read/write block size */
+	/*
+	 * The hiwat and lowat parameters are not meaningful for
+	 * a record-only descriptor.
+	 */
 	u_int	hiwat;		/* output high water mark */
 	u_int	lowat;		/* output low water mark */
 	u_int	_ispare1;

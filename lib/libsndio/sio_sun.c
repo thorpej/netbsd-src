@@ -75,6 +75,9 @@ static struct sio_ops sio_sun_ops = {
 	NULL, /* getvol */
 };
 
+/* XXXJRT */
+#define	AUDIO_BPS(bits)		(bits) <= 8 ? 1 : ((bits) <= 16 ? 2 : 4)
+
 /*
  * convert sun encoding to sio_par encoding
  */
@@ -82,9 +85,9 @@ static int
 sio_sun_infotoenc(struct sio_sun_hdl *hdl, struct audio_prinfo *ai,
     struct sio_par *par)
 {
-	par->msb = ai->msb;
+	par->msb = 1;				/* XXXJRT */
 	par->bits = ai->precision;
-	par->bps = ai->bps;
+	par->bps = AUDIO_BPS(par->bits);	/* XXXJRT */
 	switch (ai->encoding) {
 	case AUDIO_ENCODING_SLINEAR_LE:
 		par->le = 1;
@@ -262,8 +265,8 @@ sio_sun_getcap(struct sio_hdl *sh, struct sio_cap *cap)
 			continue;
 		}
 		cap->enc[nenc].bits = ae.precision;
-		cap->enc[nenc].bps = ae.bps;
-		cap->enc[nenc].msb = ae.msb;
+		cap->enc[nenc].bps = AUDIO_BPS(ae.precision);	/* XXXJRT */
+		cap->enc[nenc].msb = 1;				/* XXXJRT */
 		enc_map |= (1 << nenc);
 		nenc++;
 	}
@@ -646,16 +649,19 @@ sio_sun_setpar(struct sio_hdl *sh, struct sio_par *par)
 		hdl->sio.eof = 1;
 		return 0;
 	}
-	ibpf = (hdl->sio.mode & SIO_REC) ?
-	    aui.record.channels * aui.record.bps : 1;
-	obpf = (hdl->sio.mode & SIO_PLAY) ?
-	    aui.play.channels * aui.play.bps : 1;
+	ibpf = (hdl->sio.mode & SIO_REC) ?	/* XXXJRT */
+	    aui.record.channels * AUDIO_BPS(aui.record.precision) : 1;
+	obpf = (hdl->sio.mode & SIO_PLAY) ?	/* XXXJRT */
+	    aui.play.channels * AUDIO_BPS(aui.play.precision) : 1;
 
 	DPRINTFN(2, "sio_sun_setpar: bpf = (%u, %u)\n", ibpf, obpf);
 
 	/*
 	 * try to set parameters until the device accepts
 	 * a common block size for play and record
+	 *
+	 * XXXJRT NetBSD can't set the block size in this way.
+	 * XXXJRT Discuss with isaki-san.
 	 */
 	for (i = 0; i < NRETRIES; i++) {
 		AUDIO_INITINFO(&aui);
