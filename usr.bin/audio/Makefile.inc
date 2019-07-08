@@ -7,6 +7,9 @@ CPPFLAGS+=-I${.CURDIR}/../common
 DPADD+=	${LIBAUDIO}/libaudio.a
 LDADD+=	-L${LIBAUDIO} -laudio
 
+# XXXJRT
+CPPFLAGS+=-DUSE_SNDIO
+
 .if exists(${.CURDIR}/../../Makefile.inc)
 .include "${.CURDIR}/../../Makefile.inc"
 .endif

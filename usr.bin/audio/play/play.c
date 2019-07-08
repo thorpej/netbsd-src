@@ -49,15 +49,29 @@ __RCSID("$NetBSD: play.c,v 1.57 2019/05/04 08:27:30 isaki Exp $");
 
 #include <paths.h>
 
+#ifdef USE_SNDIO
+#include <sndio.h>
+#endif /* USE_SNDIO */
+
 #include "libaudio.h"
 
 static void usage(void) __dead;
 static void play(char *);
 static void play_fd(const char *, int);
-static ssize_t audioctl_write_fromhdr(void *, size_t, int, off_t *, const char *);
+#if USE_SNDIO
+static ssize_t audioctl_write_fromhdr(void *, size_t, struct sio_hdl *,
+				      off_t *, const char *);
+#else
+static ssize_t audioctl_write_fromhdr(void *, size_t, int,
+				      off_t *, const char *);
+#endif /* USE_SNDIO */
 static void cleanup(int) __dead;
 
+#ifdef USE_SNDIO
+static struct sio_par	audio_par;
+#else
 static audio_info_t	info;
+#endif /* USE_SNDIO */
 static int	volume;
 static int	balance;
 static int	port;
@@ -72,7 +86,11 @@ static int	channels;
 
 static char	const *play_errstring = NULL;
 static size_t	bufsize;
+#ifdef USE_SNDIO
+static struct sio_hdl *audio_hdl;
+#else
 static int	audiofd;
+#endif /* USE_SNDIO */
 static int	exitstatus = EXIT_SUCCESS;
 
 int
@@ -81,7 +99,11 @@ main(int argc, char *argv[])
 	size_t	len;
 	int	ch;
 	int	iflag = 0;
+#ifdef USE_SNDIO
+	const char *defdevice = "rsnd";		/* XXXJRT */
+#else
 	const char *defdevice = _PATH_SOUND;
+#endif /* USE_SNDIO */
 	const char *device = NULL;
 
 	while ((ch = getopt(argc, argv, "b:B:C:c:d:e:fhip:P:qs:Vv:")) != -1) {
@@ -170,6 +192,25 @@ main(int argc, char *argv[])
 	    (device = getenv("AUDIODEV")) == NULL) /* Sun compatibility */
 		device = defdevice;
 
+#ifdef USE_SNDIO
+	audio_hdl = sio_open(device, SIO_PLAY, 0);
+	if (audio_hdl == NULL) {
+		device = "rsnd/0";	/* XXXJRT */
+		audio_hdl = sio_open(device, SIO_PLAY, 0);
+	}
+
+	if (audio_hdl == NULL)
+		err(1, "failed to open sndio:%s", device);
+	
+	if (! sio_getpar(audio_hdl, &audio_par))
+		err(1, "failed to get audio parameters");
+	
+	if (bufsize == 0) {
+		bufsize = audio_par.bufsz;	/* XXXJRT */
+		if (bufsize < 32 * 1024)
+			bufsize = 32 * 1024;
+	}
+#else /* USE_SNDIO */
 	audiofd = open(device, O_WRONLY);
 	if (audiofd < 0 && device == defdevice) {
 		device = _PATH_SOUND0;
@@ -186,6 +227,7 @@ main(int argc, char *argv[])
 		if (bufsize < 32 * 1024)
 			bufsize = 32 * 1024;
 	}
+#endif /* USE_SNDIO */
 
 	signal(SIGINT, cleanup);
 	signal(SIGTERM, cleanup);
@@ -205,9 +247,15 @@ static void
 cleanup(int signo)
 {
 
+#ifdef USE_SNDIO
+	/* XXXJRT */
+	(void) sio_stop(audio_hdl);
+	(void) sio_setpar(audio_hdl, &audio_par);
+#else
 	(void)ioctl(audiofd, AUDIO_FLUSH, NULL);
 	(void)ioctl(audiofd, AUDIO_SETINFO, &info);
 	close(audiofd);
+#endif /* USE_SNDIO */
 	if (signo != 0) {
 		(void)raise_default_signal(signo);
 	}
@@ -268,7 +316,13 @@ play(char *file)
 	 * get the header length and set up the audio device
 	 */
 	if ((hdrlen = audioctl_write_fromhdr(addr,
-	    sizet_filesize, audiofd, &datasize, file)) < 0) {
+	    sizet_filesize,
+#ifdef USE_SNDIO
+	    audio_hdl,
+#else
+	    audiofd,
+#endif /* USE_SNDIO */
+	    &datasize, file)) < 0) {
 		if (play_errstring)
 			errx(1, "%s: %s", play_errstring, file);
 		else
@@ -283,23 +337,43 @@ play(char *file)
 		datasize = filesize;
 	}
 
+#ifdef USE_SNDIO
+	if (! sio_start(audio_hdl))
+		errx(1, "unable to start audio processing");
+#endif /* USE_SNDIO */
+
 	while ((uint64_t)datasize > bufsize) {
+#ifdef USE_SNDIO
+		nw = sio_write(audio_hdl, addr, bufsize);
+#else
 		nw = write(audiofd, addr, bufsize);
 		if (nw == -1)
 			err(1, "write failed");
+#endif /* USE_SNDIO */
 		if ((size_t)nw != bufsize)
-			errx(1, "write failed");
+			errx(1, "write failed (%zu != %zu)",
+			     (size_t)nw, bufsize);
 		addr = (char *)addr + bufsize;
 		datasize -= bufsize;
 	}
+#ifdef USE_SNDIO
+	nw = sio_write(audio_hdl, addr, datasize);
+#else
 	nw = write(audiofd, addr, datasize);
 	if (nw == -1)
 		err(1, "final write failed");
+#endif /* USE_SNDIO */
 	if ((off_t)nw != datasize)
 		errx(1, "final write failed");
 
+#ifdef USE_SNDIO
+	/* XXXJRT */
+	if (! sio_stop(audio_hdl) || ! sio_start(audio_hdl))
+		warn("unable to drain");
+#else
 	if (ioctl(audiofd, AUDIO_DRAIN) < 0 && !qflag)
 		warn("audio drain ioctl failed");
+#endif /* USE_SNDIO */
 	if (munmap(oaddr, sizet_filesize) < 0)
 		err(1, "munmap failed");
 
@@ -331,7 +405,13 @@ play_fd(const char *file, int fd)
 		}
 		err(1, "unexpected EOF");
 	}
-	hdrlen = audioctl_write_fromhdr(buffer, nr, audiofd, &datasize, file);
+	hdrlen = audioctl_write_fromhdr(buffer, nr,
+#ifdef USE_SNDIO
+	    audio_hdl,
+#else
+	    audiofd,
+#endif /* USE_SNDIO */
+	    &datasize, file);
 	if (hdrlen < 0) {
 		if (play_errstring)
 			errx(1, "%s: %s", play_errstring, file);
@@ -344,12 +424,20 @@ play_fd(const char *file, int fd)
 		memmove(buffer, buffer + hdrlen, nr - hdrlen);
 		nr -= hdrlen;
 	}
+#ifdef USE_SNDIO
+	if (! sio_start(audio_hdl))
+		errx(1, "unable to start audio processing");
+#endif /* USE_SNDIO */
 	while (datasize == 0 || dataout < datasize) {
 		if (datasize != 0 && dataout + nr > datasize)
 			nr = datasize - dataout;
+#ifdef USE_SNDIO
+		nw = sio_write(audio_hdl, buffer, nr);
+#else
 		nw = write(audiofd, buffer, nr);
 		if (nw == -1)
 			err(1, "audio device write failed");
+#endif /* USE_SNDIO */
 		if (nw != nr)
 			errx(1, "audio device write failed");
 		dataout += nw;
@@ -360,12 +448,50 @@ play_fd(const char *file, int fd)
 			break;
 	}
 	/* something to think about: no message given for dataout < datasize */
+#ifdef USE_SNDIO
+	/* XXXJRT */
+	if (! sio_stop(audio_hdl) || ! sio_start(audio_hdl))
+		warn("unable to drain");
+#else
 	if (ioctl(audiofd, AUDIO_DRAIN) < 0 && !qflag)
 		warn("audio drain ioctl failed");
+#endif /* USE_SNDIO */
 	return;
 read_error:
 	err(1, "read of standard input failed");
 }
+
+#ifdef USE_SNDIO
+static int
+audio_encoding_to_sio_par(int enc, struct sio_par *par)
+{
+	/*
+	 * XXXJRT sndio doesn't support encodings other than
+	 * linear, at the moment.
+	 */
+	par->le = 0;
+	par->sig = 0;
+	switch (enc) {
+	case AUDIO_ENCODING_SLINEAR_LE:
+		par->le = 1;
+		/* FALLTHROUGH */
+	case AUDIO_ENCODING_SLINEAR_BE:
+		par->sig = 1;
+		break;
+
+	case AUDIO_ENCODING_ULINEAR_LE:
+		par->le = 1;
+		/* FALLTHROUGH */
+	case AUDIO_ENCODING_ULINEAR_BE:
+		break;
+
+	default:
+		return 0;
+	}
+
+	return 1;
+}
+#endif /* USE_SNDIO */
 
 /*
  * only support sun and wav audio files so far ...
@@ -374,16 +500,31 @@ read_error:
  * uses the local "info" variable. blah... fix me!
  */
 static ssize_t
-audioctl_write_fromhdr(void *hdr, size_t fsz, int fd, off_t *datasize, const char *file)
+audioctl_write_fromhdr(
+    void *hdr,
+    size_t fsz,
+#ifdef USE_SNDIO
+    struct sio_hdl *hdl,
+#else
+    int fd,
+#endif /* USE_SNDIO */
+    off_t *datasize,
+    const char *file)
 {
 	sun_audioheader	*sunhdr;
 	ssize_t	hdr_len = 0;
+	u_int xencoding, xprecision, xsample_rate, xchannels;
 
+#ifdef USE_SNDIO
+	sio_initpar(&audio_par);
+#else
 	AUDIO_INITINFO(&info);
+#endif /* USE_SNDIO */
+
 	sunhdr = hdr;
 	if (ntohl(sunhdr->magic) == AUDIO_FILE_MAGIC) {
 		if (audio_sun_to_encoding(ntohl(sunhdr->encoding),
-		    &info.play.encoding, &info.play.precision)) {
+		    &xencoding, &xprecision)) {
 			if (!qflag)
 				warnx("unknown unsupported Sun audio encoding"
 				      " format %d", ntohl(sunhdr->encoding));
@@ -391,17 +532,17 @@ audioctl_write_fromhdr(void *hdr, size_t fsz, int fd, off_t *datasize, const cha
 				goto set_audio_mode;
 			return (-1);
 		}
+		xsample_rate = ntohl(sunhdr->sample_rate);
+		xchannels = ntohl(sunhdr->channels);
 
-		info.play.sample_rate = ntohl(sunhdr->sample_rate);
-		info.play.channels = ntohl(sunhdr->channels);
 		hdr_len = ntohl(sunhdr->hdr_size);
 
 		*datasize = (off_t)ntohl(sunhdr->data_size);
 		goto set_audio_mode;
 	}
 
-	hdr_len = audio_wav_parse_hdr(hdr, fsz, &info.play.encoding,
-	    &info.play.precision, &info.play.sample_rate, &info.play.channels,
+	hdr_len = audio_wav_parse_hdr(hdr, fsz, &xencoding,
+	    &xprecision, &xsample_rate, &xchannels,
 	    datasize);
 
 	switch (hdr_len) {
@@ -424,41 +565,69 @@ audioctl_write_fromhdr(void *hdr, size_t fsz, int fd, off_t *datasize, const cha
 	if (fflag == 0)
 		return (-1);
 set_audio_mode:
+	if (fflag) {
+		if (sample_rate)
+			xsample_rate = sample_rate;
+		if (channels)
+			xchannels = channels;
+		if (encoding)
+			xencoding = encoding;
+		if (precision)
+			xprecision = precision;
+		hdr_len = 0;
+	}
+#ifdef USE_SNDIO
+	if (!audio_encoding_to_sio_par(xencoding, &audio_par)) {
+		if (!qflag) {
+			warnx("unsupported audio encoding %d",
+			      xencoding);
+		}
+		if (!fflag)
+			return (-1);
+	}
+	audio_par.bits = xprecision;
+	audio_par.bps = SIO_BPS(xprecision);
+	audio_par.msb = 1;	/* XXXJRT */
+	audio_par.rate = xsample_rate;
+	audio_par.pchan = xchannels;
+	/* XXXJRT sndio doesn't support 'port' */
+	/* XXXJRT sndio doesn't support 'volume' */
+	/* XXXJRT sndio doesn't support 'balance' */
+#else
+	info.play.encoding = xencoding;
+	info.play.precision = xprecision;
+	info.play.sample_rate = xsample_rate;
+	info.play.channels = xchannels;
 	if (port)
 		info.play.port = port;
 	if (volume)
 		info.play.gain = volume;
 	if (balance)
 		info.play.balance = balance;
-	if (fflag) {
-		if (sample_rate)
-			info.play.sample_rate = sample_rate;
-		if (channels)
-			info.play.channels = channels;
-		if (encoding)
-			info.play.encoding = encoding;
-		if (precision)
-			info.play.precision = precision;
-		hdr_len = 0;
-	}
 	info.mode = AUMODE_PLAY_ALL;
+#endif /* USE_SNDIO */
 
 	if (verbose) {
-		const char *enc = audio_enc_from_val(info.play.encoding);
+		const char *enc = audio_enc_from_val(xencoding);
 
 		printf("%s: sample_rate=%d channels=%d "
 		   "datasize=%lld "
 		   "precision=%d%s%s\n", file,
-		   info.play.sample_rate,
-		   info.play.channels,
+		   xsample_rate,
+		   xchannels,
 		   (long long)*datasize,
-		   info.play.precision,
+		   xprecision,
 		   enc ? " encoding=" : "", 
 		   enc ? enc : "");
 	}
 
+#ifdef USE_SNDIO
+	if (! sio_setpar(audio_hdl, &audio_par))
+		err(1, "failed to set audio parameters");
+#else
 	if (ioctl(fd, AUDIO_SETINFO, &info) < 0)
 		err(1, "failed to set audio info");
+#endif /* USE_SNDIO */
 
 	return (hdr_len);
 }

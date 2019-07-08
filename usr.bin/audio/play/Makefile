@@ -6,4 +6,7 @@ SRCS=	play.c
 DPADD+=	${LIBUTIL}
 LDADD+=	-lutil
 
+# XXXJRT
+LDADD+= -lsndio
+
 .include <bsd.prog.mk>
