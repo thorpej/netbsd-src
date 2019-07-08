@@ -1,3 +1,5 @@
+/*	$NetBSD: gpt.h,v 1.41 2019/06/30 11:38:16 sevan Exp $	*/
+
 /*-
  * Copyright (c) 2002 Marcel Moolenaar
  * All rights reserved.
@@ -116,6 +118,8 @@ struct gpt_find {
 };
 int	gpt_change_ent(gpt_t, const struct gpt_find *,
     void (*)(struct gpt_ent *, void *, int), void *);
+int	gpt_change_hdr(gpt_t, const struct gpt_find *,
+    void (*)(struct gpt_hdr *, void *, int), void *);
 int	gpt_add_find(gpt_t, struct gpt_find *, int);
 
 #define GPT_AIS "a:i:s:"

@@ -1,4 +1,4 @@
-/* $NetBSD: ixgbe.c,v 1.188 2019/06/04 09:43:15 msaitoh Exp $ */
+/* $NetBSD: ixgbe.c,v 1.192 2019/07/04 09:02:24 msaitoh Exp $ */
 
 /******************************************************************************
 
@@ -81,7 +81,7 @@
  * Driver version
  ************************************************************************/
 static const char ixgbe_driver_version[] = "4.0.1-k";
-/* XXX NetBSD: + 3.3.6 */
+/* XXX NetBSD: + 3.3.10 */
 
 /************************************************************************
  * PCI Device ID Table
@@ -4019,7 +4019,7 @@ ixgbe_init_locked(struct adapter *adapter)
 		if ((adapter->feat_en & IXGBE_FEATURE_NETMAP) &&
 		    (ifp->if_capenable & IFCAP_NETMAP)) {
 			struct netmap_adapter *na = NA(adapter->ifp);
-			struct netmap_kring *kring = &na->rx_rings[i];
+			struct netmap_kring *kring = na->rx_rings[i];
 			int t = na->num_rx_desc - 1 - nm_kr_rxspace(kring);
 
 			IXGBE_WRITE_REG(hw, IXGBE_RDT(rxr->me), t);
@@ -4464,7 +4464,7 @@ ixgbe_local_timer1(void *arg)
 	for (i = 0; i < adapter->num_queues; i++, que++) {
 		/* Keep track of queues with work for soft irq */
 		if (que->txr->busy)
-			queues |= ((u64)1 << que->me);
+			queues |= 1ULL << que->me;
 		/*
 		 * Each time txeof runs without cleaning, but there
 		 * are uncleaned descriptors it increments busy. If
@@ -4473,12 +4473,12 @@ ixgbe_local_timer1(void *arg)
 		if (que->busy == IXGBE_QUEUE_HUNG) {
 			++hung;
 			/* Mark the queue as inactive */
-			adapter->active_queues &= ~((u64)1 << que->me);
+			adapter->active_queues &= ~(1ULL << que->me);
 			continue;
 		} else {
 			/* Check if we've come back from hung */
-			if ((adapter->active_queues & ((u64)1 << que->me)) == 0)
-				adapter->active_queues |= ((u64)1 << que->me);
+			if ((adapter->active_queues & (1ULL << que->me)) == 0)
+				adapter->active_queues |= 1ULL << que->me;
 		}
 		if (que->busy >= IXGBE_MAX_TX_BUSY) {
 			device_printf(dev,
@@ -6137,7 +6137,7 @@ ixgbe_ifflags_cb(struct ethercom *ec)
 {
 	struct ifnet *ifp = &ec->ec_if;
 	struct adapter *adapter = ifp->if_softc;
-	int change, rc = 0;
+	int change, rv = 0;
 
 	IXGBE_CORE_LOCK(adapter);
 
@@ -6145,17 +6145,19 @@ ixgbe_ifflags_cb(struct ethercom *ec)
 	if (change != 0)
 		adapter->if_flags = ifp->if_flags;
 
-	if ((change & ~(IFF_CANTCHANGE | IFF_DEBUG)) != 0)
-		rc = ENETRESET;
-	else if ((change & IFF_PROMISC) != 0)
+	if ((change & ~(IFF_CANTCHANGE | IFF_DEBUG)) != 0) {
+		rv = ENETRESET;
+		goto out;
+	} else if ((change & IFF_PROMISC) != 0)
 		ixgbe_set_promisc(adapter);
 
 	/* Set up VLAN support and filter */
 	ixgbe_setup_vlan_hw_support(adapter);
 
+out:
 	IXGBE_CORE_UNLOCK(adapter);
 
-	return rc;
+	return rv;
 }
 
 /************************************************************************
@@ -6540,7 +6542,7 @@ ixgbe_allocate_msix(struct adapter *adapter, const struct pci_attach_args *pa)
 			goto err_out;
 		}
 		que->msix = vector;
-		adapter->active_queues |= (u64)(1 << que->msix);
+		adapter->active_queues |= 1ULL << que->msix;
 
 		if (adapter->feat_en & IXGBE_FEATURE_RSS) {
 #ifdef	RSS

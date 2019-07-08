@@ -1,4 +1,4 @@
-$NetBSD: pcidevs,v 1.1375 2019/06/04 09:09:47 msaitoh Exp $
+$NetBSD: pcidevs,v 1.1377 2019/07/05 06:19:24 msaitoh Exp $
 
 /*
  * Copyright (c) 1995, 1996 Christopher G. Demetriou
@@ -4801,8 +4801,11 @@ product INTEL COFLK_IGD_3	0x3e92	UHD Graphics 630
 product INTEL COFLK_IGD_4	0x3e93	UHD Graphics 610
 product INTEL XEONE_IGD		0x3e96	UHD Graphics P630
 product INTEL COFLK_IGD_5	0x3e9b	UHD Graphics 630
+product INTEL WHISKYLK_IGD_1	0x3ea0	UHD Graphics 620
+product INTEL WHISKYLK_IGD_2	0x3ea1	UHD Graphics 610
 product INTEL COFLK_IGD_6	0x3ea5	Iris Plus Graphics 655
 product INTEL XEONE_S_D_HOST_DRAM_6C 0x3ec2 Xeon E (S, Desktop) Host Bridge, DRAM
+product INTEL CORE8G_H_H_HOST_DRAM_6C 0x3ec4 Core 8G (H, Halo) Host Bridge, DRAM
 product INTEL XEONE_S_W_HOST_DRAM_6C 0x3ec6 Xeon E (S, WS) Host Bridge, DRAM
 product INTEL XEONE_S_S_HOST_DRAM_6C 0x3eca Xeon E (S, Server) Host Bridge, DRAM
 product INTEL XEONE_U_HOST_DRAM_2C 0x3ecc Xeon E (U) Host Bridge, DRAM
@@ -6861,12 +6864,12 @@ product QUANTUMDESIGNS 8580	0x0002	8580
 product QUICKLOGIC PCWATCHDOG	0x5030	PC Watchdog
 
 /* Qumranet products */
-product QUMRANET VIRTIO_1000	0x1000	Virtio
-product QUMRANET VIRTIO_1001	0x1001	Virtio
-product QUMRANET VIRTIO_1002	0x1002	Virtio
-product QUMRANET VIRTIO_1003	0x1003	Virtio
-product QUMRANET VIRTIO_1004	0x1004	Virtio
-product QUMRANET VIRTIO_1005	0x1005	Virtio
+product QUMRANET VIRTIO_1000	0x1000	Virtio Network
+product QUMRANET VIRTIO_1001	0x1001	Virtio Storage
+product QUMRANET VIRTIO_1002	0x1002	Virtio Memory Balloon
+product QUMRANET VIRTIO_1003	0x1003	Virtio Console
+product QUMRANET VIRTIO_1004	0x1004	Virtio SCSI
+product QUMRANET VIRTIO_1005	0x1005	Virtio RNG
 product QUMRANET VIRTIO_1006	0x1006	Virtio
 product QUMRANET VIRTIO_1007	0x1007	Virtio
 product QUMRANET VIRTIO_1008	0x1008	Virtio
