@@ -1,4 +1,4 @@
-/*	$NetBSD: locore.S,v 1.33 2019/01/27 02:08:36 pgoyette Exp $	*/
+/*	$NetBSD: locore.S,v 1.35 2019/07/11 10:53:39 skrll Exp $	*/
 
 /*
  * Copyright (c) 2017 Ryo Shimizu <ryo@nerv.org>
@@ -27,7 +27,6 @@
  */
 
 #include "opt_arm_debug.h"
-#include "opt_compat_netbsd32.h"
 #include "opt_console.h"
 #include "opt_cpuoptions.h"
 #include "opt_ddb.h"
@@ -39,7 +38,7 @@
 #include <aarch64/hypervisor.h>
 #include "assym.h"
 
-RCSID("$NetBSD: locore.S,v 1.33 2019/01/27 02:08:36 pgoyette Exp $")
+RCSID("$NetBSD: locore.S,v 1.35 2019/07/11 10:53:39 skrll Exp $")
 
 
 /*#define DEBUG_LOCORE			/* debug print */
@@ -364,7 +363,7 @@ ENTRY_NP(cpu_mpstart)
 	add	x1, x1, #1
 	cmp	x1, MAXCPUS		/* cpuindex >= MAXCPUS ? */
 	bge	toomanycpus
-	ldr	x2, [x0, x1, lsl #3]	/* cpu_mpidr[cpunidex] */
+	ldr	x2, [x0, x1, lsl #3]	/* cpu_mpidr[cpuindex] */
 	cmp	x2, x3			/* == mpidr_el1 & MPIDR_AFF ? */
 	bne	1b
 
