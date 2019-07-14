@@ -1,12 +1,9 @@
 #
 #	Derived from:
-#	$NetBSD: RPI,v 1.78 2017/12/10 21:38:26 skrll Exp $
+#	NetBSD: RPI,v 1.78 2017/12/10 21:38:26 skrll Exp
 #
-#	This is a Raspberry Pi B+ 1.2 board intended for use
-#	in a clock with a Nixie tube display.  There's a DS3231
-#	to keep time until we can re-sync with an NTP server,
-#	as well as a TSL2561 to sense ambient light for purposes
-#	of dimming the Nixie tube display at night.
+#	This is a Raspberry Pi B+ 1.2 board being used to develop
+#	a block with a Nixie tube display.
 #
 
 include	"arch/evbarm/conf/std.rpi"
