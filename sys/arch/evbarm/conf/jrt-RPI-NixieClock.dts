@@ -43,6 +43,7 @@
 		};
 	};
 
+#if 0 /* XXXJRT disabled for now. */
 	/*
 	 * Clock controls:
 	 *
@@ -128,4 +129,5 @@
 			};
 		};
 	};
+#endif
 };
