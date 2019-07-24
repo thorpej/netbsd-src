@@ -35,12 +35,33 @@
 			 	compatible = "nxp,pca9685-pwm";
 				#pwm-cells = <2>;
 			 	reg = <0x40>;
+			 	/*
+				 * Invert the output of the pca9685;
+				 * the dimmer circuit for +180V rail
+				 * disables the rail when /active/.
+				 */
+				invert;
 			 };
 
 			 rtc@68 {
 			 	compatible = "maxim,ds3231";
 			 	reg = <0x68>;
 			 };
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+		__overlay__ {
+			nixie-display {
+				compatible = "pwm-backlight";
+				pwms = <&display_pwm 0 5000000>;
+				brightness-levels =
+				    <0 10 20 30 40 50 60 70 80 90 100>;
+				default-brightness-level = <10>;
+				/* enable-gpios */
+				/* XXX power-supply */
+			};
 		};
 	};
 
@@ -58,7 +79,7 @@
 	 *	- Alarm on/off switch		27
 	 *	- Setup mode switch		25
 	 */
-	fragment@1 {
+	fragment@2 {
 		target = <&gpio>;
 		__overlay__ {
 			nixie_clock_control_pins: nixie-clock-control-pins {
@@ -68,7 +89,7 @@
 			};
 		};
 	};
-	fragment@2 {
+	fragment@3 {
 		target-path = "/";
 		__overlay__ {
 			nixie-clock-controls {
