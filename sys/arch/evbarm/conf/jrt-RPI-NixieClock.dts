@@ -31,9 +31,10 @@
 				reg = <0x39>;
 			};
 
-			 pwm@41 {
-			 	compatible = "nxp,pca9685";
-			 	reg = <0x41>;
+			 pcapwm: pwm@40 {
+			 	compatible = "nxp,pca9685-pwm";
+				#pwm-cells = <2>;
+			 	reg = <0x40>;
 			 };
 
 			 rtc@68 {
