@@ -15,13 +15,6 @@
 / {
 	compatible = "raspberrypi,model-b-plus", "brcm,bcm2835";
 
-	/*
-	 * i2c devices:
-	 *
-	 *	- DS3231 real-time clock
-	 *	- TSL2561 ambient light sensor
-	 *	- PCA9685 PWM LED controller
-	 */
 	fragment@0 {
 		target = <&i2c1>;
 
@@ -53,14 +46,21 @@
 	fragment@1 {
 		target-path = "/";
 		__overlay__ {
-			nixie-display {
+			vcc_nixie: hv-regulator {
+				compatible = "regulator-fixed";
+				regulator-name = "nixie-180v";
+				regulator-min-microvolt = <180000000>;
+				regulator-max-microvolt = <180000000>;
+			};
+
+			nixie-dimmer {
 				compatible = "pwm-backlight";
 				pwms = <&display_pwm 0 5000000>;
 				brightness-levels =
 				    <0 10 20 30 40 50 60 70 80 90 100>;
 				default-brightness-level = <10>;
 				/* enable-gpios */
-				/* XXX power-supply */
+				power-supply = <&vcc_nixie>;
 			};
 		};
 	};
