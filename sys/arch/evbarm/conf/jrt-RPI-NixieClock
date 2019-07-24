@@ -183,10 +183,16 @@ iic* at i2cbus?
 
 # 'DS3231 Raspberry Pi RTC Board Real Time Clock Module for Arduino'
 # sold by linksprite.com
-dsrtc* at iic? addr 0x68 flags 3231
+dsrtc* at iic? addr ?
 
 # Taos TSL256x ambient light sensor.
-tsllux* at iic? addr 0x39
+tsllux* at iic? addr ?
+
+# NXP PCA9685 PWM controller
+pcapwm* at iic? addr ?
+
+# Backlight driver controls the Nixie display brightness
+pwmbacklight*	at fdt?
 
 seeprom* at iic? addr ?
 
