@@ -31,14 +31,14 @@
 				reg = <0x39>;
 			};
 
-			 pcapwm: pwm@40 {
+			 display_pwm: pwm@40 {
 			 	compatible = "nxp,pca9685-pwm";
 				#pwm-cells = <2>;
 			 	reg = <0x40>;
 			 };
 
 			 rtc@68 {
-			 	compatible = "dallas,ds3231";
+			 	compatible = "maxim,ds3231";
 			 	reg = <0x68>;
 			 };
 		};
