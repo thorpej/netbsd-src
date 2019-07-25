@@ -216,9 +216,6 @@ core_pcib:
 
 		memset(&sc->sc_i2c, 0, sizeof(sc->sc_i2c));
 		memset(&iba, 0, sizeof(iba));
-#ifdef I2C_TYPE_SMBUS
-		iba.iba_type = I2C_TYPE_SMBUS;
-#endif
 		iba.iba_tag = &sc->sc_i2c;
 		iba.iba_tag->ic_cookie = (void *)sc;
 		iba.iba_tag->ic_acquire_bus = viapcib_acquire_bus;

@@ -161,7 +161,6 @@ ra_i2c_attach(device_t parent, device_t self, void *aux)
 	sc->sc_i2c.ic_exec = ra_i2c_exec;
 
 	memset(&iba, 0, sizeof(iba));
-	iba.iba_type = I2C_TYPE_SMBUS;
 	iba.iba_tag = &sc->sc_i2c;
 	config_found(self, &iba, iicbus_print);
 }

@@ -119,13 +119,9 @@ typedef struct i2c_controller {
 	const char *ic_devname;
 } *i2c_tag_t;
 
-/* I2C bus types */
-#define	I2C_TYPE_SMBUS	1
-
 /* Used to attach the i2c framework to the controller. */
 struct i2cbus_attach_args {
 	i2c_tag_t iba_tag;		/* the controller */
-	int iba_type;			/* bus type */
 	prop_array_t iba_child_devices;	/* child devices (direct config) */
 };
 

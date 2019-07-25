@@ -829,7 +829,6 @@ ismt_rescan(device_t self, const char *ifattr, const int *flags)
 	sc->sc_i2c_tag.ic_exec = ismt_i2c_exec;
 
 	memset(&iba, 0, sizeof(iba));
-	iba.iba_type = I2C_TYPE_SMBUS;
 	iba.iba_tag = &sc->sc_i2c_tag;
 	sc->smbdev = config_found_ia(self, ifattr, &iba, iicbus_print);
 

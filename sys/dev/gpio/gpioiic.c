@@ -197,7 +197,6 @@ gpioiic_attach(device_t parent, device_t self, void *aux)
 	sc->sc_i2c_tag.ic_exec = NULL;
 
 	memset(&iba, 0, sizeof(iba));
-	iba.iba_type = I2C_TYPE_SMBUS;
 	iba.iba_tag = &sc->sc_i2c_tag;
 	sc->sc_i2c_dev = config_found(self, &iba, iicbus_print);
 

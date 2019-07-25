@@ -229,7 +229,6 @@ coram_attach(device_t parent, device_t self, void *aux)
 		/* attach iic(4) */
 		memset(&iba, 0, sizeof(iba));
 		iba.iba_tag = &cic->cic_i2c;
-		iba.iba_type = I2C_TYPE_SMBUS;
 		cic->cic_i2cdev = config_found_ia(self, "i2cbus", &iba,
 		    iicbus_print);
 #endif

@@ -104,7 +104,6 @@ auvitek_i2c_rescan(struct auvitek_softc *sc, const char *ifattr,
 
 	if (ifattr_match(ifattr, "i2cbus") && sc->sc_i2cdev == NULL) {
 		memset(&iba, 0, sizeof(iba));
-		iba.iba_type = I2C_TYPE_SMBUS;
 		iba.iba_tag = &sc->sc_i2c;
 		sc->sc_i2cdev = config_found_ia(sc->sc_dev, "i2cbus",
 		    &iba, iicbus_print);

@@ -471,7 +471,6 @@ igma_i2c_attach(struct igma_softc *sc)
 
 #if 0
 		memset(&iba, 0, sizeof(iba));
-		iba.iba_type = I2C_TYPE_SMBUS;
 		iba.iba_tag = &ii->ii_i2c;
 		config_found_ia(sc->sc_dev, "i2cbus", &iba, iicbus_print);
 #endif
