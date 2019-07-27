@@ -1,4 +1,4 @@
-/* $NetBSD: ixgbe.c,v 1.194 2019/07/24 06:07:57 msaitoh Exp $ */
+/* $NetBSD: ixgbe.c,v 1.198 2019/07/26 04:08:39 msaitoh Exp $ */
 
 /******************************************************************************
 
@@ -2339,7 +2339,7 @@ ixgbe_register_vlan(void *arg, struct ifnet *ifp, u16 vtag)
 	IXGBE_CORE_LOCK(adapter);
 	index = (vtag >> 5) & 0x7F;
 	bit = vtag & 0x1F;
-	adapter->shadow_vfta[index] |= (1 << bit);
+	adapter->shadow_vfta[index] |= ((u32)1 << bit);
 	error = adapter->hw.mac.ops.set_vfta(&adapter->hw, vtag, 0, true,
 	    true);
 	IXGBE_CORE_UNLOCK(adapter);
@@ -2370,7 +2370,7 @@ ixgbe_unregister_vlan(void *arg, struct ifnet *ifp, u16 vtag)
 	IXGBE_CORE_LOCK(adapter);
 	index = (vtag >> 5) & 0x7F;
 	bit = vtag & 0x1F;
-	adapter->shadow_vfta[index] &= ~(1 << bit);
+	adapter->shadow_vfta[index] &= ~((u32)1 << bit);
 	error = adapter->hw.mac.ops.set_vfta(&adapter->hw, vtag, 0, false,
 	    true);
 	IXGBE_CORE_UNLOCK(adapter);
@@ -2427,7 +2427,7 @@ ixgbe_setup_vlan_hw_support(struct adapter *adapter)
 
 		idx = vlanidp->vid / 32;
 		KASSERT(idx < IXGBE_VFTA_SIZE);
-		adapter->shadow_vfta[idx] |= 1 << vlanidp->vid % 32;
+		adapter->shadow_vfta[idx] |= (u32)1 << (vlanidp->vid % 32);
 	}
 	mutex_exit(ec->ec_lock);
 	for (i = 0; i < IXGBE_VFTA_SIZE; i++)
@@ -2565,7 +2565,7 @@ ixgbe_enable_queue(struct adapter *adapter, u32 vector)
 {
 	struct ixgbe_hw *hw = &adapter->hw;
 	struct ix_queue *que = &adapter->queues[vector];
-	u64		queue = (u64)(1ULL << vector);
+	u64		queue = 1ULL << vector;
 	u32		mask;
 
 	mutex_enter(&que->dc_mtx);
@@ -2595,7 +2595,7 @@ ixgbe_disable_queue_internal(struct adapter *adapter, u32 vector, bool nestok)
 {
 	struct ixgbe_hw *hw = &adapter->hw;
 	struct ix_queue *que = &adapter->queues[vector];
-	u64		queue = (u64)(1ULL << vector);
+	u64		queue = 1ULL << vector;
 	u32		mask;
 
 	mutex_enter(&que->dc_mtx);
@@ -4188,8 +4188,8 @@ ixgbe_set_ivar(struct adapter *adapter, u8 entry, u8 vector, s8 type)
 			entry += (type * 64);
 		index = (entry >> 2) & 0x1F;
 		ivar = IXGBE_READ_REG(hw, IXGBE_IVAR(index));
-		ivar &= ~(0xFF << (8 * (entry & 0x3)));
-		ivar |= (vector << (8 * (entry & 0x3)));
+		ivar &= ~(0xffUL << (8 * (entry & 0x3)));
+		ivar |= ((u32)vector << (8 * (entry & 0x3)));
 		IXGBE_WRITE_REG(&adapter->hw, IXGBE_IVAR(index), ivar);
 		break;
 	case ixgbe_mac_82599EB:

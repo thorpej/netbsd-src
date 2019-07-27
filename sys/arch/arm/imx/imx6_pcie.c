@@ -1,4 +1,4 @@
-/*	$NetBSD: imx6_pcie.c,v 1.10 2019/07/24 12:33:18 hkenken Exp $	*/
+/*	$NetBSD: imx6_pcie.c,v 1.13 2019/07/27 08:02:04 skrll Exp $	*/
 
 /*
  * Copyright (c) 2016  Genetec Corporation.  All rights reserved.
@@ -31,13 +31,13 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: imx6_pcie.c,v 1.10 2019/07/24 12:33:18 hkenken Exp $");
+__KERNEL_RCSID(0, "$NetBSD: imx6_pcie.c,v 1.13 2019/07/27 08:02:04 skrll Exp $");
 
 #include "opt_pci.h"
 
-#include "pci.h"
-#include "imxgpio.h"
 #include "locators.h"
+#include "imxgpio.h"
+#include "pci.h"
 
 #define	_INTR_PRIVATE
 

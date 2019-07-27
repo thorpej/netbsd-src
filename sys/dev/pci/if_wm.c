@@ -1,4 +1,4 @@
-/*	$NetBSD: if_wm.c,v 1.642 2019/07/09 08:46:59 msaitoh Exp $	*/
+/*	$NetBSD: if_wm.c,v 1.644 2019/07/26 09:26:56 msaitoh Exp $	*/
 
 /*
  * Copyright (c) 2001, 2002, 2003, 2004 Wasabi Systems, Inc.
@@ -82,7 +82,7 @@
  */
 
 #include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: if_wm.c,v 1.642 2019/07/09 08:46:59 msaitoh Exp $");
+__KERNEL_RCSID(0, "$NetBSD: if_wm.c,v 1.644 2019/07/26 09:26:56 msaitoh Exp $");
 
 #ifdef _KERNEL_OPT
 #include "opt_net_mpsafe.h"
@@ -5141,8 +5141,12 @@ wm_add_rxbuf(struct wm_rxqueue *rxq, int idx)
 	rxs->rxs_mbuf = m;
 
 	m->m_len = m->m_pkthdr.len = m->m_ext.ext_size;
-	error = bus_dmamap_load_mbuf(sc->sc_dmat, rxs->rxs_dmamap, m,
-	    BUS_DMA_READ | BUS_DMA_NOWAIT);
+	/*
+	 * Cannot use bus_dmamap_load_mbuf() here because m_data may be
+	 * sc_align_tweak'd between bus_dmamap_load() and bus_dmamap_sync().
+	 */
+	error = bus_dmamap_load(sc->sc_dmat, rxs->rxs_dmamap, m->m_ext.ext_buf,
+	    m->m_ext.ext_size, NULL, BUS_DMA_READ | BUS_DMA_NOWAIT);
 	if (error) {
 		/* XXX XXX XXX */
 		aprint_error_dev(sc->sc_dev,
@@ -14644,7 +14648,8 @@ wm_ulp_disable(struct wm_softc *sc)
 	if (rv != 0) {
 		uint32_t reg2;
 
-		printf("%s: Force SMBus first.\n", __func__);
+		aprint_debug_dev(sc->sc_dev, "%s: Force SMBus first.\n",
+			__func__);
 		reg2 = CSR_READ(sc, WMREG_CTRL_EXT);
 		reg2 |= CTRL_EXT_FORCE_SMBUS;
 		CSR_WRITE(sc, WMREG_CTRL_EXT, reg2);
