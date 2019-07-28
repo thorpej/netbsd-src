@@ -48,7 +48,6 @@ struct motoi2c_softc {
 	bus_space_tag_t		sc_iot;
 	bus_space_handle_t	sc_ioh;
 	struct i2c_controller	sc_i2c;
-	kmutex_t		sc_buslock;
 	motoi2c_iord_t		sc_iord;
 	motoi2c_iowr_t		sc_iowr;
 	int			sc_phandle;

@@ -56,8 +56,6 @@ __KERNEL_RCSID(0, "$NetBSD: auvitek_i2c.c,v 1.4 2016/11/25 12:56:29 skrll Exp $"
 
 /* #define AUVITEK_I2C_DEBUG */
 
-static int	auvitek_i2c_acquire_bus(void *, int);
-static void	auvitek_i2c_release_bus(void *, int);
 static int	auvitek_i2c_exec(void *, i2c_op_t, i2c_addr_t,
 				 const void *, size_t, void *, size_t, int);
 
@@ -73,10 +71,8 @@ static bool	auvitek_i2c_wait_wrdone(struct auvitek_softc *);
 int
 auvitek_i2c_attach(struct auvitek_softc *sc)
 {
-	mutex_init(&sc->sc_i2c_lock, MUTEX_DEFAULT, IPL_NONE);
+	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_acquire_bus = auvitek_i2c_acquire_bus;
-	sc->sc_i2c.ic_release_bus = auvitek_i2c_release_bus;
 	sc->sc_i2c.ic_exec = auvitek_i2c_exec;
 
 	auvitek_i2c_rescan(sc, NULL, NULL);
@@ -87,7 +83,7 @@ auvitek_i2c_attach(struct auvitek_softc *sc)
 int
 auvitek_i2c_detach(struct auvitek_softc *sc, int flags)
 {
-	mutex_destroy(&sc->sc_i2c_lock);
+	iic_tag_fini(&sc->sc_i2c);
 
 	if (sc->sc_i2cdev)
 		config_detach(sc->sc_i2cdev, flags);
@@ -119,29 +115,6 @@ auvitek_i2c_childdet(struct auvitek_softc *sc, device_t child)
 }
 
 static int
-auvitek_i2c_acquire_bus(void *opaque, int flags)
-{
-	struct auvitek_softc *sc = opaque;
-
-	if (flags & I2C_F_POLL) {
-		if (!mutex_tryenter(&sc->sc_i2c_lock))
-			return EBUSY;
-	} else {
-		mutex_enter(&sc->sc_i2c_lock);
-	}
-
-	return 0;
-}
-
-static void
-auvitek_i2c_release_bus(void *opaque, int flags)
-{
-	struct auvitek_softc *sc = opaque;
-
-	mutex_exit(&sc->sc_i2c_lock);
-}
-
-static int
 auvitek_i2c_exec(void *opaque, i2c_op_t op, i2c_addr_t addr,
     const void *cmd, size_t cmdlen, void *vbuf, size_t buflen, int flags)
 {
@@ -159,8 +132,6 @@ auvitek_i2c_read(struct auvitek_softc *sc, i2c_addr_t addr,
 {
 	uint8_t v;
 	unsigned int i;
-
-	//KASSERT(mutex_owned(&sc->sc_i2c_lock));
 
 	auvitek_write_1(sc, AU0828_REG_I2C_MBMODE, 1);
 	auvitek_write_1(sc, AU0828_REG_I2C_CLKDIV, sc->sc_i2c_clkdiv);
@@ -198,8 +169,6 @@ auvitek_i2c_write(struct auvitek_softc *sc, i2c_addr_t addr,
 {
 	uint8_t v;
 	unsigned int i, fifolen;
-
-	//KASSERT(mutex_owned(&sc->sc_i2c_lock));
 
 	auvitek_write_1(sc, AU0828_REG_I2C_MBMODE, 1);
 	auvitek_write_1(sc, AU0828_REG_I2C_CLKDIV, sc->sc_i2c_clkdiv);

@@ -56,7 +56,6 @@ struct bsciic_softc {
 	bus_space_tag_t sc_iot;
 	bus_space_handle_t sc_ioh;
 	struct i2c_controller sc_i2c;
-	kmutex_t sc_buslock;
 	void *sc_inth;
 
 	struct clk *sc_clk;
@@ -153,8 +152,6 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 	aprint_naive("\n");
 	aprint_normal(": Broadcom Serial Controller\n");
 
-	mutex_init(&sc->sc_buslock, MUTEX_DEFAULT, IPL_NONE);
-
 	/* clear FIFO, disable controller */
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, BSC_C_CLEAR_CLEAR);
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_S, BSC_S_CLKT |
@@ -164,6 +161,7 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_DIV,
 	   __SHIFTIN(divider, BSC_DIV_CDIV));
 
+	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
 	sc->sc_i2c.ic_acquire_bus = bsciic_acquire_bus;
 	sc->sc_i2c.ic_release_bus = bsciic_release_bus;
@@ -192,8 +190,6 @@ bsciic_acquire_bus(void *v, int flags)
 	struct bsciic_softc * const sc = v;
 	uint32_t s __diagused;
 
-	mutex_enter(&sc->sc_buslock);
-
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_S, BSC_S_CLKT |
 	    BSC_S_ERR | BSC_S_DONE);
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, BSC_C_I2CEN |
@@ -210,8 +206,6 @@ bsciic_release_bus(void *v, int flags)
 	struct bsciic_softc * const sc = v;
 
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, BSC_C_CLEAR_CLEAR);
-
-	mutex_exit(&sc->sc_buslock);
 }
 
 static int

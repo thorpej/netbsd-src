@@ -32,7 +32,6 @@
 #ifndef _DEV_PCI_AMDPMVAR_H_
 #define _DEV_PCI_AMDPMVAR_H_
 
-#include <sys/mutex.h>
 #include <sys/rndsource.h>
 
 struct amdpm_softc {
@@ -48,7 +47,6 @@ struct amdpm_softc {
 
 	i2c_addr_t sc_smbus_slaveaddr;		/* address of smbus slave */
 	struct i2c_controller sc_i2c;		/* i2c controller info */
-	kmutex_t sc_mutex;
 
 	void *sc_ih;
 

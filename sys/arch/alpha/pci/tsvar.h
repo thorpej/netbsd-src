@@ -72,7 +72,6 @@ struct tsp_attach_args {
 struct tsciic_softc {
 	device_t	sc_dev;
 	struct		i2c_controller sc_i2c;
-	kmutex_t	sc_buslock;
 };
 
 struct tsciic_attach_args {

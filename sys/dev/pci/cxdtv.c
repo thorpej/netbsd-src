@@ -233,9 +233,8 @@ cxdtv_attach(device_t parent, device_t self, void *aux)
 	reg |= PCI_COMMAND_MASTER_ENABLE;
 	pci_conf_write(pa->pa_pc, pa->pa_tag, PCI_COMMAND_STATUS_REG, reg);
 
-	mutex_init(&sc->sc_i2c_buslock, MUTEX_DRIVER, IPL_NONE);
+	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_exec = NULL;
 	sc->sc_i2c.ic_acquire_bus = cxdtv_iic_acquire_bus;
 	sc->sc_i2c.ic_release_bus = cxdtv_iic_release_bus;
 	sc->sc_i2c.ic_send_start = cxdtv_iic_send_start;
@@ -282,7 +281,7 @@ cxdtv_detach(device_t self, int flags)
 	if (sc->sc_mems)
 		bus_space_unmap(sc->sc_memt, sc->sc_memh, sc->sc_mems);
 
-	mutex_destroy(&sc->sc_i2c_buslock);
+	iic_tag_fini(&sc->sc_i2c);
 
 	return 0;
 }
@@ -377,26 +376,6 @@ cxdtv_i2cbb_read_bits(void *cookie)
 	    CXDTV_I2C_C_DATACONTROL);
 
 	return value;
-}
-
-static int
-cxdtv_iic_acquire_bus(void *cookie, int flags)
-{
-	struct cxdtv_softc *sc = cookie;
-
-	mutex_enter(&sc->sc_i2c_buslock);
-
-	return 0;
-}
-
-static void
-cxdtv_iic_release_bus(void *cookie, int flags)
-{
-	struct cxdtv_softc *sc = cookie;
-
-	mutex_exit(&sc->sc_i2c_buslock);
-
-	return;
 }
 
 static int

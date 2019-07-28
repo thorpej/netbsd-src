@@ -70,9 +70,8 @@ iopiic_attach(struct iopiic_softc *sc)
 {
 	struct i2cbus_attach_args iba;
 
+	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_acquire_bus = iopiic_acquire_bus;
-	sc->sc_i2c.ic_release_bus = iopiic_release_bus;
 	sc->sc_i2c.ic_send_start = iopiic_send_start;
 	sc->sc_i2c.ic_send_stop = iopiic_send_stop;
 	sc->sc_i2c.ic_initiate_xfer = iopiic_initiate_xfer;
@@ -82,31 +81,6 @@ iopiic_attach(struct iopiic_softc *sc)
 	memset(&iba, 0, sizeof(iba));
 	iba.iba_tag = &sc->sc_i2c;
 	(void) config_found_ia(sc->sc_dev, "i2cbus", &iba, iicbus_print);
-}
-
-static int
-iopiic_acquire_bus(void *cookie, int flags)
-{
-	struct iopiic_softc *sc = cookie;
-
-	/* XXX What should we do for the polling case? */
-	if (flags & I2C_F_POLL)
-		return (0);
-
-	mutex_enter(&sc->sc_buslock);
-	return (0);
-}
-
-static void
-iopiic_release_bus(void *cookie, int flags)
-{
-	struct iopiic_softc *sc = cookie;
-
-	/* XXX See above. */
-	if (flags & I2C_F_POLL)
-		return;
-
-	mutex_exit(&sc->sc_buslock);
 }
 
 #define	IOPIIC_TIMEOUT		100	/* protocol timeout, in uSecs */

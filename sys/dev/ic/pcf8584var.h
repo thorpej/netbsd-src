@@ -31,7 +31,6 @@ struct pcfiic_softc {
 	int			sc_poll;
 
 	struct i2c_controller	sc_i2c;
-	krwlock_t		sc_lock;
 };
 
 void	pcfiic_attach(struct pcfiic_softc *, i2c_addr_t, u_int8_t, int);

@@ -62,6 +62,33 @@ iic_op_flags(int flags)
 }
 
 /*
+ * iic_tag_init:
+ *
+ *	Perform some basic initialization of the i2c controller tag.
+ */
+void
+iic_tag_init(i2c_tag_t tag)
+{
+
+	memset(tag, 0, sizeof(*tag));
+	mutex_init(&tag->ic_bus_lock, MUTEX_DEFAULT, IPL_NONE);
+	LIST_INIT(&tag->ic_list);
+	LIST_INIT(&tag->ic_proc_list);
+}
+
+/*
+ * iic_tag_fini:
+ *
+ *	Teardown of the i2c controller tag.
+ */
+void
+iic_tag_fini(i2c_tag_t tag)
+{
+
+	mutex_destroy(&tag->ic_bus_lock);
+}
+
+/*
  * iic_acquire_bus:
  *
  *	Acquire the I2C bus for use by a client.
@@ -72,7 +99,26 @@ iic_acquire_bus(i2c_tag_t tag, int flags)
 
 	flags = iic_op_flags(flags);
 
-	return (*tag->ic_acquire_bus)(tag->ic_cookie, flags);
+	if (flags & I2C_F_POLL) {
+		/*
+		 * Polling should only be used in rare and/or
+		 * extreme circumstances; most i2c clients
+		 * should be allowed to sleep.
+		 */
+		/* XXXJRT EBUSY?  Need more work here... */
+		while (mutex_tryenter(&tag->ic_bus_lock) == 0) {
+			delay(50);
+		}
+	} else {
+		mutex_enter(&tag->ic_bus_lock);
+	}
+
+	int error = 0;
+	if (tag->ic_acquire_bus) {
+		error = (*tag->ic_acquire_bus)(tag->ic_cookie, flags);
+	}
+
+	return error;
 }
 
 /*
@@ -86,7 +132,11 @@ iic_release_bus(i2c_tag_t tag, int flags)
 
 	flags = iic_op_flags(flags);
 
-	(*tag->ic_release_bus)(tag->ic_cookie, flags);
+	if (tag->ic_release_bus) {
+		(*tag->ic_release_bus)(tag->ic_cookie, flags);
+	}
+
+	mutex_exit(&tag->ic_bus_lock);
 }
 
 /*
