@@ -44,8 +44,6 @@ __KERNEL_RCSID(0, "$NetBSD: emdtv_i2c.c,v 1.1 2011/07/11 18:02:04 jmcneill Exp $
 #include <dev/usb/emdtvvar.h>
 #include <dev/usb/emdtvreg.h>
 
-static int	emdtv_i2c_acquire_bus(void *, int);
-static void	emdtv_i2c_release_bus(void *, int);
 static int	emdtv_i2c_exec(void *, i2c_op_t, i2c_addr_t,
 			       const void *, size_t, void *, size_t, int);
 
