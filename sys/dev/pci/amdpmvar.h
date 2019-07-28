@@ -47,6 +47,7 @@ struct amdpm_softc {
 
 	i2c_addr_t sc_smbus_slaveaddr;		/* address of smbus slave */
 	struct i2c_controller sc_i2c;		/* i2c controller info */
+	kmutex_t sc_mutex;
 
 	void *sc_ih;
 
