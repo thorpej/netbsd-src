@@ -150,7 +150,7 @@ imcsmb_rescan(device_t self, const char *ifattr, const int *flags)
 	if (sc->sc_smbus != NULL)
 		return 0;
 
-	iic_tag_init(&sc->sc_i2c);
+	iic_tag_init(&sc->sc_i2c_tag);
 	sc->sc_i2c_tag.ic_cookie = sc;
 	sc->sc_i2c_tag.ic_acquire_bus = imcsmb_acquire_bus;
 	sc->sc_i2c_tag.ic_release_bus = imcsmb_release_bus;
@@ -195,7 +195,7 @@ imcsmb_detach(device_t self, int flags)
 	}
 
 	pmf_device_deregister(self);
-	iic_tag_fini(&sc->sc_i2c);
+	iic_tag_fini(&sc->sc_i2c_tag);
 	return 0;
 }
 
