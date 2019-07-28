@@ -158,8 +158,8 @@ struct i2c_attach_args {
  * API presented to i2c controllers.
  */
 int	iicbus_print(void *, const char *);
-void	iic_tag_init(i2c_tag_t *);
-void	iic_tag_fini(i2c_tag_t *);
+void	iic_tag_init(i2c_tag_t);
+void	iic_tag_fini(i2c_tag_t);
 
 /*
  * API presented to i2c devices.
