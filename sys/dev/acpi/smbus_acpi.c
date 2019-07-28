@@ -80,8 +80,6 @@ static int	acpi_smbus_match(device_t, cfdata_t, void *);
 static void	acpi_smbus_attach(device_t, device_t, void *);
 static int	acpi_smbus_detach(device_t, int);
 static int	acpi_smbus_poll_alert(ACPI_HANDLE, int *);
-static int	acpi_smbus_acquire_bus(void *, int);
-static void	acpi_smbus_release_bus(void *, int);
 static int	acpi_smbus_exec(void *, i2c_op_t, i2c_addr_t, const void *,
 				size_t, void *, size_t, int);
 static void	acpi_smbus_alerts(struct acpi_smbus_softc *);
