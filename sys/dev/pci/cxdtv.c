@@ -70,8 +70,6 @@ static int cxdtv_intr(void *);
 
 static bool cxdtv_resume(device_t, const pmf_qual_t *);
 
-static int	cxdtv_iic_acquire_bus(void *, int);
-static void	cxdtv_iic_release_bus(void *, int);
 static int	cxdtv_iic_send_start(void *, int);
 static int	cxdtv_iic_send_stop(void *, int);
 static int	cxdtv_iic_initiate_xfer(void *, i2c_addr_t, int);
@@ -235,8 +233,6 @@ cxdtv_attach(device_t parent, device_t self, void *aux)
 
 	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_acquire_bus = cxdtv_iic_acquire_bus;
-	sc->sc_i2c.ic_release_bus = cxdtv_iic_release_bus;
 	sc->sc_i2c.ic_send_start = cxdtv_iic_send_start;
 	sc->sc_i2c.ic_send_stop = cxdtv_iic_send_stop;
 	sc->sc_i2c.ic_initiate_xfer = cxdtv_iic_initiate_xfer;
