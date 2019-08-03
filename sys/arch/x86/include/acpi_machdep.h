@@ -72,6 +72,8 @@ void		acpi_md_OsEnableInterrupt(void);
 
 void *		acpi_md_intr_establish(uint32_t, int, int, int (*)(void *),
 		    void *, bool, const char *);
+void		acpi_md_intr_mask(void *);
+void		acpi_md_intr_unmask(void *);
 void		acpi_md_intr_disestablish(void *);
 
 int		acpi_md_sleep(int);

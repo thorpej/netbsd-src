@@ -379,6 +379,8 @@ IDTVEC(handle_ ## name ## num)						;\
 	movl	CPUVAR(ILEVEL),%r13d					;\
 	cmpl	%ebx,%r13d						;\
 	jae	10f			/* currently masked; hold it */	;\
+	cmpl	$0,IS_MASK_COUNT(%r14)	/* source currently masked? */	;\
+	jne	10f			/* yes; hold it */		;\
 	incq	CPUVAR(NINTR)		/* statistical info */		;\
 	incq	IS_EVCNT(%r14)						;\
 1:									\
@@ -399,8 +401,16 @@ IDTVEC(handle_ ## name ## num)						;\
 	testq	%rbx,%rbx						;\
 	jnz	6b							;\
 5:									\
+	cmpl	$0,IS_MASK_COUNT(%r14)	/* source now masked? */	;\
+	jne	55f			/* yes, cope */			;\
 	cli								;\
 	unmask(num)			/* unmask it in hardware */	;\
+	late_ack(num)							;\
+	sti								;\
+	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
+55:									\
+	cli								;\
+	level_mask(num)							;\
 	late_ack(num)							;\
 	sti								;\
 	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\

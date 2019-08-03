@@ -95,6 +95,7 @@ struct intrsource {
 	u_long ipl_evt_mask2[NR_EVENT_CHANNELS];
 #endif
 	struct evcnt is_evcnt;		/* interrupt counter per cpu */
+	u_int is_mask_count;		/* masked? (nested) */
 	int is_flags;			/* see below */
 	int is_type;			/* level, edge */
 	int is_idtvec;
@@ -215,6 +216,8 @@ void x86_nmi(void);
 void *intr_establish_xname(int, struct pic *, int, int, int, int (*)(void *),
 			   void *, bool, const char *);
 void *intr_establish(int, struct pic *, int, int, int, int (*)(void *), void *, bool);
+void intr_mask(struct intrhand *);
+void intr_unmask(struct intrhand *);
 void intr_disestablish(struct intrhand *);
 void intr_add_pcibus(struct pcibus_attach_args *);
 const char *intr_string(intr_handle_t, char *, size_t);

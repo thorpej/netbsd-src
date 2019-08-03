@@ -977,6 +977,90 @@ intr_establish(int legacy_irq, struct pic *pic, int pin, int type, int level,
 }
 
 /*
+ * Called on bound CPU to handle intr_mask() / intr_unmask().
+ *
+ * => caller (on initiating CPU) holds cpu_lock on our behalf
+ * => arg1: struct intrhand *ih
+ * => arg2: true -> mask, false -> unmask.
+ */
+static void
+intr_mask_xcall(void *arg1, void *arg2)
+{
+	struct intrhand * const ih = arg1;
+	const uintptr_t mask = (uintptr_t)arg2;
+	struct cpu_info * const ci = ih->ih_cpu;
+	bool force_pending = false;
+
+	KASSERT(ci == curcpu() || !mp_online);
+
+	const u_long psl = x86_read_psl();
+	x86_disable_intr();
+	struct intrsource * const source = ci->ci_isources[ih->ih_slot];
+	struct pic * const pic = source->is_pic;
+
+	if (mask) {
+		source->is_mask_count++;
+		KASSERT(source->is_mask_count != 0);
+		(*pic->pic_hwmask)(pic, ih->ih_pin);
+	} else {
+		KASSERT(source->is_mask_count != 0);
+		if (--source->is_mask_count == 0) {
+			(*pic->pic_hwunmask)(pic, ih->ih_pin);
+			force_pending = true;
+		}
+	}
+
+	/* Re-enable interrupts. */
+	x86_write_psl(psl);
+
+	if (force_pending) {
+		/* Force processing of any pending interrupts. */
+		splx(splhigh());
+	}
+}
+
+static void
+intr_mask_internal(struct intrhand * const ih, const bool mask)
+{
+
+	/*
+	 * Call out to the remote CPU to update its interrupt state.
+	 * Only make RPCs if the APs are up and running.
+	 */
+	mutex_enter(&cpu_lock);
+	struct cpu_info * const ci = ih->ih_cpu;
+	void * const mask_arg = (void *)(uintptr_t)mask;
+	if (ci == curcpu() || !mp_online) {
+		intr_mask_xcall(ih, mask_arg);
+	} else {
+		const uint64_t where =
+		    xc_unicast(0, intr_mask_xcall, ih, mask_arg, ci);
+		xc_wait(where);
+	}
+	mutex_exit(&cpu_lock);
+}
+
+void
+intr_mask(struct intrhand *ih)
+{
+
+	intr_mask_internal(ih, true);
+}
+
+void
+intr_unmask(struct intrhand *ih)
+{
+
+	/*
+	 * This is not safe to call from an interrupt context because
+	 * we don't want to accidentally unmask an interrupt source
+	 * that's masked because it's being serviced.
+	 */
+	KASSERT(!cpu_intr_p());
+	intr_mask_internal(ih, false);
+}
+
+/*
  * Called on bound CPU to handle intr_disestablish().
  *
  * => caller (on initiating CPU) holds cpu_lock on our behalf
