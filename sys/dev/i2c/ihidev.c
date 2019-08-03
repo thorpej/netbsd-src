@@ -71,6 +71,7 @@ __KERNEL_RCSID(0, "$NetBSD: ihidev.c,v 1.7 2018/11/16 23:05:50 jmcneill Exp $");
 #  include "acpica.h"
 #endif
 #if NACPICA > 0
+#include <dev/acpi/acpivar.h>
 #include <dev/acpi/acpi_intr.h>
 #endif
 
@@ -116,6 +117,7 @@ static bool	ihidev_suspend(device_t, const pmf_qual_t *);
 static bool	ihidev_resume(device_t, const pmf_qual_t *);
 static int	ihidev_hid_command(struct ihidev_softc *, int, void *, bool);
 static int	ihidev_intr(void *);
+static void	ihidev_softintr(void *);
 static int	ihidev_reset(struct ihidev_softc *, bool);
 static int	ihidev_hid_desc_parse(struct ihidev_softc *);
 
@@ -654,13 +656,13 @@ ihiddev_intr_init(struct ihidev_softc *sc)
 	rv = acpi_resource_parse(sc->sc_dev, hdl, "_CRS", &res,
 	    &acpi_resource_parse_ops_quiet);
 	if (ACPI_FAILURE(rv)) {
-		aprint_error_dev(self, "can't parse '_CRS'\n");
+		aprint_error_dev(sc->sc_dev, "can't parse '_CRS'\n");
 		return false;
 	}
 
 	const struct acpi_irq * const irq = acpi_res_irq(&res, 0);
 	if (irq == NULL) {
-		aprint_error_dev(self, "no IRQ resource\n");
+		aprint_error_dev(sc->sc_dev, "no IRQ resource\n");
 		acpi_resource_cleanup(&res);
 		return false;
 	}
@@ -670,24 +672,25 @@ ihiddev_intr_init(struct ihidev_softc *sc)
 
 	acpi_resource_cleanup(&res);
 
-	sc->sc_ih = acpi_intr_establish(self, sc->sc_phandle, IPL_TTY,
-	    false, ihidev_intr, sc, device_xname(self));
+	sc->sc_ih = acpi_intr_establish(sc->sc_dev, sc->sc_phandle, IPL_TTY,
+	    false, ihidev_intr, sc, device_xname(sc->sc_dev));
 	if (sc->sc_ih == NULL) {
-		aprint_error_dev(self, "can't establish interrupt\n");
+		aprint_error_dev(sc->sc_dev, "can't establish interrupt\n");
 		return false;
 	}
-	aprint_normal_dev(self, "interrupting at %s\n",
+	aprint_normal_dev(sc->sc_dev, "interrupting at %s\n",
 	    acpi_intr_string(sc->sc_ih, buf, sizeof(buf)));
 
 	sc->sc_sih = softint_establish(SOFTINT_SERIAL, ihidev_softintr, sc);
 	if (sc->sc_sih == NULL) {
-		aprint_error_dev(self, "can't establish soft interrupt\n");
+		aprint_error_dev(sc->sc_dev,
+		    "can't establish soft interrupt\n");
 		return false;
 	}
 
 	return true;
 #else
-	aprint_error_dev(self, "can't establish interrupt\n");
+	aprint_error_dev(sc->sc_dev, "can't establish interrupt\n");
 	return false;
 #endif
 }
@@ -708,6 +711,7 @@ ihiddev_intr_fini(struct ihidev_softc *sc)
 static int
 ihidev_intr(void *arg)
 {
+	struct ihidev_softc * const sc = arg;
 
 	mutex_enter(&sc->sc_intr_lock);
 
@@ -716,7 +720,7 @@ ihidev_intr(void *arg)
 	 * triggered interrupt, we have to mask it off while we wait
 	 * for service.
 	 */
-	softintr_schedule(sc->sc_sih);
+	softint_schedule(sc->sc_sih);
 	if (sc->sc_intr_type == IST_LEVEL) {
 #if NACPICA > 0
 		acpi_intr_mask(sc->sc_ih);
@@ -731,7 +735,7 @@ ihidev_intr(void *arg)
 static void
 ihidev_softintr(void *arg)
 {
-	struct ihidev_softc *sc = arg;
+	struct ihidev_softc * const sc = arg;
 	struct ihidev *scd;
 	u_int psize;
 	int res, i;
