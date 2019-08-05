@@ -257,6 +257,20 @@ acpi_md_intr_establish(uint32_t irq, int ipl, int type, int (*handler)(void *), 
 }
 
 void
+acpi_md_intr_mask(void *ih)
+{
+	/* XXX */
+	panic("acpi_md_intr_mask(%p): not implemented", ih);
+}
+
+void
+acpi_md_intr_unmask(void *ih)
+{
+	/* XXX */
+	panic("acpi_md_intr_unmask(%p): not implemented", ih);
+}
+
+void
 acpi_md_intr_disestablish(void *ih)
 {
 	intr_disestablish(ih);
