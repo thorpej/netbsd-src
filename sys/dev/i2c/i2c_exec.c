@@ -104,12 +104,30 @@ iic_acquire_bus(i2c_tag_t tag, int flags)
 		 * Polling should only be used in rare and/or
 		 * extreme circumstances; most i2c clients
 		 * should be allowed to sleep.
+		 *
+		 * Really, the ONLY user of I2C_F_POLL should be
+		 * "when cold", i.e. during early autoconfiguration
+		 * when there is only proc0, and we might have to
+		 * read SEEPROMs, etc.  There should be no other
+		 * users interfering with our access of the i2c bus
+		 * in that case.
 		 */
-		/* XXXJRT EBUSY?  Need more work here... */
-		while (mutex_tryenter(&tag->ic_bus_lock) == 0) {
-			delay(50);
+		if (mutex_tryenter(&tag->ic_bus_lock) == 0) {
+			return EBUSY;
 		}
 	} else {
+		/*
+		 * N.B. We implement this as a mutex that we hold across
+		 * across a series of requests beause we'd like to get the
+		 * priority boost if a higher-priority process wants the
+		 * i2c bus while we're asleep waiting for the controller
+		 * to perform the I/O.
+		 *
+		 * XXXJRT Disable preemption here?  We'd like to keep
+		 * the CPU while holding this resource, unless we release
+		 * it voluntarily (which should only happen while waiting
+		 * for a controller to complete I/O).
+		 */
 		mutex_enter(&tag->ic_bus_lock);
 	}
 
