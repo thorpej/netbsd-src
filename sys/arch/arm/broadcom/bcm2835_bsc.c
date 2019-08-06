@@ -98,17 +98,17 @@ struct bsciic_softc {
 	size_t sc_buflen;
 };
 
-typdef void (*bsc_exec_state_func_t)(struct bsciic_softc * const);
+typedef void (*bsc_exec_state_func_t)(struct bsciic_softc * const);
 
-static bsc_exec_state_func_t bsciic_exec_func_panic;
-static bsc_exec_state_func_t bsciic_exec_func_idle;
-static bsc_exec_state_func_t bsciic_exec_func_send_addr;
-static bsc_exec_state_func_t bsciic_exec_func_send_cmd;
-static bsc_exec_state_func_t bsciic_exec_func_send_data;
-static bsc_exec_state_func_t bsciic_exec_func_recv_data;
+static void	bsciic_exec_func_panic(struct bsciic_softc * const);
+static void	bsciic_exec_func_idle(struct bsciic_softc * const);
+static void	bsciic_exec_func_send_addr(struct bsciic_softc * const);
+static void	bsciic_exec_func_send_cmd(struct bsciic_softc * const);
+static void	bsciic_exec_func_send_data(struct bsciic_softc * const);
+static void	bsciic_exec_func_recv_data(struct bsciic_softc * const);
 
 const struct {
-	bsc_exec_state_func_t	func;
+	void			(*func)(struct bsciic_softc * const);
 	uint32_t		c_bits;
 	uint32_t		s_bits;
 } bsciic_exec_state_data[] = {
@@ -284,7 +284,7 @@ bsciic_exec_lock(struct bsciic_softc * const sc)
 }
 
 static void
-bsiic_exec_unlock(struct bsciic_softc * const sc)
+bsciic_exec_unlock(struct bsciic_softc * const sc)
 {
 	if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
 		mutex_exit(&sc->sc_intr_lock);
@@ -395,7 +395,7 @@ bsciic_intr(void *v)
 
 #define	BSC_EXEC_PHASE_COMPLETE(sc)				\
 	((sc)->sc_exec_state == BSC_EXEC_STATE_ERROR ||		\
-	 (sc)->sc->sc_bufpos == (sc)->sc_buflen)
+	 (sc)->sc_bufpos == (sc)->sc_buflen)
 
 static void
 bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
@@ -420,11 +420,7 @@ bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
 	} else {
 		/* XXX timeout? */
 		for (;;) {
-			int error =
-			    cv_wait(&sc->sc_intr_wait, &sc->sc_intr_lock);
-			if (error) {
-				bsciic_abort(sc);
-			}
+			cv_wait(&sc->sc_intr_wait, &sc->sc_intr_lock);
 			if (BSC_EXEC_PHASE_COMPLETE(sc)) {
 				return;
 			}
@@ -517,7 +513,7 @@ bsciic_exec_func_recv_data(struct bsciic_softc * const sc)
 }
 
 static int
-bsiic_exec(void *v, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
+bsciic_exec(void *v, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
     size_t cmdlen, void *databuf, size_t datalen, int flags)
 {
 	struct bsciic_softc * const sc = v;
