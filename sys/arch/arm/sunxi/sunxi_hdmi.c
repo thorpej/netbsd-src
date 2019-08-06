@@ -114,8 +114,6 @@ static const struct of_compat_data compat_data[] = {
 static int	sunxi_hdmi_match(device_t, cfdata_t, void *);
 static void	sunxi_hdmi_attach(device_t, device_t, void *);
 static void	sunxi_hdmi_i2c_init(struct sunxi_hdmi_softc *);
-static int	sunxi_hdmi_i2c_acquire_bus(void *, int);
-static void	sunxi_hdmi_i2c_release_bus(void *, int);
 static int	sunxi_hdmi_i2c_exec(void *, i2c_op_t, i2c_addr_t, const void *,
 				   size_t, void *, size_t, int);
 static int	sunxi_hdmi_i2c_xfer(void *, i2c_addr_t, uint8_t, uint8_t,
