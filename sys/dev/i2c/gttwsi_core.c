@@ -83,8 +83,6 @@ __KERNEL_RCSID(0, "$NetBSD: gttwsi_core.c,v 1.8 2018/10/01 09:39:20 bouyer Exp $
 #include <dev/i2c/gttwsireg.h>
 #include <dev/i2c/gttwsivar.h>
 
-static int	gttwsi_acquire_bus(void *, int);
-static void	gttwsi_release_bus(void *, int);
 static int	gttwsi_send_start(void *v, int flags);
 static int	gttwsi_send_stop(void *v, int flags);
 static int	gttwsi_initiate_xfer(void *v, i2c_addr_t addr, int flags);
