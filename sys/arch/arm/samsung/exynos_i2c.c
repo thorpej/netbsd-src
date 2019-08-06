@@ -244,10 +244,28 @@ exynos_i2c_wait(struct exynos_i2c_softc *sc, int flags)
 
 
 static int
-exynos_i2c_send_start_locked(void *cookie, int flags)
+exynos_i2c_send_start_locked(struct exynos_i2c_softc *sc, int flags)
 {
-	struct exynos_i2c_softc *sc = cookie;
 	I2C_WRITE(sc, IICSTAT, 0xF0);
+	return 0;
+}
+
+static int
+exynos_i2c_send_stop_locked(struct exynos_i2c_softc *sc, int flags)
+{
+	I2C_WRITE(sc, IICSTAT, 0xD0);
+	return 0;
+}
+
+static int
+exynos_i2c_write_byte_locked(struct exynos_i2c_softc *sc, uint8_t byte,
+    int flags)
+{
+	int error = exynos_i2c_wait(sc, flags);
+	if (error) {
+		return error;
+	}
+	I2C_WRITE(sc, IICDS, byte);
 	return 0;
 }
 
@@ -255,26 +273,20 @@ static int
 exynos_i2c_send_start(void *cookie, int flags)
 {
 	struct exynos_i2c_softc *sc = cookie;
+
 	mutex_enter(&sc->sc_lock);
-	int error = exynos_i2c_send_start_locked(cookie, flags);
+	int error = exynos_i2c_send_start_locked(sc, flags);
 	mutex_exit(&sc->sc_lock);
 	return error;
-}
-
-static int
-exynos_i2c_send_stop_locked(void *cookie, int flags)
-{
-	struct exynos_i2c_softc *sc = cookie;
-	I2C_WRITE(sc, IICSTAT, 0xD0);
-	return 0;
 }
 
 static int
 exynos_i2c_send_stop(void *cookie, int flags)
 {
 	struct exynos_i2c_softc *sc = cookie;
+
 	mutex_enter(&sc->sc_lock);
-	int error = exynos_i2c_send_stop_locked(cookie, flags);
+	int error = exynos_i2c_send_stop_locked(sc, flags);
 	mutex_exit(&sc->sc_lock);
 	return error;
 }
@@ -293,8 +305,8 @@ exynos_i2c_initiate_xfer(void *cookie, i2c_addr_t addr, int flags)
 
 	mutex_enter(&sc->sc_lock);
 	I2C_WRITE(sc, IICADD, addr);
-	exynos_i2c_send_start_locked(cookie, flags);
-	exynos_i2c_write_byte_locked(cookie, byte, flags);
+	exynos_i2c_send_start_locked(sc, flags);
+	exynos_i2c_write_byte_locked(sc, byte, flags);
 	error = exynos_i2c_wait(cookie, flags);
 	mutex_exit(&sc->sc_lock);
 
@@ -314,7 +326,7 @@ exynos_i2c_read_byte(void *cookie, uint8_t *bytep, int flags)
 	}
 	*bytep = I2C_READ(sc, IICDS) & 0xff;
 	if (flags & I2C_F_STOP)
-		exynos_i2c_send_stop_locked(cookie, flags);
+		exynos_i2c_send_stop_locked(sc, flags);
 	mutex_exit(&sc->sc_lock);
 	return 0;
 }
@@ -325,12 +337,7 @@ exynos_i2c_write_byte(void *cookie, uint8_t byte, int flags)
 	struct exynos_i2c_softc *sc = cookie;
 
 	mutex_enter(&sc->sc_lock);
-	int error = exynos_i2c_wait(sc, flags);
-	if (error) {
-		mutex_exit(&sc->sc_lock);
-		return error;
-	}
-	I2C_WRITE(sc, IICDS, byte);
+	int error = exynos_i2c_write_byte_locked(sc, byte, flags);
 	mutex_exit(&sc->sc_lock);
-	return 0;
+	return error;
 }
