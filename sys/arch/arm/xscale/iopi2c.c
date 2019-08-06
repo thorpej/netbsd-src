@@ -56,9 +56,6 @@ __KERNEL_RCSID(0, "$NetBSD: iopi2c.c,v 1.8 2016/02/14 19:54:20 chs Exp $");
 #include <arm/xscale/iopi2creg.h>
 #include <arm/xscale/iopi2cvar.h>
 
-static int iopiic_acquire_bus(void *, int);
-static void iopiic_release_bus(void *, int);
-
 static int iopiic_send_start(void *, int);
 static int iopiic_send_stop(void *, int);
 static int iopiic_initiate_xfer(void *, uint16_t, int);
