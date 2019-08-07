@@ -57,8 +57,6 @@ struct armadillo9iic_softc {
 static int armadillo9iic_match(device_t, cfdata_t, void *);
 static void armadillo9iic_attach(device_t, device_t, void *);
 
-static int armadillo9iic_acquire_bus(void *, int);
-static void armadillo9iic_release_bus(void *, int);
 static int armadillo9iic_send_start(void *, int);
 static int armadillo9iic_send_stop(void *, int);
 static int armadillo9iic_initiate_xfer(void *, uint16_t, int);
