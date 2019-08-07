@@ -402,15 +402,9 @@ IDTVEC(handle_ ## name ## num)						;\
 	jnz	6b							;\
 5:									\
 	cmpl	$0,IS_MASK_COUNT(%r14)	/* source now masked? */	;\
-	jne	55f			/* yes, cope */			;\
+	jne	7f			/* yes, deal */			;\
 	cli								;\
 	unmask(num)			/* unmask it in hardware */	;\
-	late_ack(num)							;\
-	sti								;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-55:									\
-	cli								;\
-	level_mask(num)							;\
 	late_ack(num)							;\
 	sti								;\
 	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
