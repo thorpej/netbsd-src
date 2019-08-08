@@ -397,8 +397,6 @@ IDTVEC(intr_ ## name ## num)						;\
 	movl	CPUVAR(ILEVEL),%esi					;\
 	cmpl	%ebx,%esi						;\
 	jae	10f			/* currently masked; hold it */	;\
-	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source currently masked? */	;\
-	jne	10f			/* yes; hold it */		;\
 	addl	$1,CPUVAR(NINTR)	/* statistical info */		;\
 	adcl	$0,CPUVAR(NINTR)+4					;\
 	addl	$1,IS_EVCNTLO(%ebp)	/* inc event counter */		;\
@@ -410,6 +408,8 @@ IDTVEC(intr_ ## name ## num)						;\
 	IDEPTH_INCR							;\
 	sti								;\
 	movl	IS_HANDLERS(%ebp),%ebx					;\
+	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source currently masked? */	;\
+	jne	7f			/* yes, hold it */		;\
 6:									\
 	movl	IH_LEVEL(%ebx),%edi					;\
 	cmpl	%esi,%edi						;\

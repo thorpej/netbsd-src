@@ -379,8 +379,6 @@ IDTVEC(handle_ ## name ## num)						;\
 	movl	CPUVAR(ILEVEL),%r13d					;\
 	cmpl	%ebx,%r13d						;\
 	jae	10f			/* currently masked; hold it */	;\
-	cmpl	$0,IS_MASK_COUNT(%r14)	/* source currently masked? */	;\
-	jne	10f			/* yes; hold it */		;\
 	incq	CPUVAR(NINTR)		/* statistical info */		;\
 	incq	IS_EVCNT(%r14)						;\
 1:									\
@@ -389,6 +387,8 @@ IDTVEC(handle_ ## name ## num)						;\
 	sti								;\
 	incl	CPUVAR(IDEPTH)						;\
 	movq	IS_HANDLERS(%r14),%rbx					;\
+	cmpl	$0,IS_MASK_COUNT(%r14)	/* source currently masked? */	;\
+	jne	7f			/* yes, hold it */		;\
 6:									\
 	movl	IH_LEVEL(%rbx),%r12d					;\
 	cmpl	%r13d,%r12d						;\
