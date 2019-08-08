@@ -67,8 +67,6 @@ static void	gpiic_attach(device_t, device_t, void *);
 CFATTACH_DECL_NEW(gpiic, sizeof(struct gpiic_softc),
     gpiic_match, gpiic_attach, NULL, NULL);
 
-static int	gpiic_acquire_bus(void *, int);
-static void	gpiic_release_bus(void *, int);
 static int	gpiic_send_start(void *, int);
 static int	gpiic_send_stop(void *, int);
 static int	gpiic_initiate_xfer(void *, i2c_addr_t, int);
@@ -108,8 +106,6 @@ gpiic_attach(device_t parent, device_t self, void *args)
 	sc->sc_tx = IIC_DIRECTCNTL_SCC | IIC_DIRECTCNTL_SDAC;
 	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_acquire_bus = gpiic_acquire_bus;
-	sc->sc_i2c.ic_release_bus = gpiic_release_bus;
 	sc->sc_i2c.ic_send_start = gpiic_send_start;
 	sc->sc_i2c.ic_send_stop = gpiic_send_stop;
 	sc->sc_i2c.ic_initiate_xfer = gpiic_initiate_xfer;
