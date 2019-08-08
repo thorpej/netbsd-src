@@ -1617,8 +1617,6 @@ crmfb_setup_ddc(struct crmfb_softc *sc)
 	memset(sc->sc_edid_data, 0, 128);
 	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
-	sc->sc_i2c.ic_acquire_bus = crmfb_i2c_acquire_bus;
-	sc->sc_i2c.ic_release_bus = crmfb_i2c_release_bus;
 	sc->sc_i2c.ic_send_start = crmfb_i2c_send_start;
 	sc->sc_i2c.ic_send_stop = crmfb_i2c_send_stop;
 	sc->sc_i2c.ic_initiate_xfer = crmfb_i2c_initiate_xfer;
