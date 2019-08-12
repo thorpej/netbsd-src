@@ -95,7 +95,8 @@ struct intrsource {
 	u_long ipl_evt_mask2[NR_EVENT_CHANNELS];
 #endif
 	struct evcnt is_evcnt;		/* interrupt counter per cpu */
-	u_int is_mask_count;		/* masked? (nested) */
+	u_int is_mask_count;		/* masked? (nested) [cpu_lock] */
+	int is_distribute_pending;	/* ci<->ci move pending [cpu_lock] */
 	int is_flags;			/* see below */
 	int is_type;			/* level, edge */
 	int is_idtvec;

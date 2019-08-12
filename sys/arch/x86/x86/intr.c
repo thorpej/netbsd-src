@@ -955,7 +955,8 @@ intr_establish_xname(int legacy_irq, struct pic *pic, int pin, int type,
 
 	/* All set up, so add a route for the interrupt and unmask it. */
 	(*pic->pic_addroute)(pic, ci, pin, idt_vec, type);
-	(*pic->pic_hwunmask)(pic, pin);
+	if (ci->ci_isources[slot]->is_mask_count == 0)
+		(*pic->pic_hwunmask)(pic, pin);
 	mutex_exit(&cpu_lock);
 
 	if (bootverbose || cpu_index(ci) != 0)
@@ -993,19 +994,32 @@ intr_mask_xcall(void *arg1, void *arg2)
 
 	KASSERT(ci == curcpu() || !mp_online);
 
+	/*
+	 * cpu_lock is held to hold off other readers of is_mask_count,
+	 * but we need to disable interrupts to hold off the interrupt
+	 * vectors.
+	 */
 	const u_long psl = x86_read_psl();
 	x86_disable_intr();
+
 	struct intrsource * const source = ci->ci_isources[ih->ih_slot];
 	struct pic * const pic = source->is_pic;
 
 	if (mask) {
 		source->is_mask_count++;
 		KASSERT(source->is_mask_count != 0);
-		(*pic->pic_hwmask)(pic, ih->ih_pin);
+		if (source->is_mask_count == 1) {
+			(*pic->pic_hwmask)(pic, ih->ih_pin);
+		}
 	} else {
 		KASSERT(source->is_mask_count != 0);
 		if (--source->is_mask_count == 0) {
-			(*pic->pic_hwunmask)(pic, ih->ih_pin);
+			/*
+			 * If this interrupt source is being moved, don't
+			 * unmask it at the hw.
+			 */
+			if (! source->is_distribute_pending)
+				(*pic->pic_hwunmask)(pic, ih->ih_pin);
 			force_pending = true;
 		}
 	}
@@ -1120,7 +1134,7 @@ intr_disestablish_xcall(void *arg1, void *arg2)
 	if (source->is_handlers == NULL)
 		(*pic->pic_delroute)(pic, ci, ih->ih_pin, idtvec,
 		    source->is_type);
-	else
+	else if (source->is_mask_count == 0)
 		(*pic->pic_hwunmask)(pic, ih->ih_pin);
 
 	/* Re-enable interrupts. */
@@ -1935,10 +1949,14 @@ intr_set_affinity(struct intrsource *isp, const kcpuset_t *cpuset)
 		return err;
 	}
 
+	/* Prevent intr_unmask() from reenabling the source at the hw. */
+	isp->is_distribute_pending = true;
+
 	pin = isp->is_pin;
 	(*pic->pic_hwmask)(pic, pin); /* for ci_ipending check */
-	while (oldci->ci_ipending & (1 << oldslot))
+	while (oldci->ci_ipending & (1 << oldslot)) {
 		(void)kpause("intrdist", false, 1, &cpu_lock);
+	}
 
 	kpreempt_disable();
 
@@ -1975,7 +1993,9 @@ intr_set_affinity(struct intrsource *isp, const kcpuset_t *cpuset)
 
 	kpreempt_enable();
 
-	(*pic->pic_hwunmask)(pic, pin);
+	isp->is_distribute_pending = false;
+	if (isp->is_mask_count == 0)
+		(*pic->pic_hwunmask)(pic, pin);
 
 	return err;
 }
