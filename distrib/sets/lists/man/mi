@@ -1,4 +1,4 @@
-# $NetBSD: mi,v 1.1649 2019/07/25 00:02:56 rmind Exp $
+# $NetBSD: mi,v 1.1651 2019/08/30 08:54:58 mrg Exp $
 #
 # Note: don't delete entries from here - mark them as "obsolete" instead.
 #
@@ -1901,6 +1901,7 @@
 ./usr/share/man/cat4/urtw.0			man-sys-catman		.cat
 ./usr/share/man/cat4/urtwn.0			man-sys-catman		.cat
 ./usr/share/man/cat4/usb.0			man-sys-catman		.cat
+./usr/share/man/cat4/usbnet.0			man-sys-catman		.cat
 ./usr/share/man/cat4/usbtask.0			man-sys-catman		.cat
 ./usr/share/man/cat4/uscanner.0			man-sys-catman		.cat
 ./usr/share/man/cat4/userconf.0			man-sys-catman		.cat
@@ -2525,8 +2526,8 @@
 ./usr/share/man/cat8/evbarm/bootmini2440.0	man-sysutil-catman	.cat
 ./usr/share/man/cat8/evbarm/elftosb.0		man-sysutil-catman	.cat,cxx
 ./usr/share/man/cat8/evbarm/makedev.0		man-obsolete		obsolete
-./usr/share/man/cat8/evbarm/sbkeygen.0		man-sysutil-catman	.cat
-./usr/share/man/cat8/evbarm/sbtool.0		man-sysutil-catman	.cat
+./usr/share/man/cat8/evbarm/sbkeygen.0		man-sysutil-catman	.cat,cxx
+./usr/share/man/cat8/evbarm/sbtool.0		man-sysutil-catman	.cat,cxx
 ./usr/share/man/cat8/evbmips/MAKEDEV.0		man-obsolete		obsolete
 ./usr/share/man/cat8/evbmips/makedev.0		man-obsolete		obsolete
 ./usr/share/man/cat8/evbppc/MAKEDEV.0		man-obsolete		obsolete
@@ -4994,6 +4995,7 @@
 ./usr/share/man/html4/urtw.html			man-sys-htmlman		html
 ./usr/share/man/html4/urtwn.html		man-sys-htmlman		html
 ./usr/share/man/html4/usb.html			man-sys-htmlman		html
+./usr/share/man/html4/usbnet.html		man-sys-htmlman		html
 ./usr/share/man/html4/usbtask.html		man-sys-htmlman		html
 ./usr/share/man/html4/uscanner.html		man-sys-htmlman		html
 ./usr/share/man/html4/userconf.html		man-sys-htmlman		html
@@ -5543,8 +5545,8 @@
 ./usr/share/man/html8/etcupdate.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/evbarm/bootmini2440.html	man-sysutil-htmlman	html
 ./usr/share/man/html8/evbarm/elftosb.html	man-sysutil-htmlman	html,cxx
-./usr/share/man/html8/evbarm/sbkeygen.html	man-sysutil-htmlman	html
-./usr/share/man/html8/evbarm/sbtool.html	man-sysutil-htmlman	html
+./usr/share/man/html8/evbarm/sbkeygen.html	man-sysutil-htmlman	html,cxx
+./usr/share/man/html8/evbarm/sbtool.html	man-sysutil-htmlman	html,cxx
 ./usr/share/man/html8/extattrctl.html		man-sysutil-htmlman	html
 ./usr/share/man/html8/faithd.html		man-router-htmlman	inet6,html
 ./usr/share/man/html8/fastboot.html		man-sysutil-htmlman	html
@@ -8011,6 +8013,7 @@
 ./usr/share/man/man4/urtw.4			man-sys-man		.man
 ./usr/share/man/man4/urtwn.4			man-sys-man		.man
 ./usr/share/man/man4/usb.4			man-sys-man		.man
+./usr/share/man/man4/usbnet.4			man-sys-man		.man
 ./usr/share/man/man4/usbtask.4			man-sys-man		.man
 ./usr/share/man/man4/uscanner.4			man-sys-man		.man
 ./usr/share/man/man4/userconf.4			man-sys-man		.man
@@ -8634,8 +8637,8 @@
 ./usr/share/man/man8/evbarm/bootmini2440.8	man-sysutils-man	.man
 ./usr/share/man/man8/evbarm/elftosb.8		man-sysutil-man		.man,cxx
 ./usr/share/man/man8/evbarm/makedev.8		man-obsolete		obsolete
-./usr/share/man/man8/evbarm/sbkeygen.8		man-sysutil-man		.man
-./usr/share/man/man8/evbarm/sbtool.8		man-sysutil-man		.man
+./usr/share/man/man8/evbarm/sbkeygen.8		man-sysutil-man		.man,cxx
+./usr/share/man/man8/evbarm/sbtool.8		man-sysutil-man		.man,cxx
 ./usr/share/man/man8/evbmips/MAKEDEV.8		man-obsolete		obsolete
 ./usr/share/man/man8/evbmips/makedev.8		man-obsolete		obsolete
 ./usr/share/man/man8/evbppc/MAKEDEV.8		man-obsolete		obsolete

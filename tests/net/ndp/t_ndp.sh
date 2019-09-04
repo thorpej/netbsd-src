@@ -1,4 +1,4 @@
-#	$NetBSD: t_ndp.sh,v 1.33 2019/07/18 04:00:09 ozaki-r Exp $
+#	$NetBSD: t_ndp.sh,v 1.36 2019/09/03 19:07:50 roy Exp $
 #
 # Copyright (c) 2015 The NetBSD Foundation, Inc.
 # All rights reserved.
@@ -31,6 +31,8 @@ IP6SRC=fc00::1
 IP6SRC2=fc00::3
 IP6DST=fc00::2
 IP6NET=fc00::0
+IP6DST_FAIL1=fc00::99
+IP6DST_FAIL2=fc01::99
 
 DEBUG=${DEBUG:-false}
 TIMEOUT=1
@@ -114,6 +116,7 @@ get_timeout()
 
 ndp_cache_expiration_body()
 {
+	local macaddr=
 
 	rump_server_start $SOCKSRC netinet6
 	rump_server_start $SOCKDST netinet6
@@ -121,11 +124,18 @@ ndp_cache_expiration_body()
 	setup_dst_server
 	setup_src_server
 
-	export RUMP_SERVER=$SOCKSRC
-
 	# Shorten the expire time of cache entries
+	export RUMP_SERVER=$SOCKSRC
 	atf_check -s exit:0 -o match:'basereachable=7s0ms' \
 	    rump.ndp -i shmif0 basereachable=7000
+
+	# Make a permanent cache entry to avoid sending an NS packet disturbing
+	# the test
+	macaddr=$(get_macaddr $SOCKSRC shmif0)
+	export RUMP_SERVER=$SOCKDST
+	atf_check -s exit:0 -o ignore rump.ndp -s $IP6SRC $macaddr
+
+	export RUMP_SERVER=$SOCKSRC
 
 	#
 	# Check if a cache is expired expectedly
@@ -446,7 +456,38 @@ ndp_rtm_body()
 
 	hdr="RTM_ADD.+<UP,HOST,DONE,LLINFO,CLONED>"
 	what="<DST,GATEWAY>"
-	addr="$IP6DST link#2"
+	addr="$IP6DST $macaddr_dst"
+	atf_check -s exit:0 -o match:"$hdr" -o match:"$what" -o match:"$addr" \
+		cat $file
+
+	# Test ping and a resulting routing message (RTM_MISS) on subnet
+	rump.route -n monitor -c 1 > $file &
+	pid=$!
+	sleep 1
+	# nd6_mmaxtries = 3, second between each try
+	atf_check -s exit:1 -o ignore -e ignore \
+		rump.ping6 -n -X 3 -c 3 $IP6DST_FAIL1
+	wait $pid
+	$DEBUG && cat $file
+
+	hdr="RTM_MISS.+<DONE>"
+	what="<DST,GATEWAY>"
+	addr="$IP6DST_FAIL1 link#2"
+	atf_check -s exit:0 -o match:"$hdr" -o match:"$what" -o match:"$addr" \
+		cat $file
+
+	# Test ping and a resulting routing message (RTM_MISS) off subnet
+	rump.route -n monitor -c 1 > $file &
+	pid=$!
+	sleep 1
+	atf_check -s exit:1 -o ignore -e ignore \
+		rump.ping6 -n -X 1 -c 1 $IP6DST_FAIL2
+	wait $pid
+	$DEBUG && cat $file
+
+	hdr="RTM_MISS.+<DONE>"
+	what="<DST>"
+	addr="$IP6DST_FAIL2"
 	atf_check -s exit:0 -o match:"$hdr" -o match:"$what" -o match:"$addr" \
 		cat $file
 
@@ -679,7 +720,7 @@ ndp_stray_entries_cleanup()
 }
 
 atf_test_case ndp_cache_state cleanup
-ndp_stray_entries_head()
+ndp_cache_state_head()
 {
 
 	atf_set "descr" "Tests states of neighbor cache entries"
@@ -710,6 +751,7 @@ wait_until_stalled()
 
 ndp_cache_state_body()
 {
+	local macaddr=
 
 	rump_server_start $SOCKSRC netinet6
 	rump_server_start $SOCKDST netinet6
@@ -717,11 +759,18 @@ ndp_cache_state_body()
 	setup_dst_server
 	setup_src_server
 
-	export RUMP_SERVER=$SOCKSRC
-
 	# Shorten the expire time of cache entries
+	export RUMP_SERVER=$SOCKSRC
 	atf_check -s exit:0 -o match:'basereachable=7s0ms' \
 	    rump.ndp -i shmif0 basereachable=7000
+
+	# Make a permanent cache entry to avoid sending an NS packet disturbing
+	# the test
+	macaddr=$(get_macaddr $SOCKSRC shmif0)
+	export RUMP_SERVER=$SOCKDST
+	atf_check -s exit:0 -o ignore rump.ndp -s $IP6SRC $macaddr
+
+	export RUMP_SERVER=$SOCKSRC
 
 	#
 	# Reachability confirmation (RFC 4861 7.3.3)
