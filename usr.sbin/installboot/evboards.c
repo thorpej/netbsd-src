@@ -39,6 +39,7 @@ __RCSID("$NetBSD: evboards.c,v 1.2 2019/05/12 13:47:09 maya Exp $");
 #endif  /* !__lint */
 
 #include <sys/types.h>
+#include <sys/param.h>		/* for roundup() */
 #include <sys/stat.h>
 #include <assert.h>
 #include <err.h>
@@ -199,6 +200,7 @@ __RCSID("$NetBSD: evboards.c,v 1.2 2019/05/12 13:47:09 maya Exp $");
  *		  --	"u-boot-install-sdmmc"	(for SD cards)
  *		  --	"u-boot-install-emmc"	(for eMMC modules)
  *		  --	"u-boot-install-usb"	(for USB block storage)
+ *		  --	"u-boot-install-spi"	(for SPI NOR flash)
  *		  --
  *		  -- These installation steps will be selectable using
  *		  -- the "media=..." option to installboot(8).
@@ -322,6 +324,49 @@ __RCSID("$NetBSD: evboards.c,v 1.2 2019/05/12 13:47:09 maya Exp $");
  *			<!-- ...just after the MBR partition talble. -->
  *			<key>image-offset</key>
  *			<integer>512</integer>
+ *		</dict>
+ *	</array>
+ *
+ * There are some addditional directives for installing on raw flash devices:
+ *
+ *	<key>u-boot-install-spi</key>
+ *	<array>
+ *		<!-- This board's SPI NOR flash is 16Mbit (2MB) in size,
+ *		  -- arranged as 32 512Kbit (64KB) blocks.
+ *		<dict>
+ *			<key>file-name</key>
+ *			<string>u-boot-with-spl.bin</string>
+ *
+ *			<!-- Key: "output-size".
+ *			  -- Value: an integer specifying the total
+ *			  --        size to be written to the output
+ *			  --        device.  This is used when writing
+ *			  --        a bootloader to a raw flash memory
+ *			  --        device such as a SPI NOR flash.
+ *			  --        The boot loader MUST fit within
+ *			  --        this size and the output will be
+ *			  --        padded to this size with zeros.
+ *			  --
+ *			  --        If the "output-block-size" key (below)
+ *			  --        is also specified, then this value
+ *			  --        must be a multiple of the output block
+ *			  --        size.
+ *			  -- (optional)
+ *			  -->
+ *			<key>output-size</key>
+ *			<integer>2097152</integer>
+ *
+ *			<-- Key: "output-block-size"
+ *			 -- Value: an integer specifying the size of
+ *			 --        the blocks used to write to the
+ *			 --        output device.  If the output device
+ *			 --        simulates a disk block storage device,
+ *			 --        then this value must be a multiple of
+ *			 --        the reported sector size.
+ *			 -- (optional)
+ *			 -->
+ *			<key>output-block-size</key>
+ *			<integer>65536</integer>
  *		</dict>
  *	</array>
  */
@@ -466,6 +511,8 @@ static const char step_file_name_key[] = "file-name";
 static const char step_file_offset_key[] = "file-offset";
 static const char step_file_size_key[] = "file-size";
 static const char step_image_offset_key[] = "image-offset";
+static const char step_output_size_key[] = "output-size";
+static const char step_output_block_size_key[] = "output-block-size";
 static const char step_preserve_key[] = "preserve";
 
 static bool
@@ -474,11 +521,13 @@ validate_ubstep_object(evb_ubstep obj)
 	/*
 	 * evb_ubstep is a dictionary with the following keys:
 	 *
-	 *	"file-name"	(string) (required)
-	 *	"file-offset"	(number) (optional)
-	 *	"file-size"	(number) (optional)
-	 *	"image-offset"	(number) (optional)
-	 *	"preserve"	(bool)	 (optional)
+	 *	"file-name"         (string) (required)
+	 *	"file-offset"       (number) (optional)
+	 *	"file-size"         (number) (optional)
+	 *	"image-offset"      (number) (optional)
+	 *	"output-size"       (number) (optional)
+	 *	"output-block-size" (number) (optional)
+	 *	"preserve"          (bool)   (optional)
 	 */
 	if (prop_object_type(obj) != PROP_TYPE_DICTIONARY)
 		return false;
@@ -504,6 +553,16 @@ validate_ubstep_object(evb_ubstep obj)
 	if (v != NULL &&
 	    prop_object_type(v) != PROP_TYPE_NUMBER)
 	    	return false;
+
+	v = prop_dictionary_get(obj, step_output_size_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_NUMBER)
+		return false;
+
+	v = prop_dictionary_get(obj, step_output_block_size_key);
+	if (v != NULL &&
+	    prop_object_type(v) != PROP_TYPE_NUMBER)
+		return false;
 
 	v = prop_dictionary_get(obj, step_preserve_key);
 	if (v != NULL &&
@@ -1422,6 +1481,34 @@ evb_ubstep_get_image_offset(ib_params *params, evb_ubstep step)
 }
 
 /*
+ * evb_ubstep_get_output_size --
+ *	Returns the total output size that will be written to the
+ *	output device.
+ */
+uint64_t
+evb_ubstep_get_output_size(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step, step_output_size_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
+ * evb_ubstep_get_output_block_size --
+ *	Returns the block size that must be written to the output device.
+ */
+uint64_t
+evb_ubstep_get_output_block_size(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step,
+						   step_output_block_size_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
  * evb_ubstep_preserves_partial_block --
  *	Returns true if the step preserves a partial block.
  */
@@ -1470,8 +1557,20 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	uint64_t file_size = evb_ubstep_get_file_size(params, step);
 	uint64_t file_offset = evb_ubstep_get_file_offset(params, step);
 	uint64_t image_offset = evb_ubstep_get_image_offset(params, step);
+	uint64_t output_size = evb_ubstep_get_output_size(params, step);
+	size_t   output_block_size =
+			(size_t)evb_ubstep_get_output_block_size(params, step);
 
-	blockbuf = malloc(params->sectorsize);
+	if (output_block_size == 0) {
+		output_block_size = params->sectorsize;
+	} else if (output_block_size % params->sectorsize) {
+		warn("output-block-size (%zu) is not a multiple of "
+		     "device sector size (%" PRIu32 ")",
+		     output_block_size, params->sectorsize);
+		goto out;
+	}
+
+	blockbuf = malloc(output_block_size);
 	if (blockbuf == NULL)
 		goto out;
 
@@ -1489,6 +1588,14 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 		remaining = (off_t)file_size;
 	else
 		remaining = sb.st_size - (off_t)file_offset;
+
+	if (output_size == 0) {
+		output_size = roundup(remaining, output_block_size);
+	} else if (remaining > output_size) {
+		warn("file size (%lld) is larger than output-size (%" PRIu64
+		     ")", (long long)remaining, output_size);
+		goto out;
+	}
 
 	if (params->flags & IB_VERBOSE) {
 		if (file_offset) {
@@ -1508,22 +1615,26 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 		goto out;
 	}
 
-	for (curoffset = (off_t)image_offset; remaining > 0;
-	     remaining -= thisblock, curoffset += params->sectorsize) {
-		thisblock = params->sectorsize;
+	/* Write the file to the output... */
+	for (curoffset = (off_t)image_offset;
+	     remaining > 0;
+	     remaining -= thisblock, curoffset += output_block_size,
+	     output_size -= output_block_size) {
+
+		thisblock = output_block_size;
 		if ((off_t)thisblock > remaining)
 			thisblock = (size_t)remaining;
-		if ((thisblock % params->sectorsize) != 0) {
-			memset(blockbuf, 0, params->sectorsize);
+		if ((thisblock % output_block_size) != 0) {
+			memset(blockbuf, 0, output_block_size);
 			if (evb_ubstep_preserves_partial_block(params, step)) {
 				if (params->flags & IB_VERBOSE) {
-					printf("(Reading '%s' -- %u @ %lld)\n",
+					printf("(Reading '%s' -- %zu @ %lld)\n",
 					    params->filesystem,
-					    params->sectorsize,
+					    output_block_size,
 					    (long long)curoffset);
 				}
 				if (pread(params->fsfd, blockbuf,
-					  params->sectorsize, curoffset) < 0) {
+					  output_block_size, curoffset) < 0) {
 					warn("pread '%s'", params->filesystem);
 					goto out;
 				}
@@ -1534,10 +1645,30 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 			goto out;
 		}
 		if (!(params->flags & IB_NOWRITE) &&
-		    pwrite(params->fsfd, blockbuf, params->sectorsize,
-			   curoffset) != (ssize_t)params->sectorsize) {
+		    pwrite(params->fsfd, blockbuf, output_block_size,
+			   curoffset) != (ssize_t)output_block_size) {
 			warn("pwrite '%s'", params->filesystem);
 			goto out;
+		}
+	}
+
+	/* ...and pad, if necessary. */
+	if (output_size) {
+		if (params->flags & IB_VERBOSE) {
+			printf("Padding %" PRIu64 " ==> %lld\n",
+			       output_size, (long long)curoffset);
+		}
+		memset(blockbuf, 0, output_block_size);
+		for (; output_size != 0;
+		     output_size -= output_block_size,
+		     curoffset += output_block_size) {
+
+			if (!(params->flags & IB_NOWRITE) &&
+			    pwrite(params->fsfd, blockbuf, output_block_size,
+				   curoffset) != (ssize_t)output_block_size) {
+				warn("pwrite '%s'", params->filesystem);
+				goto out;
+			}
 		}
 	}
 
