@@ -369,6 +369,28 @@ __RCSID("$NetBSD: evboards.c,v 1.2 2019/05/12 13:47:09 maya Exp $");
  *			<integer>65536</integer>
  *		</dict>
  *	</array>
+ *
+ * For boards that require a media specification to be provided, it
+ * may be the case that two media types have identical steps.  It
+ * could be confusing for users to see a list of media types that does
+ * not include the media type on which they are installing, so there
+ * is an alias capability:
+ *
+ *	<key>u-boot-install-spi</key>
+ *	<array>
+ *		.
+ *		.
+ *		.
+ *	</array>
+ *	<key>u-boot-install-sdmmc</key>
+ *	<array>
+ *		.
+ *		.
+ *		.
+ *	</array>
+ *	<-- Steps for eMMC are identical to SDMMC on this board. -->
+ *	<key>u-boot-install-emmc</key>
+ *	<string>u-boot-install-sdmmc</string>
  */
 
 /*
@@ -573,15 +595,34 @@ validate_ubstep_object(evb_ubstep obj)
 }
 
 static bool
-validate_ubinstall_object(evb_ubinstall obj)
+validate_ubinstall_object(evb_board board, evb_ubinstall obj)
 {
 	/*
-	 * evb_ubinstall is an array with one or more evb_ubstep
-	 * objects.
+	 * evb_ubinstall is either:
+	 * -- an array with one or more evb_ubstep objects.
+	 * -- a string representing an alias of another evb_ubinstall
+	 *    object
 	 *
 	 * (evb_ubsteps is just a convenience type for iterating
 	 * over the steps.)
 	 */
+
+	if (prop_object_type(obj) == PROP_TYPE_STRING) {
+		evb_ubinstall tobj = prop_dictionary_get(board,
+		    prop_string_cstring_nocopy((prop_string_t)obj));
+
+		/*
+		 * The target evb_ubinstall object must exist
+		 * and must itself be a proper evb_ubinstall,
+		 * not another alias.
+		 */
+		if (tobj == NULL ||
+		    prop_object_type(tobj) != PROP_TYPE_ARRAY) {
+			return false;
+		}
+		return true;
+	}
+
 	if (prop_object_type(obj) != PROP_TYPE_ARRAY)
 		return false;
 	if (prop_array_count(obj) < 1)
@@ -664,7 +705,7 @@ validate_board_object(evb_board obj, bool is_overlay)
 		}
 		v = prop_dictionary_get_keysym(obj, key);
 		assert(v != NULL);
-		if (!is_overlay || !validate_ubinstall_object(v))
+		if (!is_overlay || !validate_ubinstall_object(obj, v))
 			break;
 	}
 	prop_object_iterator_release(iter);
@@ -1346,8 +1387,18 @@ evb_board_get_uboot_install(ib_params *params, evb_board board)
 	if (n < 0 || (size_t)n >= sizeof(install_key))
 		goto invalid_media;;
 	install = prop_dictionary_get(board, install_key);
-	if (install != NULL)
+	if (install != NULL) {
+		if (prop_object_type(install) == PROP_TYPE_STRING) {
+			/*
+			 * This is an alias.  Fetch the target.  We
+			 * have already validated that the target
+			 * exists.
+			 */
+			install = prop_dictionary_get(board,
+			    prop_string_cstring_nocopy((prop_string_t)install));
+		}
 		return install;
+	}
  invalid_media:
 	warnx("invalid media specification: '%s'", params->media);
  list_media:
