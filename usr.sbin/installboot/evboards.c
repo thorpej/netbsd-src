@@ -533,6 +533,8 @@ static const char step_file_name_key[] = "file-name";
 static const char step_file_offset_key[] = "file-offset";
 static const char step_file_size_key[] = "file-size";
 static const char step_image_offset_key[] = "image-offset";
+static const char step_input_block_size_key[] = "input-block-size";
+static const char step_input_pad_size_key[] = "input-pad-size";
 static const char step_output_size_key[] = "output-size";
 static const char step_output_block_size_key[] = "output-block-size";
 static const char step_preserve_key[] = "preserve";
@@ -547,6 +549,8 @@ validate_ubstep_object(evb_ubstep obj)
 	 *	"file-offset"       (number) (optional)
 	 *	"file-size"         (number) (optional)
 	 *	"image-offset"      (number) (optional)
+	 *	"input-block-size"  (number) (optional)
+	 *	"input-pad-size"    (number) (optional)
 	 *	"output-size"       (number) (optional)
 	 *	"output-block-size" (number) (optional)
 	 *	"preserve"          (bool)   (optional)
@@ -575,6 +579,27 @@ validate_ubstep_object(evb_ubstep obj)
 	if (v != NULL &&
 	    prop_object_type(v) != PROP_TYPE_NUMBER)
 	    	return false;
+
+	bool have_input_block_size = false;
+	bool have_input_pad_size = false;
+
+	v = prop_dictionary_get(obj, step_input_block_size_key);
+	if (v != NULL) {
+		have_input_block_size = true;
+		if (prop_object_type(v) != PROP_TYPE_NUMBER)
+			return false;
+	}
+
+	v = prop_dictionary_get(obj, step_input_pad_size_key);
+	if (v != NULL) {
+		have_input_pad_size = true;
+		if (prop_object_type(v) != PROP_TYPE_NUMBER)
+			return false;
+	}
+
+	/* Must have both or neither of input-{block,pad}-size. */
+	if (have_input_block_size ^ have_input_pad_size)
+		return false;
 
 	v = prop_dictionary_get(obj, step_output_size_key);
 	if (v != NULL &&
@@ -1532,6 +1557,36 @@ evb_ubstep_get_image_offset(ib_params *params, evb_ubstep step)
 }
 
 /*
+ * evb_ubstep_get_input_block_size --
+ *	Returns the input block size to use when reading the boot loader
+ *	file.
+ */
+uint64_t
+evb_ubstep_get_input_block_size(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step,
+						   step_input_block_size_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
+ * evb_ubstep_get_input_pad_size --
+ *	Returns the input pad size to use when reading the boot loader
+ *	file.
+ */
+uint64_t
+evb_ubstep_get_input_pad_size(ib_params *params, evb_ubstep step)
+{
+	prop_number_t number = prop_dictionary_get(step,
+						   step_input_pad_size_key);
+	if (number != NULL)
+		return prop_number_unsigned_integer_value(number);
+	return 0;
+}
+
+/*
  * evb_ubstep_get_output_size --
  *	Returns the total output size that will be written to the
  *	output device.
@@ -1600,9 +1655,8 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	struct stat sb;
 	int ifd = -1;
 	char *blockbuf;
-	size_t thisblock;
 	off_t curoffset;
-	off_t remaining;
+	off_t file_remaining;
 	bool rv = false;
 
 	uint64_t file_size = evb_ubstep_get_file_size(params, step);
@@ -1611,13 +1665,58 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	uint64_t output_size = evb_ubstep_get_output_size(params, step);
 	size_t   output_block_size =
 			(size_t)evb_ubstep_get_output_block_size(params, step);
+	size_t   input_block_size =
+			(size_t)evb_ubstep_get_input_block_size(params, step);
+	size_t   input_pad_size =
+			(size_t)evb_ubstep_get_input_pad_size(params, step);
+	bool	 preserves_partial_block =
+			evb_ubstep_preserves_partial_block(params, step);
+	const char *uboot_file_name =
+			evb_ubstep_get_file_name(params, step);
 
-	if (output_block_size == 0) {
-		output_block_size = params->sectorsize;
-	} else if (output_block_size % params->sectorsize) {
-		warn("output-block-size (%zu) is not a multiple of "
-		     "device sector size (%" PRIu32 ")",
-		     output_block_size, params->sectorsize);
+	if (input_block_size == 0 && output_block_size == 0) {
+		if (params->flags & IB_VERBOSE) {
+			printf("Defaulting input-block-size and "
+			       "output-block-size to sectorsize "
+			       "(%" PRIu32 ")\n", params->sectorsize);
+		}
+		input_block_size = output_block_size = params->sectorsize;
+	} else if (input_block_size != 0 && output_block_size == 0) {
+		if (params->flags & IB_VERBOSE) {
+			printf("Defaulting output-block-size to "
+			       "input-block-size (%zu)\n",
+			       input_block_size);
+		}
+		output_block_size = input_block_size;
+	} else if (output_block_size != 0 && input_block_size == 0) {
+		if (params->flags & IB_VERBOSE) {
+			printf("Defaulting input-block-size to "
+			       "output-block-size (%zu)\n",
+			       output_block_size);
+		}
+		input_block_size = output_block_size;
+	}
+
+	if (output_block_size % params->sectorsize) {
+		warnx("output-block-size (%zu) is not a multiple of "
+		      "device sector size (%" PRIu32 ")",
+		      output_block_size, params->sectorsize);
+		goto out;
+	}
+
+	if ((input_block_size + input_pad_size) > output_block_size) {
+		warnx("input-{block+pad}-size (%zu) is larger than "
+		      "output-block-size (%zu)",
+		      input_block_size + input_pad_size,
+		      output_block_size);
+		goto out;
+	}
+
+	if (output_block_size % (input_block_size + input_pad_size)) {
+		warnx("output-block-size (%zu) it not a multiple of "
+		      "input-{block+pad}-size (%zu)",
+		      output_block_size,
+		      input_block_size + input_pad_size);
 		goto out;
 	}
 
@@ -1636,27 +1735,28 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 	}
 
 	if (file_size)
-		remaining = (off_t)file_size;
+		file_remaining = (off_t)file_size;
 	else
-		remaining = sb.st_size - (off_t)file_offset;
+		file_remaining = sb.st_size - (off_t)file_offset;
 
 	if (output_size == 0) {
-		output_size = roundup(remaining, output_block_size);
-	} else if (remaining > output_size) {
-		warn("file size (%lld) is larger than output-size (%" PRIu64
-		     ")", (long long)remaining, output_size);
+		output_size = roundup(file_remaining, output_block_size);
+	} else if (file_remaining > output_size) {
+		warnx("file size (%lld) is larger than output-size (%" PRIu64
+		      ")", (long long)file_remaining, output_size);
 		goto out;
 	}
 
 	if (params->flags & IB_VERBOSE) {
 		if (file_offset) {
-			printf("Writing '%s' -- %lld @ %" PRIu64 " ==> %" PRIu64 "\n",
-			    evb_ubstep_get_file_name(params, step),
-			    (long long)remaining, file_offset, image_offset);
+			printf("Writing '%s' %lld @ %" PRIu64
+			       "to '%s' @  %" PRIu64 "\n",
+			       uboot_file_name, (long long)file_remaining,
+			       file_offset, params->filesystem, image_offset);
 		} else {
-			printf("Writing '%s' -- %lld ==> %" PRIu64 "\n",
-			    evb_ubstep_get_file_name(params, step),
-			    (long long)remaining, image_offset);
+			printf("Writing '%s' %lld to '%s' @ %" PRIu64 "\n",
+			       uboot_file_name, (long long)file_remaining,
+			       params->filesystem, image_offset);
 		}
 	}
 
@@ -1666,60 +1766,77 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 		goto out;
 	}
 
-	/* Write the file to the output... */
 	for (curoffset = (off_t)image_offset;
-	     remaining > 0;
-	     remaining -= thisblock, curoffset += output_block_size,
-	     output_size -= output_block_size) {
+	     output_size != 0;
+	     curoffset += output_block_size, output_size -= output_block_size) {
 
-		thisblock = output_block_size;
-		if ((off_t)thisblock > remaining)
-			thisblock = (size_t)remaining;
-		if ((thisblock % output_block_size) != 0) {
-			memset(blockbuf, 0, output_block_size);
-			if (evb_ubstep_preserves_partial_block(params, step)) {
-				if (params->flags & IB_VERBOSE) {
-					printf("(Reading '%s' -- %zu @ %lld)\n",
-					    params->filesystem,
-					    output_block_size,
-					    (long long)curoffset);
-				}
-				if (pread(params->fsfd, blockbuf,
-					  output_block_size, curoffset) < 0) {
-					warn("pread '%s'", params->filesystem);
-					goto out;
-				}
+		size_t outblock_remaining;
+		size_t this_inblock;
+		char *fill;
+
+		/*
+		 * Initialize the output buffer.  We're either
+		 * filling it with zeros, or we're preserving
+		 * device contents that we don't overwrite.
+		 */
+		memset(blockbuf, 0, output_block_size);
+		if (preserves_partial_block) {
+			if (params->flags & IB_VERBOSE) {
+				printf("(Reading '%s' -- %zu @ %lld)\n",
+				       params->filesystem,
+				       output_block_size,
+				       (long long)curoffset);
+			}
+			if (pread(params->fsfd, blockbuf,
+				  output_block_size, curoffset) < 0) {
+				warn("pread '%s'", params->filesystem);
+				goto out;
 			}
 		}
-		if (read(ifd, blockbuf, thisblock) != (ssize_t)thisblock) {
-			warn("read '%s'", uboot_file);
-			goto out;
+
+		/*
+		 * Fill the output buffer with the file contents,
+		 * interleaved with padding as necessary.  (If
+		 * there is no file left, we're going to be left
+		 * with padding to cover the output-size.)
+		 */
+		for (outblock_remaining = output_block_size, fill = blockbuf;
+		     outblock_remaining != 0;
+		     fill += input_block_size + input_pad_size,
+		     outblock_remaining -= input_block_size + input_pad_size) {
+
+			this_inblock = input_block_size;
+			if (this_inblock > file_remaining) {
+				this_inblock = file_remaining;
+			}
+
+			if (this_inblock) {
+				if (params->flags & IB_VERBOSE) {
+					printf("(Reading '%s' -- %zu @ %lld)\n",
+					       uboot_file_name,
+					       this_inblock,
+					       (long long)lseek(ifd, 0,
+								SEEK_CUR));
+				}
+				if (read(ifd, fill, this_inblock)
+				    != this_inblock) {
+					warn("read '%s'", uboot_file);
+					goto out;
+				}
+				file_remaining -= this_inblock;
+			}
+		}
+
+		if (params->flags & IB_VERBOSE) {
+			printf("(Writing '%s' -- %zu @ %lld)\n",
+			       params->filesystem,
+			       output_block_size, (long long)curoffset);
 		}
 		if (!(params->flags & IB_NOWRITE) &&
 		    pwrite(params->fsfd, blockbuf, output_block_size,
 			   curoffset) != (ssize_t)output_block_size) {
 			warn("pwrite '%s'", params->filesystem);
 			goto out;
-		}
-	}
-
-	/* ...and pad, if necessary. */
-	if (output_size) {
-		if (params->flags & IB_VERBOSE) {
-			printf("Padding %" PRIu64 " ==> %lld\n",
-			       output_size, (long long)curoffset);
-		}
-		memset(blockbuf, 0, output_block_size);
-		for (; output_size != 0;
-		     output_size -= output_block_size,
-		     curoffset += output_block_size) {
-
-			if (!(params->flags & IB_NOWRITE) &&
-			    pwrite(params->fsfd, blockbuf, output_block_size,
-				   curoffset) != (ssize_t)output_block_size) {
-				warn("pwrite '%s'", params->filesystem);
-				goto out;
-			}
 		}
 	}
 
