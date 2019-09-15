@@ -337,6 +337,26 @@ __RCSID("$NetBSD: evboards.c,v 1.2 2019/05/12 13:47:09 maya Exp $");
  *			<key>file-name</key>
  *			<string>u-boot-with-spl.bin</string>
  *
+ *			<!-- Key: "input-block-size".
+ *			  -- Value: an integer specifying how much file
+ *			  --        data to read per input block before
+ *			  --        padding.  Must be used in conjunction
+ *			  --        with "input-pad-size".
+ *			  -- (optional)
+ *			  -->
+ *			<key>input-block-size</key>
+ *			<integer>2048</integer>
+ *
+ *			<!-- Key: "input-pad-size".
+ *			  -- Value: an integer specifing the amount of
+ *			  --        zero padding inserted per input block.
+ *			  --        Must be used in cojunction with
+ *			  --        "input-block-size".
+ *			  -- (optional)
+ *			  -->
+ *			<key>input-pad-size</key>
+ *			<integer>2048</integer>
+ *
  *			<!-- Key: "output-size".
  *			  -- Value: an integer specifying the total
  *			  --        size to be written to the output
