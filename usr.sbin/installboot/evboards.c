@@ -1674,7 +1674,7 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 {
 	struct stat sb;
 	int ifd = -1;
-	char *blockbuf;
+	char *blockbuf = NULL;
 	off_t curoffset;
 	off_t file_remaining;
 	bool rv = false;
@@ -1761,7 +1761,7 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 
 	if (output_size == 0) {
 		output_size = roundup(file_remaining, output_block_size);
-	} else if (file_remaining > output_size) {
+	} else if ((uint64_t)file_remaining > output_size) {
 		warnx("file size (%lld) is larger than output-size (%" PRIu64
 		      ")", (long long)file_remaining, output_size);
 		goto out;
@@ -1826,7 +1826,7 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 		     outblock_remaining -= input_block_size + input_pad_size) {
 
 			this_inblock = input_block_size;
-			if (this_inblock > file_remaining) {
+			if ((off_t)this_inblock > file_remaining) {
 				this_inblock = file_remaining;
 			}
 
@@ -1839,7 +1839,7 @@ evb_uboot_do_step(ib_params *params, const char *uboot_file, evb_ubstep step)
 								SEEK_CUR));
 				}
 				if (read(ifd, fill, this_inblock)
-				    != this_inblock) {
+				    != (ssize_t)this_inblock) {
 					warn("read '%s'", uboot_file);
 					goto out;
 				}
