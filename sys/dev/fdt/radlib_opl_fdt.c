@@ -34,6 +34,7 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <sys/systm.h>
 #include <sys/kmem.h>
 #include <sys/gpio.h>
+#include <sys/intr.h>
 
 #include <dev/fdt/fdtvar.h>
 
@@ -59,8 +60,8 @@ static const char *compatible[] = {
 	NULL
 };
 
-static uint8_t	radlib_opl2_read_status(struct opl_softc *, int);
-static void	radlib_opl2_send_command(struct opl_softc *, int, int, int);
+static uint8_t	radlib_opl_read_status(struct opl_softc *, int);
+static void	radlib_opl_send_command(struct opl_softc *, int, int, int);
 
 static int
 radlib_opl_match(device_t parent, cfdata_t match, void *aux)
@@ -220,6 +221,14 @@ radlib_opl_read(struct radlib_opl_softc *sc)
 
 	radlib_opl_set_a0(sc, false);
 	radlib_opl_set_data_input(sc);
+
+	/*
+	 * Device lock is held, but we want to disable interrupts and
+	 * preemption on the current CPU while we perform the timing-
+	 * critical operation.
+	 */
+	int s = splhigh();
+
 	radlib_opl_set_read(sc, true);
 	radlib_opl_set_cs(sc, true);
 	delay(1);
@@ -235,10 +244,13 @@ radlib_opl_read(struct radlib_opl_softc *sc)
 #undef RADLIB_GET_DPIN
 
 	radlib_opl_set_cs(sc, false);
-
-	/* Reads are rare; quiesce back into "write" mode. */
 	radlib_opl_set_read(sc, false);
 	delay(1);
+
+	/* Timing-critical section complete. */
+	splx(s);
+
+	/* Reads are rare; quiesce back into "write" mode. */
 	radlib_opl_set_data_output(sc);
 
 	return rv;
@@ -272,9 +284,14 @@ radlib_opl_write(struct radlib_opl_softc *sc, int addr, int data)
 
 #undef RADLIB_SET_DPIN
 
+	/* See comment in radlib_opl_read(). */
+	int s = splhigh();
+
 	radlib_opl_set_cs(sc, true);
 	delay(1);
 	radlib_opl_set_cs(sc, false);
+
+	splx(s);
 }
 
 static uint8_t
