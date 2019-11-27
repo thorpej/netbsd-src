@@ -375,19 +375,30 @@ bsciic_next_state(struct bsciic_softc * const sc)
 	 (sc)->sc_bufpos == (sc)->sc_buflen)
 
 static void
-bsciic_phase_done(struct bsciic_softc * const sc, uint32_t c_bits)
+bsciic_phase_done(struct bsciic_softc * const sc)
 {
+	bsc_exec_state_t next_state = bsciic_next_state(sc);
 
-	if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
-		cv_signal(&sc->sc_intr_wait);
+	printf("XXXJRT: bsciic_phase_done: state %d -> %d\n",
+	    sc->sc_exec_state, next_state);
+
+	sc->sc_exec_state = next_state;
+	if (sc->sc_exec_state >= BSC_EXEC_STATE_DONE) {
+		if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
+			cv_signal(&sc->sc_intr_wait);
+		}
+		return;
 	}
+	(*bsciic_exec_state_data[sc->sc_exec_state].func)(sc);
 }
 
 static void
 bsciic_abort(struct bsciic_softc * const sc)
 {
 	sc->sc_exec_state = BSC_EXEC_STATE_ERROR;
-	bsciic_phase_done(sc, BSC_C_CLEAR_CLEAR);
+	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
+	    BSC_C_I2CEN | BSC_C_CLEAR_CLEAR);
+	bsciic_phase_done(sc);
 }
 
 static int
@@ -410,8 +421,8 @@ bsciic_intr(void *v)
 	printf("XXXJRT: bsciic_intr: %sstate=%d s=0x%08x bufpos=%zd buflen=%zd\n", (sc->sc_exec.flags & I2C_F_POLL) ? "polling " : "", sc->sc_exec_state, s, sc->sc_bufpos, sc->sc_buflen);
 
 	if (s & (BSC_S_CLKT | BSC_S_ERR)) {
-		device_printf(sc->sc_dev, "error s=%#08x, aborting transfer\n",
-		    s);
+		device_printf(sc->sc_dev,
+		    "error s=0x%08x, aborting transfer\n", s);
 		bsciic_abort(sc);
 		goto out;
 	}
@@ -424,17 +435,17 @@ bsciic_intr(void *v)
 
 	if (BSC_EXEC_STATE_SENDING(sc)) {
 		if (BSC_EXEC_PHASE_COMPLETE(sc))
-			bsciic_phase_done(sc, 0);
+			bsciic_phase_done(sc);
 		else
 			bsciic_txfill(sc);
 	} else if (BSC_EXEC_STATE_RECEIVING(sc)) {
 		if (BSC_EXEC_PHASE_COMPLETE(sc))
-			bsciic_phase_done(sc, 0);
+			bsciic_phase_done(sc);
 		else
 			bsciic_rxdrain(sc);
 	} else {
 		device_printf(sc->sc_dev,
-		    "unexpected interrupt: state=%d s=%#08x\n",
+		    "unexpected interrupt: state=%d s=0x%08x\n",
 		    sc->sc_exec_state, s);
 		bsciic_abort(sc);
 	}
@@ -449,32 +460,30 @@ bsciic_intr(void *v)
 static void
 bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
 {
-	if (sc->sc_exec.flags & I2C_F_POLL) {
-		const uint32_t s_bits =
-		    events | BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE;
-		uint32_t s;
+	if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
+		return;
+	}
 
-		/* sc_intr_lock is not held in this case. */
+	const uint32_t s_bits =
+	    events | BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE;
+	uint32_t s;
 
-		for (;;) {
-			s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
-			if (s & s_bits) {
-				(void) bsciic_intr(sc);
-			}
-			if (BSC_EXEC_PHASE_COMPLETE(sc)) {
-				return;
-			}
-			delay(1);
+	/* sc_intr_lock is not held in this case. */
+
+	for (;;) {
+		s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
+		printf("XXXJRT: bsciic_wait: state=%d s=0x%08x bufpos=%zd buflen=%zd\n",
+		    sc->sc_exec_state, s, sc->sc_bufpos, sc->sc_buflen);
+		if (s & s_bits) {
+			(void) bsciic_intr(sc);
 		}
-	} else {
-		/* XXX timeout? */
-		for (;;) {
-			cv_wait(&sc->sc_intr_wait, &sc->sc_intr_lock);
-			printf("XXXJRT: bsciic_wait: state=%d buspos=%zd buflen=%zd\n", sc->sc_exec_state, sc->sc_bufpos, sc->sc_buflen);
-			if (BSC_EXEC_PHASE_COMPLETE(sc)) {
-				return;
-			}
+		if (BSC_EXEC_PHASE_COMPLETE(sc)) {
+			bsciic_phase_done(sc);
 		}
+		if (sc->sc_exec_state >= BSC_EXEC_STATE_DONE) {
+			return;
+		}
+		delay(1);
 	}
 }
 
@@ -513,13 +522,14 @@ bsciic_exec_func_idle(struct bsciic_softc * const sc)
 {
 	/* We kick off a transfer by setting the slave address register. */
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_A, sc->sc_exec.addr);
+	bsciic_phase_done(sc);
 }
 
 static void
 bsciic_exec_func_send_addr(struct bsciic_softc * const sc)
 {
 	/* XXX For 10-bit addressing; not implemented yet. */
-	return;
+	panic("bsciic_exec_func_send_addr is not supposed to be called");
 }
 
 static void
@@ -552,7 +562,7 @@ bsciic_exec_func_send_data(struct bsciic_softc * const sc)
 		 */
 		bsciic_wait(sc, BSC_S_TXW);
 	} else {
-		uint32_t dlen = sc->sc_exec.cmdlen;
+		uint32_t dlen = sc->sc_exec.datalen;
 		bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_DLEN, dlen);
 		bsciic_start(sc);
 	}
@@ -601,9 +611,10 @@ bsciic_exec(void *v, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
 	sc->sc_exec.flags = flags;
 
 	bsciic_exec_lock(sc);
+	(*bsciic_exec_state_data[sc->sc_exec_state].func)(sc);
 	while (sc->sc_exec_state < BSC_EXEC_STATE_DONE) {
-		(*bsciic_exec_state_data[sc->sc_exec_state].func)(sc);
-		sc->sc_exec_state = bsciic_next_state(sc);
+		KASSERT((flags & I2C_F_POLL) == 0);
+		cv_wait(&sc->sc_intr_wait, &sc->sc_intr_lock);
 	}
 	int error = sc->sc_exec_state == BSC_EXEC_STATE_ERROR ? EIO : 0;
 	uint32_t s;
