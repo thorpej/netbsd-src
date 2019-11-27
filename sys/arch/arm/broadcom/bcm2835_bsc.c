@@ -582,6 +582,7 @@ bsciic_exec_func_done(struct bsciic_softc * const sc)
 {
 	/* We're done!  Disable interrupts. */
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, BSC_C_I2CEN);
+	sc->sc_expecting_interrupt = false;
 	bsciic_signal(sc);
 }
 
@@ -591,6 +592,7 @@ bsciic_exec_func_error(struct bsciic_softc * const sc)
 	/* Clear the FIFO and disable interrupts. */
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
 	    BSC_C_I2CEN | BSC_C_CLEAR_CLEAR);
+	sc->sc_expecting_interrupt = false;
 	bsciic_signal(sc);
 }
 
