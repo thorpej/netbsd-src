@@ -324,11 +324,13 @@ bsciic_rxdrain(struct bsciic_softc * const sc)
 
 	while (sc->sc_bufpos != sc->sc_buflen) {
 		s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
+		printf("XXXJRT: bsciic_rxdrain: s=0x%08x bufpos=%zd buflen=%zd\n", s, sc->sc_bufpos, sc->sc_buflen);
 		if ((s & BSC_S_RXD) == 0)
 			break;
 		sc->sc_buf[sc->sc_bufpos++] =
 		    (uint8_t)bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_FIFO);
 	}
+	printf("XXXJRT: bsciic_rxdrain EXIT: s=0x%08x bufpos=%zd buflen=%zd\n", s, sc->sc_bufpos, sc->sc_buflen);
 }
 
 static bsc_exec_state_t
@@ -449,6 +451,13 @@ bsciic_intr(void *v)
 		    sc->sc_exec_state, s);
 		bsciic_abort(sc);
 	}
+
+	/*
+	 * ...and just in case we've finished the entire transfer
+	 * (we might not get another interrupt!)...
+	 */
+	if (BSC_EXEC_PHASE_COMPLETE(sc))
+		bsciic_phase_done(sc);
 
  out:
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_S,
