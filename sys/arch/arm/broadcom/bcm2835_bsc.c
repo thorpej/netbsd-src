@@ -149,9 +149,11 @@ static void bsciic_attach(device_t, device_t, void *);
 static int  bsciic_acquire_bus(void *, int);
 static void bsciic_release_bus(void *, int);
 static int  bsciic_exec(void *, i2c_op_t, i2c_addr_t, const void *, size_t,
-    void *, size_t, int);
+			void *, size_t, int);
 
 static int bsciic_intr(void *);
+
+int	bsciic_debug = 0;
 
 CFATTACH_DECL_NEW(bsciic, sizeof(struct bsciic_softc),
     bsciic_match, bsciic_attach, NULL, NULL);
@@ -414,8 +416,16 @@ bsciic_intr(void *v)
 	    BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE);
 
 	if (s & (BSC_S_CLKT | BSC_S_ERR)) {
-		device_printf(sc->sc_dev,
-		    "error s=0x%08x, aborting transfer\n", s);
+		/*
+		 * ERR might be a normal "probing for device" sort
+		 * of thing, so don't complain about that one.
+		 * Do complain about CLKT, though.
+		 */
+		if ((s & BSC_S_CLKT) ||
+		    (bsciic_debug && (s & BSC_S_ERR))) {
+			device_printf(sc->sc_dev,
+			    "error s=0x%08x, aborting transfer\n", s);
+		}
 		bsciic_abort(sc);
 		goto out;
 	}
@@ -446,15 +456,6 @@ bsciic_intr(void *v)
 		    sc->sc_exec_state, s);
 		bsciic_abort(sc);
 	}
-
-#if 0
-	/*
-	 * ...and just in case we've finished the entire transfer
-	 * (we might not get another interrupt!)...
-	 */
-	if (BSC_EXEC_PHASE_COMPLETE(sc))
-		bsciic_phase_done(sc);
-#endif
 
  out:
 	bsciic_exec_unlock(sc);
