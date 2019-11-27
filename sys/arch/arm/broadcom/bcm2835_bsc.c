@@ -101,14 +101,13 @@ struct bsciic_softc {
 	bool sc_expecting_interrupt;
 };
 
-typedef void (*bsc_exec_state_func_t)(struct bsciic_softc * const);
-
-static void	bsciic_exec_func_panic(struct bsciic_softc * const);
 static void	bsciic_exec_func_idle(struct bsciic_softc * const);
 static void	bsciic_exec_func_send_addr(struct bsciic_softc * const);
 static void	bsciic_exec_func_send_cmd(struct bsciic_softc * const);
 static void	bsciic_exec_func_send_data(struct bsciic_softc * const);
 static void	bsciic_exec_func_recv_data(struct bsciic_softc * const);
+static void	bsciic_exec_func_done(struct bsciic_softc * const);
+static void	bsciic_exec_func_error(struct bsciic_softc * const);
 
 const struct {
 	void			(*func)(struct bsciic_softc * const);
@@ -137,10 +136,10 @@ const struct {
 		.s_bits = BSC_S_RXR,
 	},
 	[BSC_EXEC_STATE_DONE] = {
-		.func = bsciic_exec_func_panic,
+		.func = bsciic_exec_func_done,
 	},
 	[BSC_EXEC_STATE_ERROR] = {
-		.func = bsciic_exec_func_panic,
+		.func = bsciic_exec_func_error,
 	},
 };
 
@@ -375,17 +374,17 @@ bsciic_next_state(struct bsciic_softc * const sc)
 	 (sc)->sc_bufpos == (sc)->sc_buflen)
 
 static void
+bsciic_signal(struct bsciic_softc * const sc)
+{
+	if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
+		cv_signal(&sc->sc_intr_wait);
+	}
+}
+
+static void
 bsciic_phase_done(struct bsciic_softc * const sc)
 {
-	bsc_exec_state_t next_state = bsciic_next_state(sc);
-
-	sc->sc_exec_state = next_state;
-	if (sc->sc_exec_state >= BSC_EXEC_STATE_DONE) {
-		if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
-			cv_signal(&sc->sc_intr_wait);
-		}
-		return;
-	}
+	sc->sc_exec_state = bsciic_next_state(sc);
 	(*bsciic_exec_state_data[sc->sc_exec_state].func)(sc);
 }
 
@@ -393,8 +392,6 @@ static void
 bsciic_abort(struct bsciic_softc * const sc)
 {
 	sc->sc_exec_state = BSC_EXEC_STATE_ERROR;
-	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
-	    BSC_C_I2CEN | BSC_C_CLEAR_CLEAR);
 	bsciic_phase_done(sc);
 }
 
@@ -413,6 +410,8 @@ bsciic_intr(void *v)
 	}
 
 	s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
+	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_S,
+	    BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE);
 
 	if (s & (BSC_S_CLKT | BSC_S_ERR)) {
 		device_printf(sc->sc_dev,
@@ -421,22 +420,26 @@ bsciic_intr(void *v)
 		goto out;
 	}
 
-	/*
-	 * When sending or receiving data, we alwatys wait for one more
-	 * interrupt after finishing the buffer to ensure we get a chance
-	 * to catch an error interrupt before moving on to the next state.
-	 */
-
 	if (BSC_EXEC_STATE_SENDING(sc)) {
-		if (BSC_EXEC_PHASE_COMPLETE(sc))
+		/*
+		 * When transmitting, we need to wait for one final
+		 * interrupt after pushing out the last of our data.
+		 * Catch that case here and go to the next state.
+		 */
+		if (BSC_EXEC_PHASE_COMPLETE(sc)) {
 			bsciic_phase_done(sc);
-		else
+		} else {
 			bsciic_txfill(sc);
+		}
 	} else if (BSC_EXEC_STATE_RECEIVING(sc)) {
-		if (BSC_EXEC_PHASE_COMPLETE(sc))
+		bsciic_rxdrain(sc);
+		/*
+		 * If we've received all of the data, go to the next
+		 * state now; we might not get another interrupt.
+		 */
+		if (BSC_EXEC_PHASE_COMPLETE(sc)) {
 			bsciic_phase_done(sc);
-		else
-			bsciic_rxdrain(sc);
+		}
 	} else {
 		device_printf(sc->sc_dev,
 		    "unexpected interrupt: state=%d s=0x%08x\n",
@@ -444,16 +447,16 @@ bsciic_intr(void *v)
 		bsciic_abort(sc);
 	}
 
+#if 0
 	/*
 	 * ...and just in case we've finished the entire transfer
 	 * (we might not get another interrupt!)...
 	 */
 	if (BSC_EXEC_PHASE_COMPLETE(sc))
 		bsciic_phase_done(sc);
+#endif
 
  out:
-	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_S,
-	    BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE);
 	bsciic_exec_unlock(sc);
 	return (1);
 }
@@ -508,16 +511,12 @@ bsciic_start(struct bsciic_softc * const sc)
 }
 
 static void
-bsciic_exec_func_panic(struct bsciic_softc * const sc)
-{
-	panic("bsciic_exec_func_panic is not supposed to be called");
-}
-
-static void
 bsciic_exec_func_idle(struct bsciic_softc * const sc)
 {
 	/* We kick off a transfer by setting the slave address register. */
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_A, sc->sc_exec.addr);
+
+	/* Immediately transition to the next state. */
 	bsciic_phase_done(sc);
 }
 
@@ -575,6 +574,23 @@ bsciic_exec_func_recv_data(struct bsciic_softc * const sc)
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_DLEN, dlen);
 
 	bsciic_start(sc);
+}
+
+static void
+bsciic_exec_func_done(struct bsciic_softc * const sc)
+{
+	/* We're done!  Disable interrupts. */
+	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, BSC_C_I2CEN);
+	bsciic_signal(sc);
+}
+
+static void
+bsciic_exec_func_error(struct bsciic_softc * const sc)
+{
+	/* Clear the FIFO and disable interrupts. */
+	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
+	    BSC_C_I2CEN | BSC_C_CLEAR_CLEAR);
+	bsciic_signal(sc);
 }
 
 static int
