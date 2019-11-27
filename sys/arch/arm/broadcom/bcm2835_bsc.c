@@ -324,13 +324,11 @@ bsciic_rxdrain(struct bsciic_softc * const sc)
 
 	while (sc->sc_bufpos != sc->sc_buflen) {
 		s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
-		printf("XXXJRT: bsciic_rxdrain: s=0x%08x bufpos=%zd buflen=%zd\n", s, sc->sc_bufpos, sc->sc_buflen);
 		if ((s & BSC_S_RXD) == 0)
 			break;
 		sc->sc_buf[sc->sc_bufpos++] =
 		    (uint8_t)bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_FIFO);
 	}
-	printf("XXXJRT: bsciic_rxdrain EXIT: s=0x%08x bufpos=%zd buflen=%zd\n", s, sc->sc_bufpos, sc->sc_buflen);
 }
 
 static bsc_exec_state_t
@@ -381,9 +379,6 @@ bsciic_phase_done(struct bsciic_softc * const sc)
 {
 	bsc_exec_state_t next_state = bsciic_next_state(sc);
 
-	printf("XXXJRT: bsciic_phase_done: state %d -> %d\n",
-	    sc->sc_exec_state, next_state);
-
 	sc->sc_exec_state = next_state;
 	if (sc->sc_exec_state >= BSC_EXEC_STATE_DONE) {
 		if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
@@ -413,14 +408,11 @@ bsciic_intr(void *v)
 
 	if ((sc->sc_exec.flags & I2C_F_POLL) == 0 &&
 	    sc->sc_expecting_interrupt == false) {
-		printf("XXXJRT: bsciic_intr: not expecting interrupt\n");
 		bsciic_exec_unlock(sc);
 		return 0;
 	}
 
 	s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
-
-	printf("XXXJRT: bsciic_intr: %sstate=%d s=0x%08x bufpos=%zd buflen=%zd\n", (sc->sc_exec.flags & I2C_F_POLL) ? "polling " : "", sc->sc_exec_state, s, sc->sc_bufpos, sc->sc_buflen);
 
 	if (s & (BSC_S_CLKT | BSC_S_ERR)) {
 		device_printf(sc->sc_dev,
@@ -481,8 +473,6 @@ bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
 
 	for (;;) {
 		s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
-		printf("XXXJRT: bsciic_wait: state=%d s=0x%08x bufpos=%zd buflen=%zd\n",
-		    sc->sc_exec_state, s, sc->sc_bufpos, sc->sc_buflen);
 		if (s & s_bits) {
 			(void) bsciic_intr(sc);
 		}
@@ -511,9 +501,6 @@ bsciic_start(struct bsciic_softc * const sc)
 	sc->sc_expecting_interrupt =
 	    (sc->sc_c_bits & (BSC_C_INTD | BSC_C_INTT | BSC_C_INTR)) ? true
 								     : false;
-
-	printf("XXXJRT: bsciic_start: state=%d bufpos=%zd buflen=%zd c=0x%08x\n",
-	    sc->sc_exec_state, sc->sc_bufpos, sc->sc_buflen, sc->sc_c_bits);
 
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
 	    sc->sc_c_bits | BSC_C_ST);
