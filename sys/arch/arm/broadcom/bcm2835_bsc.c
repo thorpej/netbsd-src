@@ -96,6 +96,9 @@ struct bsciic_softc {
 	uint8_t *sc_buf;
 	size_t sc_bufpos;
 	size_t sc_buflen;
+
+	uint32_t sc_c_bits;
+	bool sc_expecting_interrupt;
 };
 
 typedef void (*bsc_exec_state_func_t)(struct bsciic_softc * const);
@@ -228,12 +231,16 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_DIV,
 	   __SHIFTIN(divider, BSC_DIV_CDIV));
 
+	mutex_init(&sc->sc_intr_lock, MUTEX_DEFAULT, IPL_VM);
+	cv_init(&sc->sc_intr_wait, device_xname(self));
+
 	char intrstr[128];
 	if (!fdtbus_intr_str(phandle, 0, intrstr, sizeof(intrstr))) {
 		aprint_error_dev(sc->sc_dev, "failed to decode interrupt\n");
 		return;
 	}
-#if 0
+#if 1
+	if (device_unit(self) == 2) {
 	sc->sc_inth = fdtbus_intr_establish(phandle, 0, IPL_VM,
 	    FDT_INTR_MPSAFE, bsciic_intr, sc);
 	if (sc->sc_inth == NULL) {
@@ -242,6 +249,7 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 	aprint_normal_dev(sc->sc_dev, "interrupting on %s\n", intrstr);
+	}
 #else
 	sc->sc_inth = NULL;	/* XXX */
 #endif
@@ -362,12 +370,24 @@ bsciic_next_state(struct bsciic_softc * const sc)
 	panic("bsciic_next_state: invalid state: %d", sc->sc_exec_state);
 }
 
+#define	BSC_EXEC_PHASE_COMPLETE(sc)				\
+	((sc)->sc_exec_state == BSC_EXEC_STATE_ERROR ||		\
+	 (sc)->sc_bufpos == (sc)->sc_buflen)
+
+static void
+bsciic_phase_done(struct bsciic_softc * const sc, uint32_t c_bits)
+{
+
+	if ((sc->sc_exec.flags & I2C_F_POLL) == 0) {
+		cv_signal(&sc->sc_intr_wait);
+	}
+}
+
 static void
 bsciic_abort(struct bsciic_softc * const sc)
 {
 	sc->sc_exec_state = BSC_EXEC_STATE_ERROR;
-	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
-	    BSC_C_I2CEN | BSC_C_CLEAR_CLEAR);
+	bsciic_phase_done(sc, BSC_C_CLEAR_CLEAR);
 }
 
 static int
@@ -378,16 +398,45 @@ bsciic_intr(void *v)
 
 	bsciic_exec_lock(sc);
 
+	if ((sc->sc_exec.flags & I2C_F_POLL) == 0 &&
+	    sc->sc_expecting_interrupt == false) {
+		printf("XXXJRT: bsciic_intr: not expecting interrupt\n");
+		bsciic_exec_unlock(sc);
+		return 0;
+	}
+
 	s = bus_space_read_4(sc->sc_iot, sc->sc_ioh, BSC_S);
+
+	printf("XXXJRT: bsciic_intr: %sstate=%d s=0x%08x bufpos=%zd buflen=%zd\n", (sc->sc_exec.flags & I2C_F_POLL) ? "polling " : "", sc->sc_exec_state, s, sc->sc_bufpos, sc->sc_buflen);
+
 	if (s & (BSC_S_CLKT | BSC_S_ERR)) {
+		device_printf(sc->sc_dev, "error s=%#08x, aborting transfer\n",
+		    s);
 		bsciic_abort(sc);
 		goto out;
 	}
 
+	/*
+	 * When sending or receiving data, we alwatys wait for one more
+	 * interrupt after finishing the buffer to ensure we get a chance
+	 * to catch an error interrupt before moving on to the next state.
+	 */
+
 	if (BSC_EXEC_STATE_SENDING(sc)) {
-		bsciic_txfill(sc);
+		if (BSC_EXEC_PHASE_COMPLETE(sc))
+			bsciic_phase_done(sc, 0);
+		else
+			bsciic_txfill(sc);
 	} else if (BSC_EXEC_STATE_RECEIVING(sc)) {
-		bsciic_rxdrain(sc);
+		if (BSC_EXEC_PHASE_COMPLETE(sc))
+			bsciic_phase_done(sc, 0);
+		else
+			bsciic_rxdrain(sc);
+	} else {
+		device_printf(sc->sc_dev,
+		    "unexpected interrupt: state=%d s=%#08x\n",
+		    sc->sc_exec_state, s);
+		bsciic_abort(sc);
 	}
 
  out:
@@ -396,10 +445,6 @@ bsciic_intr(void *v)
 	bsciic_exec_unlock(sc);
 	return (1);
 }
-
-#define	BSC_EXEC_PHASE_COMPLETE(sc)				\
-	((sc)->sc_exec_state == BSC_EXEC_STATE_ERROR ||		\
-	 (sc)->sc_bufpos == (sc)->sc_buflen)
 
 static void
 bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
@@ -425,6 +470,7 @@ bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
 		/* XXX timeout? */
 		for (;;) {
 			cv_wait(&sc->sc_intr_wait, &sc->sc_intr_lock);
+			printf("XXXJRT: bsciic_wait: state=%d buspos=%zd buflen=%zd\n", sc->sc_exec_state, sc->sc_bufpos, sc->sc_buflen);
 			if (BSC_EXEC_PHASE_COMPLETE(sc)) {
 				return;
 			}
@@ -435,15 +481,24 @@ bsciic_wait(struct bsciic_softc * const sc, const uint32_t events)
 static void
 bsciic_start(struct bsciic_softc * const sc)
 {
-	uint32_t c = BSC_C_I2CEN | BSC_C_ST | BSC_C_INTD |
+
+	sc->sc_c_bits = BSC_C_I2CEN | BSC_C_INTD |
 	    bsciic_exec_state_data[sc->sc_exec_state].c_bits;
 
 	/* Clear the interrupt-enable bits if we're polling. */
 	if (sc->sc_exec.flags & I2C_F_POLL) {
-		c &= ~(BSC_C_INTD | BSC_C_INTT | BSC_C_INTR);
+		sc->sc_c_bits &= ~(BSC_C_INTD | BSC_C_INTT | BSC_C_INTR);
 	}
 
-	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C, c);
+	sc->sc_expecting_interrupt =
+	    (sc->sc_c_bits & (BSC_C_INTD | BSC_C_INTT | BSC_C_INTR)) ? true
+								     : false;
+
+	printf("XXXJRT: bsciic_start: state=%d bufpos=%zd buflen=%zd c=0x%08x\n",
+	    sc->sc_exec_state, sc->sc_bufpos, sc->sc_buflen, sc->sc_c_bits);
+
+	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_C,
+	    sc->sc_c_bits | BSC_C_ST);
 	bsciic_wait(sc, bsciic_exec_state_data[sc->sc_exec_state].s_bits);
 }
 
@@ -565,6 +620,7 @@ bsciic_exec(void *v, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, BSC_DLEN, 0);
 	bsciic_exec_unlock(sc);
 
+	sc->sc_exec.flags = 0;
 	sc->sc_exec_state = BSC_EXEC_STATE_IDLE;
 	memset(&sc->sc_exec, 0, sizeof(sc->sc_exec));
 
