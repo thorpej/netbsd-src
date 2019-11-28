@@ -600,10 +600,6 @@ bsciic_exec(void *v, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
 	if (addr > 0x7f)
 		return (ENOTSUP);
 
-	/* XXXJRT For now... */
-	if (sc->sc_inth == NULL)
-		flags |= I2C_F_POLL;
-
 	/*
 	 * The I2C middle layer has ensured that the client device has
 	 * exclusive access to the controller.  Copy the parameters
