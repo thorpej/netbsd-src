@@ -240,8 +240,6 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 		aprint_error_dev(sc->sc_dev, "failed to decode interrupt\n");
 		return;
 	}
-#if 1
-	if (device_unit(self) == 2) {
 	sc->sc_inth = fdtbus_intr_establish(phandle, 0, IPL_VM,
 	    FDT_INTR_MPSAFE, bsciic_intr, sc);
 	if (sc->sc_inth == NULL) {
@@ -250,10 +248,6 @@ bsciic_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 	aprint_normal_dev(sc->sc_dev, "interrupting on %s\n", intrstr);
-	}
-#else
-	sc->sc_inth = NULL;	/* XXX */
-#endif
 
 	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
