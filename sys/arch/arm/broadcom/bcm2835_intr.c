@@ -465,15 +465,16 @@ bcm2835_icu_fdt_establish(device_t dev, u_int *specifier, int ipl, int flags,
 	struct bcm2835icu_irq *firq;
 	struct bcm2835icu_irqhandler *firqh;
 	int iflags = (flags & FDT_INTR_MPSAFE) ? IST_MPSAFE : 0;
-	int irq;
+	int irq, irqidx;
 
 	irq = bcm2835_icu_fdt_decode_irq(specifier);
 	if (irq == -1)
 		return NULL;
+	irqidx = irq - BCM2835_INT_BASE;
 
-	KASSERT(irq < BCM2835_NIRQ);
+	KASSERT(irqidx < BCM2835_NIRQ);
 
-	firq = sc->sc_irq[irq];
+	firq = sc->sc_irq[irqidx];
 	if (firq == NULL) {
 		firq = kmem_alloc(sizeof(*firq), KM_SLEEP);
 		firq->intr_sc = sc;
@@ -494,7 +495,7 @@ bcm2835_icu_fdt_establish(device_t dev, u_int *specifier, int ipl, int flags,
 			kmem_free(firq, sizeof(*firq));
 			return NULL;
 		}
-		sc->sc_irq[irq] = firq;
+		sc->sc_irq[irqidx] = firq;
 	} else {
 		if (firq->intr_arg == NULL || arg == NULL) {
 			device_printf(dev,
@@ -547,6 +548,7 @@ bcm2835_icu_fdt_disestablish(device_t dev, void *ih)
 			continue;
 
 		KASSERT(firq->intr_refcnt > 0);
+		KASSERT(n == (firq->intr_irq - BCM2835_INT_BASE));
 
 		/* XXX see above */
 		if (firq->intr_refcnt > 1)
@@ -558,7 +560,7 @@ bcm2835_icu_fdt_disestablish(device_t dev, void *ih)
 		TAILQ_REMOVE(&firq->intr_handlers, firqh, ih_next);
 		kmem_free(firqh, sizeof(*firqh));
 
-		sc->sc_irq[firq->intr_irq] = NULL;
+		sc->sc_irq[n] = NULL;
 		kmem_free(firq, sizeof(*firq));
 
 		return;
