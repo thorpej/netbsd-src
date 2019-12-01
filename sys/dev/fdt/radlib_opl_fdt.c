@@ -74,7 +74,7 @@ radlib_opl_match(device_t parent, cfdata_t match, void *aux)
 static void
 radlib_opl_attach(device_t parent, device_t self, void *aux)
 {
-	struct radlib_opl2_softc *sc = device_private(self);
+	struct radlib_opl_softc *sc = device_private(self);
 	struct opl_softc *opl = &sc->sc_opl;
 	struct fdt_attach_args * const faa = aux;
 	int i;
@@ -162,17 +162,18 @@ radlib_opl_attach(device_t parent, device_t self, void *aux)
 	/* Release the OPL2 from reset. */
 	fdtbus_gpio_write(sc->sc_rst_pin, GPIO_PIN_LOW);
 
-	opl_attach(sc);
+	opl_attach(&sc->sc_opl);
 }
 
-CFATTACH_DECL_NEW(radlib_opl_fdt, sizeof(radlib_opl_softc),
+CFATTACH_DECL_NEW(radlib_opl_fdt, sizeof(struct radlib_opl_softc),
     radlib_opl_match, radlib_opl_attach, NULL, NULL);
 
 static void
 radlib_opl_set_data_input(struct radlib_opl_softc *sc)
 {
 	if (fdtbus_pinctrl_set_config(sc->sc_phandle, "data-inputs")) {
-		aprint_error_dev(self, "unable to set data-inputs\n");
+		aprint_error_dev(sc->sc_opl.dev,
+		    "unable to set data-inputs\n");
 	}
 }
 
@@ -180,7 +181,8 @@ static void
 radlib_opl_set_data_output(struct radlib_opl_softc *sc)
 {
 	if (fdtbus_pinctrl_set_config(sc->sc_phandle, "data-outputs")) {
-		aprint_error_dev(self, "unable to set data-outputs\n");
+		aprint_error_dev(sc->sc_opl.dev,
+		    "unable to set data-outputs\n");
 	}
 }
 
