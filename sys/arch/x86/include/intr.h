@@ -1,7 +1,7 @@
 /*	$NetBSD: intr.h,v 1.60 2019/02/14 08:18:25 cherry Exp $	*/
 
 /*-
- * Copyright (c) 1998, 2001, 2006, 2007, 2008 The NetBSD Foundation, Inc.
+ * Copyright (c) 1998, 2001, 2006, 2007, 2008, 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -95,7 +95,15 @@ struct intrsource {
 	u_long ipl_evt_mask2[NR_EVENT_CHANNELS];
 #endif
 	struct evcnt is_evcnt;		/* interrupt counter per cpu */
-	u_int is_mask_count;		/* masked? (nested) [cpu_lock] */
+	/*
+	 * is_mask_count requires special handling; it can only be modifed
+	 * or examined on the CPU that owns the interrupt source, and such
+	 * references need to be protected by disabling interrupts.  This
+	 * is because intr_mask() can be called from an interrupt handler.
+	 * is_distribute_pending does not require such special handling
+	 * because intr_unmask() cannot be called from an interrupt handler.
+	 */
+	u_int is_mask_count;		/* masked? (nested) [see above] */
 	int is_distribute_pending;	/* ci<->ci move pending [cpu_lock] */
 	int is_flags;			/* see below */
 	int is_type;			/* level, edge */

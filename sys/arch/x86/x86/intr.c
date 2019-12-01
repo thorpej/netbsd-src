@@ -1,11 +1,11 @@
 /*	$NetBSD: intr.c,v 1.146 2019/06/17 06:38:30 msaitoh Exp $	*/
 
 /*
- * Copyright (c) 2007, 2008, 2009 The NetBSD Foundation, Inc.
+ * Copyright (c) 2007, 2008, 2009, 2019 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Andrew Doran.
+ * by Andrew Doran, and by Jason R. Thorpe.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -740,6 +740,34 @@ intr_append_intrsource_xname(struct intrsource *isp, const char *xname)
 }
 
 /*
+ * Called on bound CPU to handle calling pic_hwunmask from contexts
+ * that are not already running on the bound CPU.
+ *
+ * => caller (on initiating CPU) holds cpu_lock on our behalf
+ * => arg1: struct intrhand *ih
+ */
+static void
+intr_hwunmask_xcall(void *arg1, void *arg2)
+{
+	struct intrhand * const ih = arg1;
+	struct cpu_info * const ci = ih->ih_cpu;
+
+	KASSERT(ci == curcpu() || !mp_online);
+
+	const u_long psl = x86_read_psl();
+	x86_disable_intr();
+
+	struct intrsource * const source = ci->ci_isources[ih->ih_slot];
+	struct pic * const pic = source->is_pic;
+
+	if (source->is_mask_count == 0) {
+		(*pic->pic_hwunmask)(pic, ih->ih_pin);
+	}
+
+	x86_write_psl(psl);
+}
+
+/*
  * Handle per-CPU component of interrupt establish.
  *
  * => caller (on initiating CPU) holds cpu_lock on our behalf
@@ -955,8 +983,12 @@ intr_establish_xname(int legacy_irq, struct pic *pic, int pin, int type,
 
 	/* All set up, so add a route for the interrupt and unmask it. */
 	(*pic->pic_addroute)(pic, ci, pin, idt_vec, type);
-	if (ci->ci_isources[slot]->is_mask_count == 0)
-		(*pic->pic_hwunmask)(pic, pin);
+	if (ci == curcpu() || !mp_online) {
+		intr_hwunmask_xcall(ih, NULL);
+	} else {
+		where = xc_unicast(0, intr_hwunmask_xcall, ih, NULL, ci);
+		xc_wait(where);
+	}
 	mutex_exit(&cpu_lock);
 
 	if (bootverbose || cpu_index(ci) != 0)
@@ -995,8 +1027,7 @@ intr_mask_xcall(void *arg1, void *arg2)
 	KASSERT(ci == curcpu() || !mp_online);
 
 	/*
-	 * cpu_lock is held to hold off other readers of is_mask_count,
-	 * but we need to disable interrupts to hold off the interrupt
+	 * We need to disable interrupts to hold off the interrupt
 	 * vectors.
 	 */
 	const u_long psl = x86_read_psl();
@@ -1057,6 +1088,22 @@ intr_mask_internal(struct intrhand * const ih, const bool mask)
 void
 intr_mask(struct intrhand *ih)
 {
+
+	if (cpu_intr_p()) {
+		/*
+		 * Special case of calling intr_mask() from an interrupt
+		 * handler: we MUST be called from the bound CPU for this
+		 * interrupt (presumably from a handler we're about to
+		 * mask).
+		 *
+		 * We can't take the cpu_lock in this case, and we must
+		 * therefore be extra careful.
+		 */
+		struct cpu_info * const ci = ih->ih_cpu;
+		KASSERT(ci == curcpu() || !mp_online);
+		intr_mask_xcall(ih, (void *)(uintptr_t)true);
+		return;
+	}
 
 	intr_mask_internal(ih, true);
 }
@@ -1991,11 +2038,16 @@ intr_set_affinity(struct intrsource *isp, const kcpuset_t *cpuset)
 	isp->is_active_cpu = newci->ci_cpuid;
 	(*pic->pic_addroute)(pic, newci, pin, idt_vec, isp->is_type);
 
-	kpreempt_enable();
-
 	isp->is_distribute_pending = false;
-	if (isp->is_mask_count == 0)
-		(*pic->pic_hwunmask)(pic, pin);
+	if (newci == curcpu() || !mp_online) {
+		intr_hwunmask_xcall(ih, NULL);
+	} else {
+		uint64_t where;
+		where = xc_unicast(0, intr_hwunmask_xcall, ih, NULL, newci);
+		xc_wait(where);
+	}
+
+	kpreempt_enable();
 
 	return err;
 }
