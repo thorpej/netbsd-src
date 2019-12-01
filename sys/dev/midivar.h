@@ -40,6 +40,7 @@
 #include <sys/device.h>
 #include <sys/condvar.h>
 #include <sys/mutex.h>
+#include <sys/selinfo.h>
 
 /*
  * In both xmt and rcv direction, the midi_fst runs at the time data are
