@@ -365,7 +365,7 @@ bool
 cpu_intr_p(void)
 {
 	uint64_t ncsw;
-	int idepth;
+	volatile int idepth;
 	lwp_t *l;
 
 	l = curlwp;
