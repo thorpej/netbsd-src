@@ -22,8 +22,11 @@ makeoptions	DTS="
 "
 
 makeoptions	DTS_OVERLAYDIR="${THISARM}/conf"
+#makeoptions	DTS_OVERLAYS="
+#	jrt-RPI-NixieClock.dts
+#"
 makeoptions	DTS_OVERLAYS="
-	jrt-RPI-NixieClock.dts
+	radlib-raspberrypi-overlay.dts
 "
 
 options 	CPU_ARM1176
@@ -217,6 +220,11 @@ spi* at spibus?
 gpio*		at gpiobus?
 #gpioirq0	at gpio? offset 21 mask 0x1 flag 0x1004
 #gpiopps0	at gpio? offset 24 mask 0x1
+
+# RAdLib OPL2 board
+opl*		at fdt?
+midi*		at midibus?
+pseudo-device	sequencer		# MIDI sequencer
 
 # various options for wscons - we try to look as much like a standard
 # sun console as possible
