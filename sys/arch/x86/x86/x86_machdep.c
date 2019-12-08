@@ -365,7 +365,7 @@ bool
 cpu_intr_p(void)
 {
 	uint64_t ncsw;
-	volatile int idepth;
+	int idepth;
 	lwp_t *l;
 
 	l = curlwp;
@@ -375,7 +375,9 @@ cpu_intr_p(void)
 	}
 	do {
 		ncsw = l->l_ncsw;
+		__insn_barrier();
 		idepth = l->l_cpu->ci_idepth;
+		__insn_barrier();
 	} while (__predict_false(ncsw != l->l_ncsw));
 
 	return idepth >= 0;
