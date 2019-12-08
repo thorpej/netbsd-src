@@ -3463,6 +3463,8 @@ urtwn_load_firmware(struct urtwn_softc *sc)
 	}
 
 	if (urtwn_read_1(sc, R92C_MCUFWDL) & R92C_MCUFWDL_RAM_DL_SEL) {
+		/* Reset MCU ready status */
+		urtwn_write_1(sc, R92C_MCUFWDL, 0);
 		if (ISSET(sc->chip, URTWN_CHIP_88E) ||
 		    ISSET(sc->chip, URTWN_CHIP_92EU))
 			urtwn_r88e_fw_reset(sc);
