@@ -369,6 +369,10 @@ cpu_intr_p(void)
 	lwp_t *l;
 
 	l = curlwp;
+	if (__predict_false(l->l_cpu == NULL)) {
+		KASSERT(l == &lwp0);
+		return false;
+	}
 	do {
 		ncsw = l->l_ncsw;
 		idepth = l->l_cpu->ci_idepth;
