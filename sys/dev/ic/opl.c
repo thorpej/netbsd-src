@@ -60,6 +60,7 @@ __KERNEL_RCSID(0, "$NetBSD: opl.c,v 1.43 2019/05/08 13:40:18 isaki Exp $");
 #include <dev/ic/oplreg.h>
 #include <dev/ic/oplvar.h>
 
+#define AUDIO_DEBUG
 #ifdef AUDIO_DEBUG
 #define DPRINTF(x)	if (opldebug) printf x
 #define DPRINTFN(n,x)	if (opldebug >= (n)) printf x
@@ -275,6 +276,7 @@ opl_find(struct opl_softc *sc)
 {
 	u_int8_t status1, status2;
 
+	opldebug = 2;
 	DPRINTFN(2,("opl_find: ioh=0x%x\n", (int)sc->ioh));
 	sc->model = OPL_2;	/* worst case assumption */
 
@@ -302,8 +304,10 @@ opl_find(struct opl_softc *sc)
 	DPRINTFN(2,("opl_find: %02x %02x\n", status1, status2));
 
 	if ((status1 & OPL_STATUS_MASK) != 0 ||
-	    (status2 & OPL_STATUS_MASK) != (OPL_STATUS_IRQ | OPL_STATUS_FT1))
+	    (status2 & OPL_STATUS_MASK) != (OPL_STATUS_IRQ | OPL_STATUS_FT1)) {
+		opldebug = 0;
 		return (0);
+	}
 
 	switch(status1) {
 	case 0x00:
@@ -314,11 +318,13 @@ opl_find(struct opl_softc *sc)
 		sc->model = OPL_2;
 		break;
 	default:
+		opldebug = 0;
 		return (0);
 	}
 
 	DPRINTFN(2,("opl_find: OPL%d at 0x%x detected\n",
 		    sc->model, (int)sc->ioh));
+	opldebug = 0;
 	return (1);
 }
 
