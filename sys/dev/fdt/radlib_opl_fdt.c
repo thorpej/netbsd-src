@@ -35,6 +35,7 @@ __KERNEL_RCSID(0, "$NetBSD$");
 #include <sys/kmem.h>
 #include <sys/gpio.h>
 #include <sys/intr.h>
+#include <sys/sysctl.h>
 
 #include <dev/fdt/fdtvar.h>
 
@@ -53,12 +54,17 @@ struct radlib_opl_softc {
 	struct fdtbus_gpio_pin	*sc_read_pin;
 	struct fdtbus_gpio_pin	*sc_cs_pin;
 	struct fdtbus_gpio_pin	*sc_rst_pin;
+
+	struct sysctllog	*sc_slog;
 };
 
 static const char *compatible[] = {
 	"thorpej,radlib-opl2",
 	NULL
 };
+
+static uint8_t	radlib_opl_read(struct radlib_opl_softc *);
+static void	radlib_opl_write(struct radlib_opl_softc *, int, int);
 
 static uint8_t	radlib_opl_read_status(struct opl_softc *, int);
 static void	radlib_opl_send_command(struct opl_softc *, int, int, int);
@@ -69,6 +75,68 @@ radlib_opl_match(device_t parent, cfdata_t match, void *aux)
 	struct fdt_attach_args * const faa = aux;
 
 	return of_match_compatible(faa->faa_phandle, compatible);
+}
+
+static int
+radlib_opl_sysctl_find(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	struct radlib_opl_softc * const sc = node.sysctl_data;
+	bool found;
+
+	found = opl_find(&sc->sc_opl);
+	node.sysctl_data = &found;
+	return sysctl_lookup(SYSCTLFN_CALL(&node));
+}
+
+static int
+radlib_opl_sysctl_read(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	struct radlib_opl_softc * const sc = node.sysctl_data;
+	int data;
+
+	data = radlib_opl_read(sc);
+	node.sysctl_data = &data;
+	return sysctl_lookup(SYSCTLFN_CALL(&node));
+}
+
+static int
+radlib_opl_sysctl_write0(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	struct radlib_opl_softc * const sc = node.sysctl_data;
+	int data = 0;
+	int error;
+
+	node.sysctl_data = &data;
+	error = sysctl_lookup(SYSCTLFN_CALL(&node));
+	if (error || newp == NULL) {
+		return error;
+	}
+
+	radlib_opl_write(sc, 0, data & 0xff);
+
+	return 0;
+}
+
+static int
+radlib_opl_sysctl_write1(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	struct radlib_opl_softc * const sc = node.sysctl_data;
+	int data = 0;
+	int error;
+
+	node.sysctl_data = &data;
+	error = sysctl_lookup(SYSCTLFN_CALL(&node));
+	if (error || newp == NULL) {
+		return error;
+	}
+
+	radlib_opl_write(sc, 1, data & 0xff);
+
+	return 0;
 }
 
 static void
@@ -86,8 +154,6 @@ radlib_opl_attach(device_t parent, device_t self, void *aux)
 
 	opl->dev = self;
 	opl->offs = 0;
-	opl->model = OPL_2;
-	opl->lock = &sc->sc_lock;
 	mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_NONE);
 
 	opl->read_status = radlib_opl_read_status;
@@ -162,7 +228,65 @@ radlib_opl_attach(device_t parent, device_t self, void *aux)
 	/* Release the OPL2 from reset. */
 	fdtbus_gpio_write(sc->sc_rst_pin, GPIO_PIN_LOW);
 
-	opl_attach(&sc->sc_opl);
+	// opl->model = OPL_2;
+
+	if (opl_find(&sc->sc_opl)) {
+		opl->lock = &sc->sc_lock;
+		opl_attach(&sc->sc_opl);
+	}
+
+	const struct sysctlnode *node;
+	int error;
+
+	error = sysctl_createv(&sc->sc_slog, 0, NULL, &node,
+	    CTLFLAG_PERMANENT, CTLTYPE_NODE, device_xname(self), NULL,
+	    NULL, 0, NULL, 0,
+	    CTL_HW, CTL_CREATE, CTL_EOL);
+	if (error != 0) {
+		device_printf(self, "unable to create 'hw.%s': %d\n",
+		    device_xname(self), error);
+		return;
+	}
+	error = sysctl_createv(&sc->sc_slog, 0, &node, NULL,
+	    CTLFLAG_READONLY, CTLTYPE_BOOL, "find", NULL,
+	    radlib_opl_sysctl_find, 0,
+	    (void *)sc, 0,
+	    CTL_CREATE, CTL_EOL);
+	if (error != 0) {
+		device_printf(self, "unable to create 'hw.%s.find': %d\n",
+		    device_xname(self), error);
+		return;
+	}
+	error = sysctl_createv(&sc->sc_slog, 0, &node, NULL,
+	    CTLFLAG_READONLY, CTLTYPE_INT, "read", NULL,
+	    radlib_opl_sysctl_read, 0,
+	    (void *)sc, 0,
+	    CTL_CREATE, CTL_EOL);
+	if (error != 0) {
+		device_printf(self, "unable to create 'hw.%s.read': %d\n",
+		    device_xname(self), error);
+		return;
+	}
+	error = sysctl_createv(&sc->sc_slog, 0, &node, NULL,
+	    CTLFLAG_READWRITE, CTLTYPE_INT, "write0", NULL,
+	    radlib_opl_sysctl_write0, 0,
+	    (void *)sc, 0,
+	    CTL_CREATE, CTL_EOL);
+	if (error != 0) {
+		device_printf(self, "unable to create 'hw.%s.write0': %d\n",
+		    device_xname(self), error);
+		return;
+	}
+	error = sysctl_createv(&sc->sc_slog, 0, &node, NULL,
+	    CTLFLAG_READWRITE, CTLTYPE_INT, "write1", NULL,
+	    radlib_opl_sysctl_write1, 0,
+	    (void *)sc, 0,
+	    CTL_CREATE, CTL_EOL);
+	if (error != 0) {
+		device_printf(self, "unable to create 'hw.%s.write1': %d\n",
+		    device_xname(self), error);
+		return;
+	}
 }
 
 CFATTACH_DECL_NEW(radlib_opl_fdt, sizeof(struct radlib_opl_softc),
@@ -294,6 +418,8 @@ radlib_opl_write(struct radlib_opl_softc *sc, int addr, int data)
 	radlib_opl_set_cs(sc, false);
 
 	splx(s);
+
+	radlib_opl_set_a0(sc, 0);
 }
 
 static uint8_t
