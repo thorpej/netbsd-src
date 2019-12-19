@@ -378,7 +378,6 @@ acpicpu_md_cstate_stop(void)
 {
 	static char text[16];
 	void (*func)(void);
-	uint64_t xc;
 	bool ipi;
 
 	x86_cpu_idle_get(&func, text, sizeof(text));
@@ -393,8 +392,7 @@ acpicpu_md_cstate_stop(void)
 	 * Run a cross-call to ensure that all CPUs are
 	 * out from the ACPI idle-loop before detachment.
 	 */
-	xc = xc_broadcast(0, (xcfunc_t)nullop, NULL, NULL);
-	xc_wait(xc);
+	xc_barrier(0);
 
 	return 0;
 }
