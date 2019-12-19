@@ -40,6 +40,7 @@ __KERNEL_RCSID(0, "$NetBSD: i2c_exec.c,v 1.12 2019/07/25 04:20:13 thorpej Exp $"
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/cpu.h>
 #include <sys/device.h>
 #include <sys/module.h>
 #include <sys/event.h>
@@ -97,6 +98,8 @@ int
 iic_acquire_bus(i2c_tag_t tag, int flags)
 {
 
+	KASSERT(!cpu_intr_p());
+
 	flags = iic_op_flags(flags);
 
 	if (flags & I2C_F_POLL) {
@@ -148,6 +151,8 @@ void
 iic_release_bus(i2c_tag_t tag, int flags)
 {
 
+	KASSERT(!cpu_intr_p());
+
 	flags = iic_op_flags(flags);
 
 	if (tag->ic_release_bus) {
@@ -175,6 +180,8 @@ iic_exec(i2c_tag_t tag, i2c_op_t op, i2c_addr_t addr, const void *vcmd,
 	uint8_t *buf = vbuf;
 	int error;
 	size_t len;
+
+	KASSERT(!cpu_intr_p());
 
 	flags = iic_op_flags(flags);
 
