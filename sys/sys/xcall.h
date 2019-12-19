@@ -53,6 +53,8 @@ uint64_t	xc_broadcast(u_int, xcfunc_t, void *, void *);
 uint64_t	xc_unicast(u_int, xcfunc_t, void *, void *, struct cpu_info *);
 void		xc_wait(uint64_t);
 
+void		xc_barrier(u_int);
+
 unsigned int	xc_encode_ipl(int);
 
 #endif	/* _KERNEL */

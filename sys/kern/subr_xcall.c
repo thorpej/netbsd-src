@@ -267,6 +267,27 @@ xc_broadcast(unsigned int flags, xcfunc_t func, void *arg1, void *arg2)
 	}
 }
 
+static void
+xc_nop(void *arg1, void *arg2)
+{
+
+	return;
+}
+
+/*
+ * xc_barrier:
+ *
+ *	Broadcast a nop to all CPUs in the system.
+ */
+void
+xc_barrier(unsigned int flags)
+{
+	uint64_t where;
+
+	where = xc_broadcast(flags, xc_nop, NULL, NULL);
+	xc_wait(where);
+}
+
 /*
  * xc_unicast:
  *
