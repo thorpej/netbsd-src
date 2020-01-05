@@ -60,6 +60,7 @@ __KERNEL_RCSID(0, "$NetBSD: opl.c,v 1.43 2019/05/08 13:40:18 isaki Exp $");
 #include <dev/ic/oplreg.h>
 #include <dev/ic/oplvar.h>
 
+#define AUDIO_DEBUG
 #ifdef AUDIO_DEBUG
 #define DPRINTF(x)	if (opldebug) printf x
 #define DPRINTFN(n,x)	if (opldebug >= (n)) printf x
@@ -141,16 +142,26 @@ void
 opl_attach(struct opl_softc *sc)
 {
 	int i;
+	bool announce = false;
 
 	KASSERT(sc->dev != NULL);
 	KASSERT(sc->lock != NULL);
 
-	mutex_enter(sc->lock);
-	i = opl_find(sc);
-	mutex_exit(sc->lock);
-	if (i == 0) {
-		aprint_error("\nopl: find failed\n");
-		return;
+	/*
+	 * If the front-end hasn't already told is which OPL model
+	 * we have, go and figure it out.  If the front-end HAS told
+	 * us what's going on, we will assume it's announced it
+	 * already.
+	 */
+	if (sc->model == 0) {
+		announce = true;
+		mutex_enter(sc->lock);
+		i = opl_find(sc);
+		mutex_exit(sc->lock);
+		if (i == 0) {
+			aprint_error("\nopl: find failed\n");
+			return;
+		}
 	}
 
 	mutex_enter(sc->lock);
@@ -170,7 +181,9 @@ opl_attach(struct opl_softc *sc)
 	for (i = 0; i < OPL3_NVOICE; i++)
 		sc->voices[i] = voicetab[i];
 
-	aprint_normal(": model OPL%d", sc->model);
+	if (announce) {
+		aprint_normal(": model OPL%d", sc->model);
+	}
 
 	/* Set up panpot */
 	sc->panl = OPL_VOICE_TO_LEFT;
@@ -179,11 +192,15 @@ opl_attach(struct opl_softc *sc)
 	    device_cfdata(sc->dev)->cf_flags & OPL_FLAGS_SWAP_LR) {
 		sc->panl = OPL_VOICE_TO_RIGHT;
 		sc->panr = OPL_VOICE_TO_LEFT;
-		aprint_normal(": LR swapped");
+		if (announce) {
+			aprint_normal(": LR swapped");
+		}
 	}
 
-	aprint_normal("\n");
-	aprint_naive("\n");
+	if (announce) {
+		aprint_normal("\n");
+		aprint_naive("\n");
+	}
 
 	sc->sc_mididev =
 	    midi_attach_mi(&midisyn_hw_if, &sc->syn, sc->dev);
@@ -208,6 +225,11 @@ opl_command(struct opl_softc *sc, int offs, int addr, int data)
 
 	KASSERT(!sc->lock || mutex_owned(sc->lock));
 
+	if (sc->send_command) {
+		sc->send_command(sc, offs, addr, data);
+		return;
+	}
+
 	offs += sc->offs;
 	bus_space_write_1(sc->iot, sc->ioh, OPL_ADDR+offs, addr);
 	if (sc->model == OPL_2)
@@ -219,6 +241,19 @@ opl_command(struct opl_softc *sc, int offs, int addr, int data)
 		delay(30);
 	else
 		delay(6);
+}
+
+static uint8_t
+opl_read_status(struct opl_softc *sc, int offs)
+{
+
+	KASSERT(!sc->lock || mutex_owned(sc->lock));
+
+	if (sc->read_status) {
+		return sc->read_status(sc, offs);
+	}
+
+	return bus_space_read_1(sc->iot,sc->ioh,OPL_STATUS+offs+sc->offs);
 }
 
 int
@@ -241,6 +276,7 @@ opl_find(struct opl_softc *sc)
 {
 	u_int8_t status1, status2;
 
+	opldebug = 2;
 	DPRINTFN(2,("opl_find: ioh=0x%x\n", (int)sc->ioh));
 	sc->model = OPL_2;	/* worst case assumption */
 
@@ -251,7 +287,7 @@ opl_find(struct opl_softc *sc)
 	opl_command(sc, OPL_L, OPL_TIMER_CONTROL, OPL_IRQ_RESET);
 
 	/* get status bits */
-	status1 = bus_space_read_1(sc->iot,sc->ioh,OPL_STATUS+OPL_L+sc->offs);
+	status1 = opl_read_status(sc, OPL_L);
 
 	opl_command(sc, OPL_L, OPL_TIMER1, -2); /* wait 2 ticks */
 	opl_command(sc, OPL_L, OPL_TIMER_CONTROL, /* start timer1 */
@@ -259,7 +295,7 @@ opl_find(struct opl_softc *sc)
 	delay(1000);		/* wait for timer to expire */
 
 	/* get status bits again */
-	status2 = bus_space_read_1(sc->iot,sc->ioh,OPL_STATUS+OPL_L+sc->offs);
+	status2 = opl_read_status(sc, OPL_L);
 
 	opl_command(sc, OPL_L, OPL_TIMER_CONTROL,
 		    OPL_TIMER1_MASK | OPL_TIMER2_MASK);
@@ -268,8 +304,10 @@ opl_find(struct opl_softc *sc)
 	DPRINTFN(2,("opl_find: %02x %02x\n", status1, status2));
 
 	if ((status1 & OPL_STATUS_MASK) != 0 ||
-	    (status2 & OPL_STATUS_MASK) != (OPL_STATUS_IRQ | OPL_STATUS_FT1))
+	    (status2 & OPL_STATUS_MASK) != (OPL_STATUS_IRQ | OPL_STATUS_FT1)) {
+		opldebug = 0;
 		return (0);
+	}
 
 	switch(status1) {
 	case 0x00:
@@ -280,11 +318,13 @@ opl_find(struct opl_softc *sc)
 		sc->model = OPL_2;
 		break;
 	default:
+		opldebug = 0;
 		return (0);
 	}
 
 	DPRINTFN(2,("opl_find: OPL%d at 0x%x detected\n",
 		    sc->model, (int)sc->ioh));
+	opldebug = 0;
 	return (1);
 }
 

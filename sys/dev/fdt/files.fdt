@@ -149,3 +149,7 @@ file	dev/fdt/amdccp_fdt.c			amdccp_fdt
 # Arasan SDHCI controller
 attach	sdhc at fdt with arasan_sdhc_fdt
 file	dev/fdt/arasan_sdhc_fdt.c		arasan_sdhc_fdt
+
+# RAdLib OPL2 FM synthesizer board
+attach	opl at fdt with radlib_opl_fdt
+file	dev/fdt/radlib_opl_fdt.c		radlib_opl_fdt

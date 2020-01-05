@@ -56,6 +56,9 @@ struct opl_softc {
 	u_int8_t pan[MIDI_MAX_CHANS];
 	u_int8_t panl, panr;
 
+	uint8_t	(*read_status)(struct opl_softc *, int);
+	void	(*send_command)(struct opl_softc *, int, int, int);
+
 	int	(*spkrctl)(void *, int);
 	void	*spkrarg;
 
