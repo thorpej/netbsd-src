@@ -1,7 +1,8 @@
 /*	$NetBSD: kern_lwp.c,v 1.202 2019/06/04 11:54:03 kamil Exp $	*/
 
 /*-
- * Copyright (c) 2001, 2006, 2007, 2008, 2009 The NetBSD Foundation, Inc.
+ * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2019
+ *	The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -243,6 +244,8 @@ __KERNEL_RCSID(0, "$NetBSD: kern_lwp.c,v 1.202 2019/06/04 11:54:03 kamil Exp $")
 #include <sys/uidinfo.h>
 #include <sys/sysctl.h>
 #include <sys/psref.h>
+#include <sys/cprng.h>
+#include <sys/futex.h>
 
 #include <uvm/uvm_extern.h>
 #include <uvm/uvm_object.h>
@@ -282,6 +285,8 @@ struct lwp lwp0 __aligned(MIN_LWP_ALIGNMENT) = {
 	.l_name = __UNCONST("swapper"),
 	.l_fd = &filedesc0,
 };
+
+static void	lwp_threadid_init(void);
 
 static int sysctl_kern_maxlwp(SYSCTLFN_PROTO);
 
@@ -336,6 +341,7 @@ lwpinit(void)
 
 	maxlwp = cpu_maxlwp();
 	sysctl_kern_lwp_setup();
+	lwp_threadid_init();
 }
 
 void
@@ -1054,6 +1060,9 @@ lwp_exit(struct lwp *l)
 	}
 	p->p_nzlwps++;
 	mutex_exit(p->p_lock);
+
+	/* Perform any required thread cleanup. */
+	lwp_thread_cleanup(l);
 
 	if (p->p_emul->e_lwp_exit)
 		(*p->p_emul->e_lwp_exit)(l);
@@ -1937,6 +1946,176 @@ lwp_pctr(void)
 {
 
 	return curlwp->l_ncsw;
+}
+
+/* We don't care who has it, just that someone does. */
+struct lwp_threadid {
+	LIST_ENTRY(lwp_threadid)	t_link;
+	tid_t				t_tid;
+};
+
+static kmutex_t		lwp_threadid_table_lock	__cacheline_aligned;
+static LIST_HEAD(, lwp_threadid)
+			*lwp_threadid_table	__cacheline_aligned;
+static size_t		lwp_threadid_tablesize	__read_mostly;
+static u_long		lwp_threadid_hashmask	__read_mostly;
+
+#define	LWP_THREADID_TABLESIZE_MAX	4096
+
+#define	LWP_THREADID_HASH(tid)	((tid) & lwp_threadid_hashmask)
+
+static void
+lwp_threadid_init(void)
+{
+	mutex_init(&lwp_threadid_table_lock, MUTEX_DEFAULT, IPL_NONE);
+
+	/*
+	 * Size the threadid hash table.  We're trading off hash
+	 * collisions vs. memory.  We will cap the table size at
+	 * 4K entries, as that's 64K of wired memory consumption
+	 * just for the empty table on a 64-bit platform (and even
+	 * that might be considered too much by some).
+	 *
+	 * We only pay the cost of any collisions when threads are
+	 * created; releasing a threadid doesn't require a table
+	 * lookup.
+	 */
+	if (maxlwp > (1u << 29)/NPROC) {
+		lwp_threadid_tablesize = LWP_THREADID_TABLESIZE_MAX;
+	} else if ((lwp_threadid_tablesize = NPROC*maxlwp/256)
+						> LWP_THREADID_TABLESIZE_MAX) {
+		lwp_threadid_tablesize = LWP_THREADID_TABLESIZE_MAX;
+	}
+
+	lwp_threadid_table = hashinit(lwp_threadid_tablesize, HASH_LIST,
+	    true, &lwp_threadid_hashmask);
+	KASSERT(lwp_threadid_table != NULL);
+}
+
+static struct lwp_threadid *
+lwp_threadid_lookup_locked(tid_t tid)
+{
+	u_long bucket = LWP_THREADID_HASH(tid);
+	struct lwp_threadid *ltid = NULL;
+
+	LIST_FOREACH(ltid, &lwp_threadid_table[bucket], t_link) {
+		if (ltid->t_tid == tid) {
+			return ltid;
+		}
+	}
+
+	return NULL;
+}
+
+static inline void
+lwp_threadid_insert_locked(struct lwp_threadid *ltid)
+{
+	u_long bucket = LWP_THREADID_HASH(ltid->t_tid);
+
+	LIST_INSERT_HEAD(&lwp_threadid_table[bucket], ltid, t_link);
+}
+
+static inline void
+lwp_threadid_remove_locked(struct lwp_threadid *ltid)
+{
+
+	LIST_REMOVE(ltid, t_link);
+}
+
+static void
+lwp_threadid_alloc(void)
+{
+	struct lwp_threadid *oltid, *ltid = kmem_alloc(sizeof(*ltid), KM_SLEEP);
+
+	for (;;) {
+		ltid->t_tid = cprng_fast32() & FUTEX_TID_MASK;
+		if (__predict_false(ltid->t_tid == 0)) {
+			continue;
+		}
+		mutex_enter(&lwp_threadid_table_lock);
+		oltid = lwp_threadid_lookup_locked(ltid->t_tid);
+		if (__predict_true(oltid == NULL)) {
+			lwp_threadid_insert_locked(ltid);
+		}
+		mutex_exit(&lwp_threadid_table_lock);
+		if (__predict_true(oltid == NULL)) {
+			break;
+		}
+	}
+	KASSERT(curlwp->l___ltid == NULL);
+	curlwp->l___ltid = ltid;
+}
+
+static void
+lwp_threadid_free(struct lwp *l)
+{
+	struct lwp_threadid *ltid;
+
+	if ((ltid = l->l___ltid) == NULL)
+		return;
+
+	l->l___ltid = NULL;
+
+	mutex_enter(&lwp_threadid_table_lock);
+	KDASSERT(lwp_threadid_lookup_locked(ltid->t_tid) == ltid);
+	lwp_threadid_remove_locked(ltid);
+	mutex_exit(&lwp_threadid_table_lock);
+
+	kmem_free(ltid, sizeof(*ltid));
+}
+
+/*
+ * Check if an LWP has allocated a thread ID, returning it if so.
+ * Only call this when you know it's safe to do so.
+ */
+bool
+lwp_threadid_present(struct lwp *l, tid_t *tidp)
+{
+	struct lwp_threadid * const ltid = l->l___ltid;
+
+	if (ltid == NULL) {
+		return false;
+	}
+
+	if (tidp != NULL) {
+		*tidp = ltid->t_tid;
+	}
+	return true;
+}
+
+/*
+ * Return the current LWP's global thread ID.  Only the current
+ * LWP should ever use this value, unless it is guaranteed that
+ * the LWP is paused (and then it should be accessed directly, rather
+ * than by this accessor).
+ */
+tid_t
+lwp_gettid(void)
+{
+	struct lwp * const l = curlwp;
+	struct lwp_threadid * const ltid = l->l___ltid;
+
+	if (ltid != NULL) {
+		return ltid->t_tid;
+	}
+
+	lwp_threadid_alloc();
+	KASSERT(l->l___ltid != NULL);
+	return l->l___ltid->t_tid;
+}
+
+/*
+ * Perform any thread-related cleanup on LWP exit.
+ */
+void
+lwp_thread_cleanup(struct lwp *l)
+{
+
+	/* Release any robust futexes this LWP may be holding. */
+	futex_release_all_lwp(l);
+
+	/* Drop our thread ID. */
+	lwp_threadid_free(l);
 }
 
 /*

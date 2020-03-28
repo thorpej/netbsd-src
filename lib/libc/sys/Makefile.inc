@@ -107,7 +107,8 @@ ASM=	access.S acct.S \
 	faccessat.S fchdir.S fchflags.S fchmod.S fchmodat.S fchown.S \
 		fchownat.S fchroot.S fexecve.S __fhopen40.S __fhstat50.S \
 		__fhstatvfs140.S fktrace.S flock.S fpathconf.S __fstat50.S \
-		fstatvfs1.S fstatat.S  __futimes50.S futimens.S \
+		fstatvfs1.S fstatat.S __futex.S __futex_get_robust_list.S \
+		__futex_set_robust_list.S __futimes50.S futimens.S \
 	__getcwd.S __getdents30.S __getfh30.S getvfsstat.S getgroups.S\
 		__getitimer50.S __getlogin.S getpeername.S getpgid.S getpgrp.S \
 		getpriority.S getrlimit.S __getrusage50.S getsid.S \
@@ -119,9 +120,9 @@ ASM=	access.S acct.S \
 		_ksem_wait.S _ksem_open.S \
 	lchflags.S lchmod.S lchown.S lfs_bmapv.S lfs_markv.S lfs_segclean.S \
 		__lfs_segwait50.S link.S linkat.S listen.S __lstat50.S \
-		__lutimes50.S _lwp_create.S _lwp_exit.S _lwp_kill.S \
-		___lwp_park60.S _lwp_self.S _lwp_wait.S _lwp_unpark.S \
-		_lwp_unpark_all.S _lwp_suspend.S _lwp_continue.S \
+		__lutimes50.S _lwp_create.S _lwp_exit.S _lwp_gettid.S \
+		_lwp_kill.S ___lwp_park60.S _lwp_self.S _lwp_wait.S \
+		_lwp_unpark.S _lwp_unpark_all.S _lwp_suspend.S _lwp_continue.S \
 		_lwp_wakeup.S _lwp_detach.S _lwp_setprivate.S \
 		_lwp_setname.S _lwp_getname.S _lwp_ctl.S \
 	madvise.S mincore.S minherit.S mkdir.S mkdirat.S mkfifo.S mkfifoat.S \

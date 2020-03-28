@@ -1,7 +1,7 @@
 /*	$NetBSD: lwp.h,v 1.186 2019/06/19 21:39:53 kamil Exp $	*/
 
 /*
- * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2010
+ * Copyright (c) 2001, 2006, 2007, 2008, 2009, 2010, 2019
  *    The NetBSD Foundation, Inc.
  * All rights reserved.
  *
@@ -77,6 +77,7 @@ static __inline struct cpu_info *lwp_getcpu(struct lwp *);
 
 struct lockdebug;
 struct sysent;
+struct lwp_threadid;
 
 struct lwp {
 	/* Scheduling and overall state. */
@@ -133,6 +134,19 @@ struct lwp {
 	u_int		l_emap_gen;	/* !: emap generation number */
 	kcondvar_t	l_waitcv;	/* a: vfork() wait */
 	bool		l_vforkwaiting;	/* a: vfork() waiting */
+
+	/* User-space synchronization. */
+	uintptr_t	l_robust_head;	/* !: list of robust futexes */
+		/*
+		 * The global thread ID has special locking and access
+		 * considerations.  Because many LWPs may not need one,
+		 * they are allocated lazily in lwp_tid().  l___ltid
+		 * is not meant to be accessed directly unless the
+		 * accessor has specific knowledge that doing so is
+		 * safe.  l___ltid is only assigned by the LWP itself.
+		 * Once assigned, it is stable.
+		 */
+	struct lwp_threadid *l___ltid;	/* !: global thread id */
 
 #if PCU_UNIT_COUNT > 0
 	struct cpu_info	* volatile l_pcu_cpu[PCU_UNIT_COUNT];
@@ -346,7 +360,11 @@ void	lwp_free(lwp_t *, bool, bool);
 uint64_t lwp_pctr(void);
 int	lwp_setprivate(lwp_t *, void *);
 int	do_lwp_create(lwp_t *, void *, u_long, lwpid_t *, const sigset_t *,
-    const stack_t *);
+	    const stack_t *);
+tid_t	lwp_gettid(void);
+
+bool	lwp_threadid_present(struct lwp *, tid_t *);
+void	lwp_thread_cleanup(struct lwp *);
 
 void	lwpinit_specificdata(void);
 int	lwp_specific_key_create(specificdata_key_t *, specificdata_dtor_t);
