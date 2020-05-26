@@ -364,12 +364,23 @@ cpu_need_proftick(struct lwp *l)
 bool
 cpu_intr_p(void)
 {
+	uint64_t ncsw;
 	int idepth;
+	lwp_t *l;
 
-	kpreempt_disable();
-	idepth = curcpu()->ci_idepth;
-	kpreempt_enable();
-	return (idepth >= 0);
+	l = curlwp;
+	if (__predict_false(l->l_cpu == NULL)) {
+		KASSERT(l == &lwp0);
+		return false;
+	}
+	do {
+		ncsw = l->l_ncsw;
+		__insn_barrier();
+		idepth = l->l_cpu->ci_idepth;
+		__insn_barrier();
+	} while (__predict_false(ncsw != l->l_ncsw));
+
+	return idepth >= 0;
 }
 
 #ifdef __HAVE_PREEMPTION

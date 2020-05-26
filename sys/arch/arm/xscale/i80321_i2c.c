@@ -98,8 +98,6 @@ iic321_attach(device_t parent, device_t self, void *aux)
 
 	/* XXX Reset the I2C unit? */
 
-	mutex_init(&sc->sc_buslock, MUTEX_DEFAULT, IPL_NONE);
-
 	/* XXX We don't currently use interrupts.  Fix this some day. */
 #if 0
 	sc->sc_ih = i80321_intr_establish((ia->ia_offset == VERDE_I2C_BASE0) ?

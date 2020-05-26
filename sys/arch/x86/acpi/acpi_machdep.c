@@ -295,6 +295,18 @@ acpi_md_intr_establish(uint32_t InterruptNumber, int ipl, int type,
 }
 
 void
+acpi_md_intr_mask(void *ih)
+{
+	intr_mask(ih);
+}
+
+void
+acpi_md_intr_unmask(void *ih)
+{
+	intr_unmask(ih);
+}
+
+void
 acpi_md_intr_disestablish(void *ih)
 {
 	intr_disestablish(ih);

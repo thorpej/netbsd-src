@@ -188,24 +188,6 @@ __KERNEL_RCSID(0, "$NetBSD: dw_hdmi.c,v 1.1 2019/01/30 01:19:49 jmcneill Exp $")
 #define	HDMI_I2CM_SEGPTR	0x7e0a
 
 static int
-dwhdmi_ddc_acquire_bus(void *priv, int flags)
-{
-	struct dwhdmi_softc * const sc = priv;
-
-	mutex_enter(&sc->sc_ic_lock);
-
-	return 0;
-}
-
-static void
-dwhdmi_ddc_release_bus(void *priv, int flags)
-{
-	struct dwhdmi_softc * const sc = priv;
-
-	mutex_exit(&sc->sc_ic_lock);
-}
-
-static int
 dwhdmi_ddc_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
     const void *cmdbuf, size_t cmdlen, void *buf, size_t len, int flags)
 {
@@ -213,8 +195,6 @@ dwhdmi_ddc_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
 	uint8_t block, operation, val;
 	uint8_t *pbuf = buf;
 	int off, n, retry;
-
-	KASSERT(mutex_owned(&sc->sc_ic_lock));
 
 	if (addr != DDC_ADDR || op != I2C_OP_READ_WITH_STOP || cmdlen == 0 || buf == NULL) {
 		printf("dwhdmi_ddc_exec: bad args addr=%#x op=%#x cmdlen=%d buf=%p\n",
@@ -631,11 +611,8 @@ dwhdmi_attach(struct dwhdmi_softc *sc)
 		return EINVAL;
 	}
 
-	mutex_init(&sc->sc_ic_lock, MUTEX_DEFAULT, IPL_NONE);
-
+	iic_tag_init(ic);
 	ic->ic_cookie = sc;
-	ic->ic_acquire_bus = dwhdmi_ddc_acquire_bus;
-	ic->ic_release_bus = dwhdmi_ddc_release_bus;
 	ic->ic_exec = dwhdmi_ddc_exec;
 
 	return 0;

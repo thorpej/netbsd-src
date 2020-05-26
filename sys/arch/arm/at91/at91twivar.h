@@ -40,7 +40,6 @@ struct at91twi_softc {
 
 	int			sc_pid;		/* peripheral id	*/
 	struct i2c_controller	sc_i2c;		/* I2C device desc	*/
-	kmutex_t		sc_buslock;	/* bus lock		*/
 
 	void			*sc_ih;		/* interrupt handle	*/
 

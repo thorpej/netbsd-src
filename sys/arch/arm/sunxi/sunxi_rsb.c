@@ -100,8 +100,6 @@ struct sunxi_rsb_softc {
 #define RSB_WRITE(sc, reg, val) \
     bus_space_write_4((sc)->sc_bst, (sc)->sc_bsh, (reg), (val))
 
-static int	sunxi_rsb_acquire_bus(void *, int);
-static void     sunxi_rsb_release_bus(void *, int);
 static int	sunxi_rsb_exec(void *, i2c_op_t, i2c_addr_t, const void *,
 			       size_t, void *, size_t, int);
 
@@ -192,9 +190,8 @@ sunxi_rsb_attach(device_t parent, device_t self, void *aux)
 	}
 	aprint_normal_dev(self, "interrupting on %s\n", intrstr);
 
+	iic_tag_init(&sc->sc_ic);
 	sc->sc_ic.ic_cookie = sc;
-	sc->sc_ic.ic_acquire_bus = sunxi_rsb_acquire_bus;
-	sc->sc_ic.ic_release_bus = sunxi_rsb_release_bus;
 	sc->sc_ic.ic_exec = sunxi_rsb_exec;
 
 	fdtbus_register_i2c_controller(self, phandle, &sunxi_rsb_funcs);
@@ -323,31 +320,6 @@ sunxi_rsb_rsb_config(struct sunxi_rsb_softc *sc, uint8_t rta, i2c_addr_t da,
 }
 
 static int
-sunxi_rsb_acquire_bus(void *priv, int flags)
-{
-	struct sunxi_rsb_softc *sc = priv;
-
-	for (;;) {
-		mutex_enter(&sc->sc_lock);
-		if (sc->sc_busy == false)
-			break;
-		mutex_exit(&sc->sc_lock);
-	}
-	sc->sc_busy = true;
-
-	return 0;
-}
-
-static void
-sunxi_rsb_release_bus(void *priv, int flags)
-{
-	struct sunxi_rsb_softc *sc = priv;
-
-	sc->sc_busy = false;
-	mutex_exit(&sc->sc_lock);
-}
-
-static int
 sunxi_rsb_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
     const void *cmdbuf, size_t cmdlen, void *buf, size_t len, int flags)
 {
@@ -356,14 +328,14 @@ sunxi_rsb_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
 	uint8_t rta;
 	int error, i;
 
-	KASSERT(mutex_owned(&sc->sc_lock));
-	KASSERT(sc->sc_busy == true);
-
 	if (cmdlen != 1 || (len != 1 && len != 2 && len != 4))
 		return EINVAL;
 
+	mutex_enter(&sc->sc_lock);
+
 	error = sunxi_rsb_soft_reset(sc);
 	if (error != 0) {
+		mutex_exit(&sc->sc_lock);
 		device_printf(sc->sc_dev, "soft reset timed out\n");
 		return error;
 	}
@@ -386,6 +358,7 @@ sunxi_rsb_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
 				break;
 			}
 		if (rta == 0) {
+			mutex_exit(&sc->sc_lock);
 			device_printf(sc->sc_dev,
 			    "RTA not known for address %#x\n", addr);
 			return ENXIO;
@@ -492,6 +465,7 @@ sunxi_rsb_exec(void *priv, i2c_op_t op, i2c_addr_t addr,
 
 done:
 	RSB_WRITE(sc, RSB_CTRL_REG, 0);
+	mutex_exit(&sc->sc_lock);
 
 	return error;
 }

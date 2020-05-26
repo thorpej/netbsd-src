@@ -147,7 +147,6 @@ void
 pserialize_perform(pserialize_t psz)
 {
 	int n;
-	uint64_t xc;
 
 	KASSERT(!cpu_intr_p());
 	KASSERT(!cpu_softintr_p());
@@ -187,8 +186,7 @@ pserialize_perform(pserialize_t psz)
 		 */
 		if (n++ > 1)
 			kpause("psrlz", false, 1, NULL);
-		xc = xc_broadcast(XC_HIGHPRI, (xcfunc_t)nullop, NULL, NULL);
-		xc_wait(xc);
+		xc_barrier(XC_HIGHPRI);
 
 		mutex_spin_enter(&psz_lock);
 	} while (!kcpuset_iszero(psz->psz_target));

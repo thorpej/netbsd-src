@@ -332,12 +332,12 @@ piixpm_rescan(device_t self, const char *ifattr, const int *flags)
 			continue;
 		sc->sc_busses[i].sda = i;
 		sc->sc_busses[i].softc = sc;
+		iic_tag_init(&sc->sc_i2c_tags[i]);
 		sc->sc_i2c_tags[i].ic_cookie = &sc->sc_busses[i];
 		sc->sc_i2c_tags[i].ic_acquire_bus = piixpm_i2c_acquire_bus;
 		sc->sc_i2c_tags[i].ic_release_bus = piixpm_i2c_release_bus;
 		sc->sc_i2c_tags[i].ic_exec = piixpm_i2c_exec;
 		memset(&iba, 0, sizeof(iba));
-		iba.iba_type = I2C_TYPE_SMBUS;
 		iba.iba_tag = &sc->sc_i2c_tags[i];
 		sc->sc_i2c_device[i] = config_found_ia(self, ifattr, &iba,
 		    piixpm_iicbus_print);

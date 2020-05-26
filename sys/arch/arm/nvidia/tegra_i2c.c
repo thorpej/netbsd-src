@@ -70,8 +70,6 @@ struct tegra_i2c_softc {
 static void	tegra_i2c_init(struct tegra_i2c_softc *);
 static int	tegra_i2c_intr(void *);
 
-static int	tegra_i2c_acquire_bus(void *, int);
-static void	tegra_i2c_release_bus(void *, int);
 static int	tegra_i2c_exec(void *, i2c_op_t, i2c_addr_t, const void *,
 			       size_t, void *, size_t, int);
 
@@ -177,11 +175,12 @@ tegra_i2c_attach(device_t parent, device_t self, void *aux)
 	}
 	fdtbus_reset_deassert(sc->sc_rst);
 
+	mutex_enter(&sc->sc_lock);
 	tegra_i2c_init(sc);
+	mutex_exit(&sc->sc_lock);
 
+	iic_tag_init(&sc->sc_ic);
 	sc->sc_ic.ic_cookie = sc;
-	sc->sc_ic.ic_acquire_bus = tegra_i2c_acquire_bus;
-	sc->sc_ic.ic_release_bus = tegra_i2c_release_bus;
 	sc->sc_ic.ic_exec = tegra_i2c_exec;
 
 	fdtbus_register_i2c_controller(self, phandle, &tegra_i2c_funcs);
@@ -244,39 +243,24 @@ tegra_i2c_intr(void *priv)
 }
 
 static int
-tegra_i2c_acquire_bus(void *priv, int flags)
-{
-	struct tegra_i2c_softc * const sc = priv;
-
-	mutex_enter(&sc->sc_lock);
-
-	return 0;
-}
-
-static void
-tegra_i2c_release_bus(void *priv, int flags)
-{
-	struct tegra_i2c_softc * const sc = priv;
-
-	mutex_exit(&sc->sc_lock);
-}
-
-static int
 tegra_i2c_exec(void *priv, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
     size_t cmdlen, void *buf, size_t buflen, int flags)
 {
 	struct tegra_i2c_softc * const sc = priv;
 	int retry, error;
 
-#if notyet
-	if (cold)
-#endif
-		flags |= I2C_F_POLL;
-
-	KASSERT(mutex_owned(&sc->sc_lock));
+	/*
+	 * XXXJRT This is probably no longer necessary?  Before these
+	 * changes, sc_lock was held by iic_acquire_bus(), and there
+	 * would be a deadlock when the interrupt handler tried to
+	 * acquire it again.
+	 */
+	flags |= I2C_F_POLL;
 
 	if (buflen == 0 && cmdlen == 0)
 		return EINVAL;
+
+	mutex_enter(&sc->sc_lock);
 
 	if ((flags & I2C_F_POLL) == 0) {
 		I2C_WRITE(sc, I2C_INTERRUPT_MASK_REG,
@@ -296,6 +280,7 @@ tegra_i2c_exec(void *priv, i2c_op_t op, i2c_addr_t addr, const void *cmdbuf,
 		delay(1);
 	}
 	if (retry == 0) {
+		mutex_exit(&sc->sc_lock);
 		device_printf(sc->sc_dev, "timeout flushing FIFO\n");
 		return EIO;
 	}
@@ -324,6 +309,8 @@ done:
 	if (error) {
 		tegra_i2c_init(sc);
 	}
+
+	mutex_exit(&sc->sc_lock);
 
 	return error;
 }

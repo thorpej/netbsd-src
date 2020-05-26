@@ -591,6 +591,22 @@ end:
 }
 
 void
+acpi_intr_mask(void *c)
+{
+	struct acpi_irq_handler * const aih = c;
+
+	acpi_md_intr_mask(aih->aih_ih);
+}
+
+void
+acpi_intr_unmask(void *c)
+{
+	struct acpi_irq_handler * const aih = c;
+
+	acpi_md_intr_unmask(aih->aih_ih);
+}
+
+void
 acpi_intr_disestablish(void *c)
 {
 	struct acpi_irq_handler *aih = c;

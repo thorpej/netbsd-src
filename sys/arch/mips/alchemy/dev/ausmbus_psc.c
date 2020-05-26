@@ -126,14 +126,10 @@ ausmbus_attach(device_t parent, device_t self, void *aux)
 	sc->sc_ctrl = aa->aupsc_ctrl;
 
 	/* Initialize i2c_controller for SMBus */
+	iic_tag_init(&sc->sc_i2c);
 	sc->sc_i2c.ic_cookie = sc;
 	sc->sc_i2c.ic_acquire_bus = ausmbus_acquire_bus;
 	sc->sc_i2c.ic_release_bus = ausmbus_release_bus;
-	sc->sc_i2c.ic_send_start = NULL;
-	sc->sc_i2c.ic_send_stop = NULL;
-	sc->sc_i2c.ic_initiate_xfer = NULL;
-	sc->sc_i2c.ic_read_byte = NULL;
-	sc->sc_i2c.ic_write_byte = NULL;
 	sc->sc_i2c.ic_exec = ausmbus_exec;
 	sc->sc_smbus_timeout = 10;
 

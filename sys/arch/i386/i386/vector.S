@@ -408,6 +408,8 @@ IDTVEC(intr_ ## name ## num)						;\
 	IDEPTH_INCR							;\
 	sti								;\
 	movl	IS_HANDLERS(%ebp),%ebx					;\
+	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source currently masked? */	;\
+	jne	7f			/* yes, hold it */		;\
 6:									\
 	movl	IH_LEVEL(%ebx),%edi					;\
 	cmpl	%esi,%edi						;\
@@ -420,6 +422,8 @@ IDTVEC(intr_ ## name ## num)						;\
 	addl	$4,%esp			/* toss the arg */		;\
 	testl	%ebx,%ebx						;\
 	jnz	6b							;\
+	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source now masked? */	;\
+	jne	7f			/* yes, deal */			;\
 	cli								;\
 	unmask(num)			/* unmask it in hardware */	;\
 	late_ack(num)							;\

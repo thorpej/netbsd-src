@@ -32,7 +32,6 @@
 #ifndef _DEV_PCI_AMDPMVAR_H_
 #define _DEV_PCI_AMDPMVAR_H_
 
-#include <sys/mutex.h>
 #include <sys/rndsource.h>
 
 struct amdpm_softc {

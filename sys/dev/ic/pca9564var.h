@@ -41,7 +41,6 @@ struct pca9564_softc {
 	int sc_i2c_clock;
 
 	struct i2c_controller sc_i2c;
-	kmutex_t sc_buslock;
 };
 
 void pca9564_attach(struct pca9564_softc *);

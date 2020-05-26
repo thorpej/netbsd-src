@@ -75,8 +75,6 @@ void	memory_attach(device_t, device_t, void *);
 CFATTACH_DECL_NEW(memory, sizeof(struct memory_softc), memory_match, memory_attach,
               NULL, NULL);
 
-int	memory_i2c_acquire_bus(void *, int);
-void	memory_i2c_release_bus(void *, int);
 int	memory_i2c_exec(void *, i2c_op_t, i2c_addr_t,
    	                const void *, size_t, void *, size_t, int);
 
@@ -116,10 +114,8 @@ memory_attach(device_t parent, device_t self, void *aux)
 
 		OF_getprop(ca->ca_node, "dimm-info", sc->sc_buf, sc->sc_len);
 
-		memset(&ic, 0, sizeof ic);
+		iic_tag_init(&ic);
 		ic.ic_cookie = sc;
-		ic.ic_acquire_bus = memory_i2c_acquire_bus;
-		ic.ic_release_bus = memory_i2c_release_bus;
 		ic.ic_exec = memory_i2c_exec;
 
 		memset(&ia, 0, sizeof ia);
@@ -140,18 +136,8 @@ memory_attach(device_t parent, device_t self, void *aux)
 		/* No need to keep the "dimm-info" contents around. */
 		free(sc->sc_buf, M_DEVBUF);
 		sc->sc_len = -1;
+		iic_tag_fini(&ic);
 	}
-}
-
-int
-memory_i2c_acquire_bus(void *cookie, int flags)
-{
-	return (0);
-}
-
-void
-memory_i2c_release_bus(void *cookie, int flags)
-{
 }
 
 int

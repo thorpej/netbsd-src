@@ -160,9 +160,9 @@ settime1(struct proc *p, const struct timespec *ts, bool check_kauth)
 	tc_setclock(ts);
 
 	timespecadd(&boottime, &delta, &boottime);
+	splx(s);
 
 	resettodr();
-	splx(s);
 
 	return (0);
 }

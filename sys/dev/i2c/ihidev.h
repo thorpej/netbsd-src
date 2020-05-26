@@ -100,7 +100,9 @@ struct ihidev_softc {
 	uint64_t	sc_phandle;
 
 	void *		sc_ih;
+	void *		sc_sih;
 	kmutex_t	sc_intr_lock;
+	int		sc_intr_type;
 
 	u_int		sc_hid_desc_addr;
 	union {
